@@ -1,0 +1,33 @@
+{
+  "name": "@haritailesi/sahne",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev --port 3002",
+    "start": "next start --port 3002",
+    "lint": "next lint --max-warnings 0",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@haritailesi/types": "*",
+    "@haritailesi/ui": "*",
+    "next": "^15.3.2",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@haritailesi/config-eslint": "*",
+    "@haritailesi/config-ts": "*",
+    "@tailwindcss/forms": "^0.5.10",
+    "@tailwindcss/postcss": "^4.1.6",
+    "@tailwindcss/typography": "^0.5.19",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "eslint": "^9.25.1",
+    "eslint-config-next": "^15.3.2",
+    "tailwindcss": "^4.1.6",
+    "typescript": "^5.8.3"
+  }
+}

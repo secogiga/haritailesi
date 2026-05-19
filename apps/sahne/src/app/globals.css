@@ -1,0 +1,67 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/forms";
+@plugin "@tailwindcss/typography";
+
+/* Class-based dark mode — ThemeToggle sets data-theme="dark" on <html> */
+@custom-variant dark (&:where([data-theme="dark"] *), &:is([data-theme="dark"]));
+
+@theme {
+  --color-mavi: #26496b;
+  --color-mavi-acik: #2d6a9f;
+  --color-altin: #c9a227;
+  --color-teal: #66aca9;
+  --font-family-sans: "Inter", system-ui, sans-serif;
+}
+
+/* Dark mode — body base */
+[data-theme="dark"] body {
+  background-color: #070c1a;
+  color: #e2e8f3;
+}
+
+/* Prevent transition flash on initial load */
+[data-theme-loading] * {
+  transition: none !important;
+}
+
+/* ── Hero parallax — scroll-driven (Chrome 115+, Safari 18+) ── */
+@supports (animation-timeline: scroll()) {
+  .hero-parallax-bg {
+    animation: hero-parallax-move linear both;
+    animation-timeline: scroll(root);
+    animation-range: 0px 500px;
+  }
+  @keyframes hero-parallax-move {
+    to { transform: translateY(80px) scale(1.08); }
+  }
+
+  .hero-parallax-topo {
+    animation: hero-topo-drift linear both;
+    animation-timeline: scroll(root);
+    animation-range: 0px 500px;
+  }
+  @keyframes hero-topo-drift {
+    to { transform: translateY(40px); opacity: 0.03; }
+  }
+}
+
+/* ── Hero topo — subtle entrance animation ── */
+@keyframes hero-topo-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 0.06; transform: scale(1); }
+}
+.hero-topo-in {
+  animation: hero-topo-in 1.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0.2s;
+}
+
+/* ── prefers-reduced-motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
