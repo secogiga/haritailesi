@@ -1,0 +1,12 @@
+{
+  "name": "@haritailesi/config-eslint",
+  "version": "0.0.1",
+  "private": true,
+  "exports": {
+    "./base": "./base.js",
+    "./next": "./next.js"
+  },
+  "peerDependencies": {
+    "eslint": "^9.x"
+  }
+}

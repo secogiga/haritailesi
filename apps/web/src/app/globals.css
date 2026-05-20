@@ -1,0 +1,15 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/forms";
+@plugin "@tailwindcss/typography";
+
+body.admin-mode-active {
+  padding-top: 2.5rem;
+}
+
+@theme {
+  --color-mavi: #26496b;
+  --color-mavi-acik: #2d6a9f;
+  --color-altin: #c9a227;
+  --color-teal: #66aca9;
+  --font-family-sans: "Inter", system-ui, sans-serif;
+}

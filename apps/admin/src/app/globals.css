@@ -1,0 +1,8 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/forms";
+
+@theme {
+  --color-mavi: #26496b;
+  --color-mavi-acik: #2d6a9f;
+  --font-family-sans: "Inter", system-ui, sans-serif;
+}

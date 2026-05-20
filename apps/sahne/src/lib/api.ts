@@ -182,6 +182,39 @@ async function examResourcesGet(examKey?: string, resourceType?: string): Promis
   return result ?? [];
 }
 
+export interface CmsTalent {
+  id: string;
+  userId: string | null;
+  displayName: string;
+  category: string;
+  title: string;
+  description: string | null;
+  mediaUrl: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  isPublished: boolean;
+  createdAt: string;
+}
+
+async function talentsGet(category?: string): Promise<CmsTalent[]> {
+  const qs = category ? `?category=${encodeURIComponent(category)}` : '';
+  const result = await cmsGet<CmsTalent[]>(`/talents${qs}`);
+  return result ?? [];
+}
+
+export interface HaberitaWidgetFeatured {
+  title?: string;
+  excerpt?: string;
+  imageUrl?: string;
+  url?: string;
+  category?: string;
+  excerptMaxChars?: number;
+}
+
+export interface HaberitaWidget {
+  featured?: HaberitaWidgetFeatured;
+  sideLinks?: Array<{ title?: string; url?: string }>;
+}
+
 export const cms = {
   events: (type?: string) =>
     cmsGet<CmsEvent[]>(`/events${type ? `?type=${type}` : ''}`),
@@ -195,4 +228,5 @@ export const cms = {
   jobListings: jobListingsGet,
   trainings: trainingsGet,
   examResources: examResourcesGet,
+  talents: talentsGet,
 };

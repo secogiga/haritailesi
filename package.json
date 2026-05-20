@@ -1,0 +1,27 @@
+{
+  "name": "haritailesi",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "dev:api": "turbo dev --filter=@haritailesi/api",
+    "dev:web": "turbo dev --filter=@haritailesi/web",
+    "dev:sahne": "turbo dev --filter=@haritailesi/sahne",
+    "dev:mutfak": "turbo dev --filter=@haritailesi/mutfak",
+    "dev:admin": "turbo dev --filter=@haritailesi/admin",
+    "lint": "turbo lint",
+    "type-check": "turbo type-check",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\" --ignore-path .gitignore",
+    "clean": "turbo clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "prettier": "^3.5.3",
+    "turbo": "^2.5.3",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "npm@11.12.1"
+}

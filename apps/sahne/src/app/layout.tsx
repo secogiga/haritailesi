@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { Inter } from 'next/font/google';
+import { SahneAuthProvider } from '@/contexts/SahneAuthContext';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' });
@@ -42,7 +43,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className={`${inter.className} bg-white dark:bg-[#070c1a] text-gray-900 dark:text-slate-100 antialiased transition-colors duration-200`}>
-        {children}
+        <SahneAuthProvider>
+          {children}
+        </SahneAuthProvider>
       </body>
     </html>
   );

@@ -1,0 +1,43 @@
+{
+  "name": "@haritailesi/web",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev --port 3001",
+    "start": "next start --port 3001",
+    "lint": "next lint --max-warnings 0",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@haritailesi/types": "*",
+    "@haritailesi/ui": "*",
+    "@hookform/resolvers": "^3.9.1",
+    "@tiptap/extension-link": "^2.27.2",
+    "@tiptap/pm": "^2.27.2",
+    "@tiptap/react": "^2.27.2",
+    "@tiptap/starter-kit": "^2.27.2",
+    "@types/leaflet": "^1.9.21",
+    "leaflet": "^1.9.4",
+    "next": "^15.3.2",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-hook-form": "^7.56.4",
+    "react-leaflet": "^5.0.0",
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "@haritailesi/config-eslint": "*",
+    "@haritailesi/config-ts": "*",
+    "@tailwindcss/forms": "^0.5.10",
+    "@tailwindcss/postcss": "^4.1.6",
+    "@tailwindcss/typography": "^0.5.19",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "eslint": "^9.25.1",
+    "eslint-config-next": "^15.3.2",
+    "tailwindcss": "^4.1.6",
+    "typescript": "^5.8.3"
+  }
+}

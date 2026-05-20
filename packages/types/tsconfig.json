@@ -1,0 +1,10 @@
+{
+  "extends": "@haritailesi/config-ts/base",
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "noEmit": true
+  },
+  "include": ["src"]
+}

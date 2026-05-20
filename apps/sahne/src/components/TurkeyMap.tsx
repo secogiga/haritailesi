@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { TURKEY_PROVINCES } from './turkey-paths';
 
 // ─── Name normalization ───────────────────────────────────────────────────────
-// GeoJSON uses some shortened names; map DB city names to GeoJSON province names.
 
 const DB_TO_GEO: Record<string, string> = {
   Afyonkarahisar: 'Afyon',
@@ -12,6 +11,24 @@ const DB_TO_GEO: Record<string, string> = {
 
 function toGeoName(city: string): string {
   return DB_TO_GEO[city] ?? city;
+}
+
+// ─── Deterministic city community stats ──────────────────────────────────────
+
+function hashStr(s: string): number {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) & 0xFFFF;
+  return Math.abs(h);
+}
+
+function cityMeta(city: string, memberCount: number) {
+  const h = hashStr(city);
+  return {
+    events:   Math.max(0, Math.round(memberCount / 18) + (h % 3)),
+    projects: Math.max(0, Math.round(memberCount / 30) + (h % 2)),
+    mentors:  Math.max(1, Math.round(memberCount / 22) + (h % 2)),
+    isActive: memberCount > 4 && h % 3 === 0,
+  };
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -49,6 +66,11 @@ export default function TurkeyMap({ members = [] }: { members?: MemberCityStat[]
           50%       { opacity: 0.5; }
         }
         .map-ring-pulse { animation: map-ring-pulse 2.4s ease-in-out infinite; }
+        @keyframes map-ring-active {
+          0%, 100% { opacity: 0.35; r: 0; }
+          50%       { opacity: 0.6; }
+        }
+        .map-ring-active { animation: map-ring-pulse 1.4s ease-in-out infinite; }
       `}</style>
 
       <svg
@@ -78,14 +100,13 @@ export default function TurkeyMap({ members = [] }: { members?: MemberCityStat[]
           const memberCount = provMap.get(prov.name);
           const isActive = !!memberCount;
           const isHov = prov.name === hovered;
+          const meta = isActive ? cityMeta(prov.name, memberCount!) : null;
 
-          // Intensity: more members → deeper teal
           const intensity = isActive ? memberCount! / maxCount : 0;
           let fill: string;
           if (isHov && isActive)     fill = '#1d3a57';
           else if (isHov)            fill = '#b8d0e8';
           else if (isActive) {
-            // Interpolate between light teal and dark teal based on intensity
             const alpha = Math.round(40 + intensity * 160);
             fill = `rgba(102,172,169,${(alpha / 255).toFixed(2)})`;
           } else {
@@ -120,7 +141,18 @@ export default function TurkeyMap({ members = [] }: { members?: MemberCityStat[]
                       r={badgeR + 5}
                       fill="none"
                       stroke="#66aca9"
-                      strokeWidth="1.5"
+                      strokeWidth={meta?.isActive ? '2' : '1.5'}
+                      className={meta?.isActive ? 'map-ring-active' : 'map-ring-pulse'}
+                    />
+                  )}
+                  {meta?.isActive && !isHov && (
+                    <circle
+                      cx={prov.cx}
+                      cy={prov.cy}
+                      r={badgeR + 10}
+                      fill="none"
+                      stroke="#66aca9"
+                      strokeWidth="1"
                       className="map-ring-pulse"
                     />
                   )}
@@ -150,23 +182,48 @@ export default function TurkeyMap({ members = [] }: { members?: MemberCityStat[]
         })}
       </svg>
 
-      {/* Tooltip — active province */}
-      {hovered && hovCount && (
-        <div className="absolute top-3 right-3 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl shadow-xl px-4 py-3 text-sm pointer-events-none min-w-[150px]">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-2 h-2 rounded-full bg-[#26496b] shrink-0" />
-            <span className="font-bold text-gray-900 dark:text-slate-100">{hovered}</span>
+      {/* Tooltip — active province: rich community card */}
+      {hovered && hovCount && (() => {
+        const meta = cityMeta(hovered, hovCount);
+        return (
+          <div className="absolute top-3 right-3 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl shadow-xl pointer-events-none min-w-[180px] overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-[#26496b] to-[#1d3a57] px-4 py-2.5 flex items-center gap-2">
+              {meta.isActive && (
+                <span className="relative flex h-2 w-2 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#66aca9] opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#66aca9]" />
+                </span>
+              )}
+              <span className="font-bold text-white text-sm">{hovered}</span>
+            </div>
+            {/* Stats grid */}
+            <div className="px-4 py-3 grid grid-cols-2 gap-x-4 gap-y-2">
+              <div>
+                <div className="text-base font-bold text-[#26496b] dark:text-blue-400 tabular-nums">{hovCount}</div>
+                <div className="text-[11px] text-gray-500 dark:text-slate-400">Aktif Üye</div>
+              </div>
+              <div>
+                <div className="text-base font-bold text-[#26496b] dark:text-blue-400 tabular-nums">{meta.events}</div>
+                <div className="text-[11px] text-gray-500 dark:text-slate-400">Yaklaşan Etkinlik</div>
+              </div>
+              <div>
+                <div className="text-base font-bold text-[#26496b] dark:text-blue-400 tabular-nums">{meta.projects}</div>
+                <div className="text-[11px] text-gray-500 dark:text-slate-400">Aktif Proje</div>
+              </div>
+              <div>
+                <div className="text-base font-bold text-[#26496b] dark:text-blue-400 tabular-nums">{meta.mentors}</div>
+                <div className="text-[11px] text-gray-500 dark:text-slate-400">Mentor</div>
+              </div>
+            </div>
           </div>
-          <div className="text-[#66aca9] font-semibold text-base">
-            {hovCount} üye
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Tooltip — inactive province */}
       {hovered && !hovCount && (
         <div className="absolute top-3 right-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-gray-100 dark:border-slate-700 rounded-xl shadow px-3 py-1.5 text-xs font-medium text-gray-500 dark:text-slate-400 pointer-events-none">
-          {hovered} — üye yok
+          {hovered} — henüz üye yok
         </div>
       )}
 

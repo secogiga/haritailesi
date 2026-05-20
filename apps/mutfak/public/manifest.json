@@ -1,0 +1,40 @@
+{
+  "name": "Haritailesi Mutfak",
+  "short_name": "Mutfak",
+  "description": "Haritailesi mesleki topluluk platformu",
+  "start_url": "/akis",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#26496b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["social", "productivity"],
+  "lang": "tr",
+  "dir": "ltr",
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Akış",
+      "url": "/akis",
+      "description": "Topluluk gönderilerini gör"
+    },
+    {
+      "name": "Mentorluk",
+      "url": "/mentorluk",
+      "description": "Mentor bul veya seans planla"
+    }
+  ]
+}

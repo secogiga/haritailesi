@@ -4,10 +4,14 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import ThemeToggle from './ThemeToggle';
 import { SearchModal } from './SearchModal';
+import { useSahneAuth } from '@/contexts/SahneAuthContext';
+
+const MUTFAK_URL = process.env['NEXT_PUBLIC_MUTFAK_URL'] ?? 'https://mutfak.haritailesi.org';
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const { user, isLoading, logout } = useSahneAuth();
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -65,18 +69,55 @@ export default function Navbar() {
             </button>
             <ThemeToggle />
             <div className="w-px h-5 bg-gray-200 dark:bg-slate-700 mx-1" />
-            <a
-              href={`${process.env['NEXT_PUBLIC_WEB_URL'] ?? 'https://haritailesi.org'}/giris`}
-              className="text-sm font-medium text-gray-600 dark:text-slate-400 hover:text-[var(--color-mavi)] dark:hover:text-blue-400 transition-colors px-2"
-            >
-              Giriş Yap
-            </a>
-            <a
-              href={`${process.env['NEXT_PUBLIC_WEB_URL'] ?? 'https://haritailesi.org'}/uye-ol`}
-              className="px-4 py-2 text-sm font-semibold text-white bg-[var(--color-mavi)] hover:bg-[var(--color-mavi-acik)] rounded-lg transition-colors"
-            >
-              Üye Ol
-            </a>
+            {isLoading ? (
+              <div className="w-20 h-8 bg-gray-100 dark:bg-slate-800 rounded-lg animate-pulse" />
+            ) : user ? (
+              <div className="flex items-center gap-2">
+                <a
+                  href={MUTFAK_URL}
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-slate-300 hover:text-[var(--color-mavi)] dark:hover:text-blue-400 transition-colors"
+                >
+                  {user.profile?.avatarUrl ? (
+                    <img
+                      src={user.profile.avatarUrl}
+                      alt=""
+                      className="w-6 h-6 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-6 h-6 rounded-full bg-[var(--color-mavi)] flex items-center justify-center text-white text-[10px] font-bold">
+                      {(user.profile?.displayName ?? user.email)[0]?.toUpperCase()}
+                    </div>
+                  )}
+                  <span className="max-w-[120px] truncate">
+                    {user.profile?.displayName ?? user.email}
+                  </span>
+                </a>
+                <button
+                  onClick={() => void logout()}
+                  className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 transition-colors px-1"
+                  title="Çıkış Yap"
+                >
+                  Çıkış
+                </button>
+              </div>
+            ) : (
+              <>
+                <a
+                  href={`${process.env['NEXT_PUBLIC_WEB_URL'] ?? 'https://haritailesi.org'}/giris`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="text-sm font-medium text-gray-600 dark:text-slate-400 hover:text-[var(--color-mavi)] dark:hover:text-blue-400 transition-colors px-2"
+                >
+                  Giriş Yap
+                </a>
+                <a
+                  href={`${process.env['NEXT_PUBLIC_WEB_URL'] ?? 'https://haritailesi.org'}/uye-ol`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="px-4 py-2 text-sm font-semibold text-white bg-[var(--color-mavi)] hover:bg-[var(--color-mavi-acik)] rounded-lg transition-colors"
+                >
+                  Üye Ol
+                </a>
+              </>
+            )}
           </div>
 
           {/* Mobile: search + theme toggle + hamburger */}
@@ -128,18 +169,40 @@ export default function Navbar() {
             </Link>
           ))}
           <div className="pt-3 border-t border-gray-100 dark:border-slate-800 flex flex-col gap-2">
-            <a
-              href={`${process.env['NEXT_PUBLIC_WEB_URL'] ?? 'https://haritailesi.org'}/giris`}
-              className="py-2 text-sm font-medium text-gray-600 dark:text-slate-400 text-center"
-            >
-              Giriş Yap
-            </a>
-            <a
-              href={`${process.env['NEXT_PUBLIC_WEB_URL'] ?? 'https://haritailesi.org'}/uye-ol`}
-              className="py-2.5 text-sm font-semibold text-white bg-[var(--color-mavi)] rounded-lg text-center"
-            >
-              Üye Ol
-            </a>
+            {user ? (
+              <>
+                <a
+                  href={MUTFAK_URL}
+                  className="py-2 text-sm font-medium text-gray-700 dark:text-slate-300 text-center"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {user.profile?.displayName ?? user.email} — Mutfak
+                </a>
+                <button
+                  onClick={() => { void logout(); setMobileOpen(false); }}
+                  className="py-2.5 text-sm font-semibold text-gray-600 dark:text-slate-400 border border-gray-200 dark:border-slate-700 rounded-lg text-center"
+                >
+                  Çıkış Yap
+                </button>
+              </>
+            ) : (
+              <>
+                <a
+                  href={`${process.env['NEXT_PUBLIC_WEB_URL'] ?? 'https://haritailesi.org'}/giris`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="py-2 text-sm font-medium text-gray-600 dark:text-slate-400 text-center"
+                >
+                  Giriş Yap
+                </a>
+                <a
+                  href={`${process.env['NEXT_PUBLIC_WEB_URL'] ?? 'https://haritailesi.org'}/uye-ol`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="py-2.5 text-sm font-semibold text-white bg-[var(--color-mavi)] rounded-lg text-center"
+                >
+                  Üye Ol
+                </a>
+              </>
+            )}
           </div>
         </div>
       )}

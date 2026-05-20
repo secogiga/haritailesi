@@ -1,0 +1,12 @@
+{
+  "extends": "@haritailesi/config-ts/base",
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "noEmit": true,
+    "paths": { "@/*": ["./src/*"] }
+  },
+  "include": ["src", "drizzle.config.ts"],
+  "exclude": ["node_modules", "migrations"]
+}

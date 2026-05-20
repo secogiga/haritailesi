@@ -8,6 +8,7 @@ const config: NextConfig = {
       { protocol: 'http', hostname: 'localhost', port: '9000' },
       { protocol: 'https', hostname: '*.haritailesi.org' },
       { protocol: 'https', hostname: 'haritailesi.org' },
+      { protocol: 'https', hostname: 'img.youtube.com' },
     ],
   },
 };
