@@ -6,16 +6,16 @@ import Link from 'next/link';
 import { adminApi, type CmsProject } from '@/lib/api';
 
 const AVATAR_COLORS = [
-  { label: 'Lacivert', value: 'bg-[#26496b]' },
-  { label: 'Teal', value: 'bg-[#66aca9]' },
-  { label: 'Yeşil', value: 'bg-emerald-600' },
-  { label: 'Sarı', value: 'bg-amber-600' },
-  { label: 'Turuncu', value: 'bg-orange-500' },
-  { label: 'Mavi', value: 'bg-blue-600' },
-  { label: 'Mor', value: 'bg-purple-600' },
-  { label: 'Kırmızı', value: 'bg-red-600' },
-  { label: 'Pembe', value: 'bg-pink-600' },
-  { label: 'Gri', value: 'bg-gray-600' },
+  { label: 'Lacivert', value: '#26496b' },
+  { label: 'Teal', value: '#66aca9' },
+  { label: 'Yeşil', value: '#059669' },
+  { label: 'Sarı', value: '#d97706' },
+  { label: 'Turuncu', value: '#f97316' },
+  { label: 'Mavi', value: '#2563eb' },
+  { label: 'Mor', value: '#9333ea' },
+  { label: 'Kırmızı', value: '#dc2626' },
+  { label: 'Pembe', value: '#db2777' },
+  { label: 'Gri', value: '#4b5563' },
 ];
 
 const TAG_COLORS = [
@@ -40,6 +40,8 @@ const GRADIENTS = [
   { label: 'Teal', value: 'from-teal-400 to-teal-600' },
 ];
 
+const IMPACT_DOMAINS = ['Kadastro', 'Altyapı', 'CBS', 'Fotogrametri', 'Uzaktan Algılama', 'Yapı Denetim', 'Deformasyon', 'Madencilik', 'Akıllı Şehirler'];
+
 function toSlug(s: string) {
   return s
     .toLowerCase()
@@ -58,6 +60,7 @@ export default function EditProjePage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
+  // Temel alanlar
   const [type, setType] = useState<'sahne' | 'linkedin'>('sahne');
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
@@ -76,8 +79,25 @@ export default function EditProjePage() {
   const [externalLinks, setExternalLinks] = useState<ExternalLink[]>([]);
   const [existingImageKeys, setExistingImageKeys] = useState<string[]>([]);
   const [newImageFiles, setNewImageFiles] = useState<File[]>([]);
+
+  // Künye alanları
+  const [problem, setProblem] = useState('');
+  const [solution, setSolution] = useState('');
+  const [featuresInput, setFeaturesInput] = useState('');
+  const [gains, setGains] = useState({ time: false, cost: false, quality: false, safety: false });
+  const [innovationScore, setInnovationScore] = useState({ local: false, national: false, sector: false, academic: false });
+  const [maturityLevel, setMaturityLevel] = useState('');
+  const [impactDomains, setImpactDomains] = useState<string[]>([]);
+  const [targetAudienceInput, setTargetAudienceInput] = useState('');
+  const [projectTypeInput, setProjectTypeInput] = useState('');
+  const [editorialNote, setEditorialNote] = useState('');
+  const [editorialScore, setEditorialScore] = useState<number | null>(null);
+  const [editorialStrengthsInput, setEditorialStrengthsInput] = useState('');
+
+  // UI state
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [generatingKunye, setGeneratingKunye] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -100,10 +120,45 @@ export default function EditProjePage() {
         setHashtagInput((p.hashtags ?? []).join(', '));
         setExternalLinks(p.externalLinks ?? []);
         setExistingImageKeys(p.imageKeys ?? []);
+        // Künye
+        setProblem(p.problem ?? '');
+        setSolution(p.solution ?? '');
+        setFeaturesInput((p.features ?? []).join('\n'));
+        setGains({ time: p.gains?.time ?? false, cost: p.gains?.cost ?? false, quality: p.gains?.quality ?? false, safety: p.gains?.safety ?? false });
+        setInnovationScore({ local: p.innovationScore?.local ?? false, national: p.innovationScore?.national ?? false, sector: p.innovationScore?.sector ?? false, academic: p.innovationScore?.academic ?? false });
+        setMaturityLevel(p.maturityLevel ?? '');
+        setImpactDomains(p.impactDomains ?? []);
+        setTargetAudienceInput((p.targetAudience ?? []).join('\n'));
+        setProjectTypeInput((p.projectType ?? []).join('\n'));
+        setEditorialNote(p.editorialNote ?? '');
+        setEditorialScore(p.editorialScore ?? null);
+        setEditorialStrengthsInput((p.editorialStrengths ?? []).join('\n'));
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [id]);
+
+  async function handleGenerateKunye() {
+    setGeneratingKunye(true);
+    setError('');
+    try {
+      const data = await adminApi.generateKunye(id);
+      if (data.problem) setProblem(data.problem as string);
+      if (data.solution) setSolution(data.solution as string);
+      if (data.features) setFeaturesInput((data.features as string[]).join('\n'));
+      if (data.gains) setGains(data.gains as typeof gains);
+      if (data.innovationScore) setInnovationScore(data.innovationScore as typeof innovationScore);
+      if (data.maturityLevel) setMaturityLevel(data.maturityLevel as string);
+      if (data.impactDomains) setImpactDomains(data.impactDomains as string[]);
+      if (data.targetAudience) setTargetAudienceInput((data.targetAudience as string[]).join('\n'));
+      if (data.projectType) setProjectTypeInput((data.projectType as string[]).join('\n'));
+      if (data.editorialNote) setEditorialNote(data.editorialNote as string);
+    } catch (err) {
+      setError('Künye oluşturulamadı: ' + (err as Error).message);
+    } finally {
+      setGeneratingKunye(false);
+    }
+  }
 
   function addExternalLink() {
     setExternalLinks((l) => [...l, { label: '', href: '' }]);
@@ -121,13 +176,15 @@ export default function EditProjePage() {
     setExistingImageKeys((k) => k.filter((x) => x !== key));
   }
 
+  function toggleDomain(d: string) {
+    setImpactDomains((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-
     if (!title.trim()) { setError('Başlık zorunludur.'); return; }
     if (!slug.trim()) { setError('Slug zorunludur.'); return; }
-    if (type === 'linkedin' && !linkedinUrl.trim()) { setError('LinkedIn URL zorunludur.'); return; }
 
     try {
       setSaving(true);
@@ -140,13 +197,12 @@ export default function EditProjePage() {
       }
       setUploading(false);
 
-      const hashtags = hashtagInput
-        .split(/[,\s]+/)
-        .map((t) => t.replace(/^#/, '').trim())
-        .filter(Boolean);
-
+      const hashtags = hashtagInput.split(/[,\s]+/).map((t) => t.replace(/^#/, '').trim()).filter(Boolean);
       const validLinks = externalLinks.filter((l) => l.label.trim() && l.href.trim());
       const allImageKeys = [...existingImageKeys, ...newKeys];
+      const features = featuresInput.split('\n').map((s) => s.trim()).filter(Boolean);
+      const targetAudience = targetAudienceInput.split('\n').map((s) => s.trim()).filter(Boolean);
+      const projectType = projectTypeInput.split('\n').map((s) => s.trim()).filter(Boolean);
 
       await adminApi.updateProject(id, {
         slug: slug.trim(),
@@ -166,6 +222,21 @@ export default function EditProjePage() {
         hashtags: hashtags.length ? hashtags : null,
         externalLinks: validLinks.length ? validLinks : null,
         imageKeys: allImageKeys.length ? allImageKeys : null,
+        // Künye
+        problem: problem.trim() || null,
+        solution: solution.trim() || null,
+        features: features.length ? features : null,
+        gains: Object.values(gains).some(Boolean) ? gains : null,
+        innovationScore: Object.values(innovationScore).some(Boolean) ? innovationScore : null,
+        maturityLevel: maturityLevel || null,
+        impactDomains: impactDomains.length ? impactDomains : null,
+        targetAudience: targetAudience.length ? targetAudience : null,
+        projectType: projectType.length ? projectType : null,
+        editorialNote: editorialNote.trim() || null,
+        editorialScore: editorialScore,
+        editorialStrengths: editorialStrengthsInput.trim()
+          ? editorialStrengthsInput.split('\n').map(s => s.trim()).filter(Boolean)
+          : null,
       });
 
       router.push('/projeler');
@@ -179,6 +250,7 @@ export default function EditProjePage() {
 
   const inputCls = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--color-mavi)] focus:ring-1 focus:ring-[var(--color-mavi)]';
   const labelCls = 'block text-xs font-medium text-gray-600 mb-1';
+  const checkboxCls = 'w-4 h-4 rounded border-gray-300 text-[var(--color-mavi)] focus:ring-[var(--color-mavi)]';
 
   if (loading) return <p className="text-gray-500 p-6">Yükleniyor…</p>;
   if (notFound) return (
@@ -210,21 +282,14 @@ export default function EditProjePage() {
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
-          {error}
-        </div>
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{error}</div>
       )}
 
       {/* Type Tabs */}
       <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-lg w-fit">
         {(['sahne', 'linkedin'] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setType(t)}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-              type === t ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'
-            }`}
+          <button key={t} type="button" onClick={() => setType(t)}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${type === t ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
           >
             {t === 'sahne' ? 'Sahne' : 'LinkedIn'}
           </button>
@@ -232,49 +297,37 @@ export default function EditProjePage() {
       </div>
 
       <div className="grid grid-cols-3 gap-6">
-        {/* Left: Main content */}
+        {/* Sol: Ana içerik */}
         <div className="col-span-2 space-y-4">
+
+          {/* Temel Bilgiler */}
           <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
             <h2 className="text-sm font-semibold text-gray-700">Temel Bilgiler</h2>
-
             <div>
               <label className={labelCls}>Başlık *</label>
               <input type="text" className={inputCls} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Proje başlığı" />
             </div>
-
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className={labelCls} style={{marginBottom: 0}}>URL Adresi *</label>
+                <label className={labelCls} style={{ marginBottom: 0 }}>URL Adresi *</label>
                 {title && (
-                  <button
-                    type="button"
-                    onClick={() => setSlug(toSlug(title))}
-                    className="text-[11px] text-[var(--color-mavi)] hover:underline"
-                  >
-                    ↺ Başlıktan yeniden oluştur
+                  <button type="button" onClick={() => setSlug(toSlug(title))} className="text-[11px] text-[var(--color-mavi)] hover:underline">
+                    ↺ Başlıktan oluştur
                   </button>
                 )}
               </div>
               <input type="text" className={inputCls} value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="ornek-proje-adi" />
-              {slug && (
-                <p className="mt-1 text-[11px] text-gray-400 font-mono">
-                  sahne.haritailesi.org/projeler/<span className="text-gray-600">{slug}</span>
-                </p>
-              )}
             </div>
-
             <div>
               <label className={labelCls}>Özet</label>
               <textarea className={inputCls} rows={2} value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="Kısa açıklama" />
             </div>
-
             {type === 'sahne' && (
               <div>
                 <label className={labelCls}>İçerik (body)</label>
                 <textarea className={inputCls} rows={8} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Proje detayları…" />
               </div>
             )}
-
             {type === 'linkedin' && (
               <div>
                 <label className={labelCls}>LinkedIn URL *</label>
@@ -283,9 +336,9 @@ export default function EditProjePage() {
             )}
           </div>
 
+          {/* Yazar Bilgileri */}
           <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
             <h2 className="text-sm font-semibold text-gray-700">Yazar Bilgileri</h2>
-
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={labelCls}>Ad Soyad</label>
@@ -296,22 +349,16 @@ export default function EditProjePage() {
                 <input type="text" className={inputCls} maxLength={3} value={authorInitials} onChange={(e) => setAuthorInitials(e.target.value.toUpperCase())} placeholder="AHK" />
               </div>
             </div>
-
             <div>
               <label className={labelCls}>Avatar Rengi</label>
               <div className="flex flex-wrap gap-2 mt-1">
                 {AVATAR_COLORS.map((c) => (
-                  <button
-                    key={c.value}
-                    type="button"
-                    title={c.label}
-                    onClick={() => setAuthorAvatarColor(c.value)}
-                    className={`w-7 h-7 rounded-full ${c.value} ${authorAvatarColor === c.value ? 'ring-2 ring-offset-1 ring-gray-800' : ''}`}
-                  />
+                  <button key={c.value} type="button" title={c.label} onClick={() => setAuthorAvatarColor(c.value)}
+                    className={`w-7 h-7 rounded-full ${authorAvatarColor === c.value ? 'ring-2 ring-offset-1 ring-gray-800' : ''}`}
+                    style={{ backgroundColor: c.value }} />
                 ))}
               </div>
             </div>
-
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={labelCls}>Etiket</label>
@@ -321,31 +368,20 @@ export default function EditProjePage() {
                 <label className={labelCls}>Etiket Rengi</label>
                 <div className="flex flex-wrap gap-1.5 mt-1">
                   {TAG_COLORS.map((c) => (
-                    <button
-                      key={c.value}
-                      type="button"
-                      title={c.label}
-                      onClick={() => setAuthorTagColor(c.value)}
-                      className={`px-2 py-0.5 rounded text-[10px] font-medium ${c.value} ${authorTagColor === c.value ? 'ring-2 ring-offset-1 ring-gray-800' : ''}`}
-                    >
+                    <button key={c.value} type="button" title={c.label} onClick={() => setAuthorTagColor(c.value)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-medium ${c.value} ${authorTagColor === c.value ? 'ring-2 ring-offset-1 ring-gray-800' : ''}`}>
                       {c.label}
                     </button>
                   ))}
                 </div>
               </div>
             </div>
-
             <div>
               <label className={labelCls}>Vurgu Gradyanı</label>
               <div className="flex flex-wrap gap-2 mt-1">
                 {GRADIENTS.map((g) => (
-                  <button
-                    key={g.value}
-                    type="button"
-                    title={g.label}
-                    onClick={() => setAccentGradient(g.value)}
-                    className={`w-8 h-5 rounded bg-gradient-to-r ${g.value} ${accentGradient === g.value ? 'ring-2 ring-offset-1 ring-gray-800' : ''}`}
-                  />
+                  <button key={g.value} type="button" title={g.label} onClick={() => setAccentGradient(g.value)}
+                    className={`w-8 h-5 rounded bg-gradient-to-r ${g.value} ${accentGradient === g.value ? 'ring-2 ring-offset-1 ring-gray-800' : ''}`} />
                 ))}
               </div>
             </div>
@@ -353,10 +389,11 @@ export default function EditProjePage() {
 
           {type === 'sahne' && (
             <>
+              {/* Hashtag'ler + Linkler + Görseller */}
               <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
                 <h2 className="text-sm font-semibold text-gray-700">Hashtag&apos;ler</h2>
                 <div>
-                  <label className={labelCls}>Hashtag&apos;ler (virgül veya boşlukla ayır)</label>
+                  <label className={labelCls}>Virgül veya boşlukla ayır</label>
                   <input type="text" className={inputCls} value={hashtagInput} onChange={(e) => setHashtagInput(e.target.value)} placeholder="CBS, 3B, web, haritakademi" />
                   {hashtagInput && (
                     <div className="flex flex-wrap gap-1 mt-2">
@@ -398,38 +435,162 @@ export default function EditProjePage() {
                 )}
                 <div>
                   <p className="text-xs text-gray-500 font-medium mb-1">Yeni görseller ekle:</p>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
+                  <input type="file" accept="image/*" multiple
                     onChange={(e) => setNewImageFiles(Array.from(e.target.files ?? []))}
-                    className="text-sm text-gray-600 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
-                  />
+                    className="text-sm text-gray-600 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200" />
                   {newImageFiles.length > 0 && (
                     <p className="text-xs text-gray-500 mt-1">{newImageFiles.length} yeni dosya seçildi</p>
                   )}
+                </div>
+              </div>
+
+              {/* ── Proje Künyesi ── */}
+              <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-sm font-semibold text-gray-700">Proje Künyesi</h2>
+                    <p className="text-xs text-gray-400 mt-0.5">Yapısal bilgiler — sahne'de detay olarak gösterilir</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleGenerateKunye}
+                    disabled={generatingKunye}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-[#26496b] to-[#66aca9] text-white text-xs font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
+                  >
+                    {generatingKunye ? (
+                      <>
+                        <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Oluşturuluyor…
+                      </>
+                    ) : (
+                      <>✦ AI ile Künye Oluştur</>
+                    )}
+                  </button>
+                </div>
+
+                <div>
+                  <label className={labelCls}>Problem — hangi sorunu çözüyor?</label>
+                  <textarea className={inputCls} rows={2} value={problem} onChange={(e) => setProblem(e.target.value)} placeholder="Projenin çözdüğü sorunu kısaca açıkla…" />
+                </div>
+
+                <div>
+                  <label className={labelCls}>Çözüm — nasıl çözüyor?</label>
+                  <textarea className={inputCls} rows={2} value={solution} onChange={(e) => setSolution(e.target.value)} placeholder="Çözüm yöntemini kısaca açıkla…" />
+                </div>
+
+                <div>
+                  <label className={labelCls}>Temel Özellikler (her satır bir özellik)</label>
+                  <textarea className={inputCls} rows={5} value={featuresInput} onChange={(e) => setFeaturesInput(e.target.value)} placeholder="Tek tıkla KMZ üretimi&#10;Isı haritası oluşturma&#10;Google Earth entegrasyonu" />
+                </div>
+
+                <div>
+                  <label className={labelCls}>Proje Türü (her satır bir tür)</label>
+                  <textarea className={inputCls} rows={2} value={projectTypeInput} onChange={(e) => setProjectTypeInput(e.target.value)} placeholder="Masaüstü Yazılım Eklentisi&#10;Mesleki Verimlilik Aracı" />
+                </div>
+
+                <div>
+                  <label className={labelCls}>Olgunluk Seviyesi</label>
+                  <select className={inputCls} value={maturityLevel} onChange={(e) => setMaturityLevel(e.target.value)}>
+                    <option value="">Seç…</option>
+                    <option value="idea">Fikir Aşaması</option>
+                    <option value="prototype">Prototip</option>
+                    <option value="testing">Test Aşaması</option>
+                    <option value="active">Aktif Kullanım</option>
+                    <option value="commercial">Ticari Ürün</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className={labelCls}>Kazanımlar</label>
+                  <div className="flex flex-wrap gap-3 mt-1">
+                    {([['time', 'Zaman'], ['cost', 'Maliyet'], ['quality', 'Kalite'], ['safety', 'Güvenlik']] as const).map(([key, label]) => (
+                      <label key={key} className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer">
+                        <input type="checkbox" className={checkboxCls} checked={gains[key]} onChange={(e) => setGains((g) => ({ ...g, [key]: e.target.checked }))} />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className={labelCls}>Yenilik Boyutu</label>
+                  <div className="flex flex-wrap gap-3 mt-1">
+                    {([['local', 'Yerel Yenilik'], ['national', 'Ulusal Yenilik'], ['sector', 'Sektörel İlk'], ['academic', 'Akademik Katkı']] as const).map(([key, label]) => (
+                      <label key={key} className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer">
+                        <input type="checkbox" className={checkboxCls} checked={innovationScore[key]} onChange={(e) => setInnovationScore((s) => ({ ...s, [key]: e.target.checked }))} />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className={labelCls}>Mesleki Etki Alanı</label>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {IMPACT_DOMAINS.map((d) => (
+                      <button key={d} type="button" onClick={() => toggleDomain(d)}
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                          impactDomains.includes(d)
+                            ? 'bg-[#26496b] text-white border-[#26496b]'
+                            : 'bg-white text-gray-600 border-gray-200 hover:border-[#26496b]/40'
+                        }`}>
+                        {d}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className={labelCls}>Hedef Kitle (her satır bir grup)</label>
+                  <textarea className={inputCls} rows={3} value={targetAudienceInput} onChange={(e) => setTargetAudienceInput(e.target.value)} placeholder="Harita Mühendisleri&#10;Altyapı Mühendisleri&#10;Şantiye Ekipleri" />
+                </div>
+
+                <div>
+                  <label className={labelCls}>Haritailesi Değerlendirmesi</label>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs text-gray-500">Puan (1–10):</span>
+                    {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setEditorialScore(editorialScore === n ? null : n)}
+                        className={`w-7 h-7 rounded-full text-xs font-bold transition-colors ${
+                          editorialScore === n
+                            ? 'bg-[var(--color-mavi)] text-white'
+                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                    {editorialScore && <span className="text-xs text-gray-400 ml-1">{editorialScore}/10</span>}
+                  </div>
+                  <textarea className={inputCls} rows={3} value={editorialNote} onChange={(e) => setEditorialNote(e.target.value)} placeholder="Editör yorumu — AI taslak oluşturur, siz düzeltin…" />
+                  <div className="mt-3">
+                    <label className={labelCls}>Güçlü Yönler (her satır bir madde)</label>
+                    <textarea className={inputCls} rows={4} value={editorialStrengthsInput} onChange={(e) => setEditorialStrengthsInput(e.target.value)} placeholder="Tek tıkla veri dönüşümü ile zaman kazandırıyor.&#10;Saha ekiplerine anlık konum güncellemesi sağlıyor.&#10;Mevcut CAD yazılımlarıyla entegre çalışabiliyor." />
+                    <p className="text-[10px] text-gray-400 mt-0.5">Sahne&apos;deki Haritailesi Değerlendirmesi kartında gösterilir.</p>
+                  </div>
                 </div>
               </div>
             </>
           )}
         </div>
 
-        {/* Right: Settings */}
+        {/* Sağ: Ayarlar */}
         <div className="space-y-4">
           <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
             <h2 className="text-sm font-semibold text-gray-700">Yayın</h2>
-
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-700">Yayında</span>
-              <button
-                type="button"
-                onClick={() => setIsPublished((v) => !v)}
-                className={`w-10 h-5 rounded-full transition-colors relative ${isPublished ? 'bg-[var(--color-mavi)]' : 'bg-gray-200'}`}
-              >
+              <button type="button" onClick={() => setIsPublished((v) => !v)}
+                className={`w-10 h-5 rounded-full transition-colors relative ${isPublished ? 'bg-[var(--color-mavi)]' : 'bg-gray-200'}`}>
                 <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${isPublished ? 'left-5' : 'left-0.5'}`} />
               </button>
             </div>
-
             <div>
               <label className={labelCls}>Durum</label>
               <select className={inputCls} value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
@@ -445,18 +606,32 @@ export default function EditProjePage() {
               <h2 className="text-sm font-semibold text-gray-700 mb-3">Önizleme</h2>
               <div className={`rounded-xl bg-gradient-to-br ${accentGradient} p-3`}>
                 <div className="flex items-center gap-2">
-                  <div className={`w-8 h-8 rounded-full ${authorAvatarColor} flex items-center justify-center text-white text-xs font-bold`}>
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: authorAvatarColor }}>
                     {authorInitials || authorName.substring(0, 2).toUpperCase()}
                   </div>
                   <div>
                     <p className="text-white text-xs font-medium leading-tight">{authorName || '—'}</p>
-                    {authorTag && (
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${authorTagColor}`}>{authorTag}</span>
-                    )}
+                    {authorTag && <span className={`text-[10px] px-1.5 py-0.5 rounded ${authorTagColor}`}>{authorTag}</span>}
                   </div>
                 </div>
                 {title && <p className="text-white text-xs font-semibold mt-2 line-clamp-2">{title}</p>}
               </div>
+            </div>
+          )}
+
+          {/* Künye özet */}
+          {(maturityLevel || impactDomains.length > 0 || editorialNote) && (
+            <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
+              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Künye Özet</h2>
+              {maturityLevel && (
+                <p className="text-xs text-gray-600"><span className="font-medium">Olgunluk:</span> {maturityLevel}</p>
+              )}
+              {impactDomains.length > 0 && (
+                <p className="text-xs text-gray-600"><span className="font-medium">Alan:</span> {impactDomains.join(', ')}</p>
+              )}
+              {editorialNote && (
+                <p className="text-xs text-gray-500 italic line-clamp-3">&ldquo;{editorialNote}&rdquo;</p>
+              )}
             </div>
           )}
         </div>

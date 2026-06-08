@@ -6,16 +6,16 @@ import Link from 'next/link';
 import { adminApi } from '@/lib/api';
 
 const AVATAR_COLORS = [
-  { label: 'Lacivert', value: 'bg-[#26496b]' },
-  { label: 'Teal', value: 'bg-[#66aca9]' },
-  { label: 'Yeşil', value: 'bg-emerald-600' },
-  { label: 'Sarı', value: 'bg-amber-600' },
-  { label: 'Turuncu', value: 'bg-orange-500' },
-  { label: 'Mavi', value: 'bg-blue-600' },
-  { label: 'Mor', value: 'bg-purple-600' },
-  { label: 'Kırmızı', value: 'bg-red-600' },
-  { label: 'Pembe', value: 'bg-pink-600' },
-  { label: 'Gri', value: 'bg-gray-600' },
+  { label: 'Lacivert', value: '#26496b' },
+  { label: 'Teal', value: '#66aca9' },
+  { label: 'Yeşil', value: '#059669' },
+  { label: 'Sarı', value: '#d97706' },
+  { label: 'Turuncu', value: '#f97316' },
+  { label: 'Mavi', value: '#2563eb' },
+  { label: 'Mor', value: '#9333ea' },
+  { label: 'Kırmızı', value: '#dc2626' },
+  { label: 'Pembe', value: '#db2777' },
+  { label: 'Gri', value: '#4b5563' },
 ];
 
 const TAG_COLORS = [
@@ -98,7 +98,6 @@ export default function YeniProjePage() {
 
     if (!title.trim()) { setError('Başlık zorunludur.'); return; }
     if (!slug.trim()) { setError('Slug zorunludur.'); return; }
-    if (type === 'linkedin' && !linkedinUrl.trim()) { setError('LinkedIn URL zorunludur.'); return; }
 
     try {
       setSaving(true);
@@ -278,7 +277,8 @@ export default function YeniProjePage() {
                     type="button"
                     title={c.label}
                     onClick={() => setAuthorAvatarColor(c.value)}
-                    className={`w-7 h-7 rounded-full ${c.value} ${authorAvatarColor === c.value ? 'ring-2 ring-offset-1 ring-gray-800' : ''}`}
+                    className={`w-7 h-7 rounded-full ${authorAvatarColor === c.value ? 'ring-2 ring-offset-1 ring-gray-800' : ''}`}
+                    style={{ backgroundColor: c.value }}
                   />
                 ))}
               </div>
@@ -405,7 +405,7 @@ export default function YeniProjePage() {
               <h2 className="text-sm font-semibold text-gray-700 mb-3">Önizleme</h2>
               <div className={`rounded-xl bg-gradient-to-br ${accentGradient} p-3`}>
                 <div className="flex items-center gap-2">
-                  <div className={`w-8 h-8 rounded-full ${authorAvatarColor} flex items-center justify-center text-white text-xs font-bold`}>
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: authorAvatarColor }}>
                     {authorInitials || authorName.substring(0, 2).toUpperCase()}
                   </div>
                   <div>
