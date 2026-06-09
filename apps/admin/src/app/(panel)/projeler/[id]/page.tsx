@@ -94,6 +94,14 @@ export default function EditProjePage() {
   const [editorialScore, setEditorialScore] = useState<number | null>(null);
   const [editorialStrengthsInput, setEditorialStrengthsInput] = useState('');
 
+  // Haritakademi alanları
+  const [university, setUniversity] = useState('');
+  const [graduationType, setGraduationType] = useState('');
+  const [graduationYear, setGraduationYear] = useState<number | null>(null);
+  const [projectCategory, setProjectCategory] = useState('');
+  const [awardCohortMonth, setAwardCohortMonth] = useState<number | null>(null);
+  const [awardRank, setAwardRank] = useState<number | null>(null);
+
   // UI state
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -133,6 +141,13 @@ export default function EditProjePage() {
         setEditorialNote(p.editorialNote ?? '');
         setEditorialScore(p.editorialScore ?? null);
         setEditorialStrengthsInput((p.editorialStrengths ?? []).join('\n'));
+        // Haritakademi
+        setUniversity(p.university ?? '');
+        setGraduationType(p.graduationType ?? '');
+        setGraduationYear(p.graduationYear ?? null);
+        setProjectCategory(p.projectCategory ?? '');
+        setAwardCohortMonth(p.awardCohortMonth ?? null);
+        setAwardRank(p.awardRank ?? null);
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
@@ -237,6 +252,13 @@ export default function EditProjePage() {
         editorialStrengths: editorialStrengthsInput.trim()
           ? editorialStrengthsInput.split('\n').map(s => s.trim()).filter(Boolean)
           : null,
+        // Haritakademi
+        university: university.trim() || null,
+        graduationType: graduationType.trim() || null,
+        graduationYear: graduationYear,
+        projectCategory: projectCategory.trim() || null,
+        awardCohortMonth: awardCohortMonth,
+        awardRank: awardRank,
       });
 
       router.push('/projeler');
@@ -582,6 +604,64 @@ export default function EditProjePage() {
 
         {/* Sağ: Ayarlar */}
         <div className="space-y-4">
+          {/* Künye */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
+            <h2 className="text-sm font-semibold text-gray-700">Künye</h2>
+            <div>
+              <label className={labelCls}>Üniversite</label>
+              <input type="text" className={inputCls} value={university} onChange={e => setUniversity(e.target.value)} placeholder="Karadeniz Teknik Üniversitesi" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className={labelCls}>Mezuniyet Türü</label>
+                <select className={inputCls} value={graduationType} onChange={e => setGraduationType(e.target.value)}>
+                  <option value="">Seç</option>
+                  <option>Lisans</option>
+                  <option>Yüksek Lisans</option>
+                  <option>Doktora</option>
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>Mezuniyet Yılı</label>
+                <input type="number" className={inputCls} value={graduationYear ?? ''} onChange={e => setGraduationYear(e.target.value ? parseInt(e.target.value) : null)} placeholder="2024" min={2000} max={2040} />
+              </div>
+            </div>
+            <div>
+              <label className={labelCls}>Kategori</label>
+              <input type="text" className={inputCls} value={projectCategory} onChange={e => setProjectCategory(e.target.value)} placeholder="Mesleki Proje" />
+            </div>
+          </div>
+
+          {/* Aylık Ödül */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
+            <h2 className="text-sm font-semibold text-gray-700">Aylık Ödül</h2>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className={labelCls}>Ay</label>
+                <select className={inputCls} value={awardCohortMonth ?? ''} onChange={e => setAwardCohortMonth(e.target.value ? parseInt(e.target.value) : null)}>
+                  <option value="">Yok</option>
+                  {Array.from({ length: 24 }, (_, i) => i + 1).map(n => (
+                    <option key={n} value={n}>{n}. Ay</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>Sıra</label>
+                <select className={inputCls} value={awardRank ?? ''} onChange={e => setAwardRank(e.target.value ? parseInt(e.target.value) : null)}>
+                  <option value="">Yok</option>
+                  <option value={1}>1. (Birinci)</option>
+                  <option value={2}>2. (İkinci)</option>
+                  <option value={3}>3. (Üçüncü)</option>
+                </select>
+              </div>
+            </div>
+            {awardCohortMonth && awardRank && (
+              <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 font-medium">
+                {awardCohortMonth}. Ay — {awardRank}. sıra
+              </p>
+            )}
+          </div>
+
           <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
             <h2 className="text-sm font-semibold text-gray-700">Yayın</h2>
             <div className="flex items-center justify-between">

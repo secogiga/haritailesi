@@ -5,8 +5,34 @@ import {
   IsDateString,
   IsIn,
   IsInt,
+  IsNumber,
   Min,
+  IsEmail,
+  MinLength,
+  MaxLength,
 } from 'class-validator';
+
+// ─── Project Comment ────────────────────────────────────────────────────────────
+
+export class SubmitProjectCommentDto {
+  @IsString()
+  @MinLength(2)
+  @MaxLength(50)
+  firstName!: string;
+
+  @IsString()
+  @MinLength(2)
+  @MaxLength(50)
+  lastName!: string;
+
+  @IsEmail()
+  email!: string;
+
+  @IsString()
+  @MinLength(10)
+  @MaxLength(2000)
+  body!: string;
+}
 
 // ─── Pages ─────────────────────────────────────────────────────────────────────
 
@@ -133,6 +159,15 @@ export class CreateEventDto {
   @IsString()
   source?: string;
 
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  price?: number;
+
+  @IsOptional()
+  @IsString()
+  paymentUrl?: string;
+
   @IsBoolean()
   isPublished!: boolean;
 }
@@ -193,6 +228,15 @@ export class UpdateEventDto {
   @IsOptional()
   @IsString()
   source?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  price?: number;
+
+  @IsOptional()
+  @IsString()
+  paymentUrl?: string;
 
   @IsOptional()
   @IsBoolean()
@@ -261,6 +305,11 @@ export class CreateProjectDto {
   linkedinUrl?: string;
 
   @IsOptional()
+  @IsInt()
+  @Min(0)
+  linkedinViewCount?: number;
+
+  @IsOptional()
   @IsArray()
   hashtags?: string[];
 
@@ -270,6 +319,52 @@ export class CreateProjectDto {
   @IsOptional()
   @IsArray()
   imageKeys?: string[];
+
+  @IsOptional()
+  @IsString()
+  problem?: string;
+
+  @IsOptional()
+  @IsString()
+  solution?: string;
+
+  @IsOptional()
+  @IsArray()
+  features?: string[];
+
+  @IsOptional()
+  gains?: { time?: boolean; cost?: boolean; quality?: boolean; safety?: boolean };
+
+  @IsOptional()
+  innovationScore?: { local?: boolean; national?: boolean; sector?: boolean; academic?: boolean };
+
+  @IsOptional()
+  @IsString()
+  maturityLevel?: string;
+
+  @IsOptional()
+  @IsArray()
+  impactDomains?: string[];
+
+  @IsOptional()
+  @IsArray()
+  targetAudience?: string[];
+
+  @IsOptional()
+  @IsArray()
+  projectType?: string[];
+
+  @IsOptional()
+  @IsString()
+  editorialNote?: string;
+
+  @IsOptional()
+  @IsNumber()
+  editorialScore?: number;
+
+  @IsOptional()
+  @IsArray()
+  editorialStrengths?: string[];
 }
 
 export class UpdateProjectDto {
@@ -334,6 +429,11 @@ export class UpdateProjectDto {
   linkedinUrl?: string;
 
   @IsOptional()
+  @IsInt()
+  @Min(0)
+  linkedinViewCount?: number;
+
+  @IsOptional()
   @IsArray()
   hashtags?: string[];
 
@@ -343,6 +443,87 @@ export class UpdateProjectDto {
   @IsOptional()
   @IsArray()
   imageKeys?: string[];
+
+  @IsOptional()
+  @IsString()
+  problem?: string;
+
+  @IsOptional()
+  @IsString()
+  solution?: string;
+
+  @IsOptional()
+  @IsArray()
+  features?: string[];
+
+  @IsOptional()
+  gains?: { time?: boolean; cost?: boolean; quality?: boolean; safety?: boolean };
+
+  @IsOptional()
+  innovationScore?: { local?: boolean; national?: boolean; sector?: boolean; academic?: boolean };
+
+  @IsOptional()
+  @IsString()
+  maturityLevel?: string;
+
+  @IsOptional()
+  @IsArray()
+  impactDomains?: string[];
+
+  @IsOptional()
+  @IsArray()
+  targetAudience?: string[];
+
+  @IsOptional()
+  @IsArray()
+  projectType?: string[];
+
+  @IsOptional()
+  @IsString()
+  editorialNote?: string;
+
+  @IsOptional()
+  @IsNumber()
+  editorialScore?: number;
+
+  @IsOptional()
+  @IsArray()
+  editorialStrengths?: string[];
+
+  @IsOptional()
+  linkedinPostUrl?: string | null;
+
+  @IsOptional()
+  @IsString()
+  university?: string;
+
+  @IsOptional()
+  @IsString()
+  graduationType?: string;
+
+  @IsOptional()
+  @IsInt()
+  graduationYear?: number;
+
+  @IsOptional()
+  @IsString()
+  projectCategory?: string;
+
+  @IsOptional()
+  @IsInt()
+  awardCohortMonth?: number | null;
+
+  @IsOptional()
+  @IsInt()
+  awardRank?: number | null;
+
+  @IsOptional()
+  @IsBoolean()
+  finalist?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  winner?: boolean;
 }
 
 // ─── Talents ───────────────────────────────────────────────────────────────────

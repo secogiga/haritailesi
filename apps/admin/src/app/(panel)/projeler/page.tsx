@@ -79,6 +79,13 @@ export default function ProjelerPage() {
   const [expandedProj, setExpandedProj] = useState<string | null>(null);
   const [deletingProj, setDeletingProj] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<'' | 'sahne' | 'linkedin'>('');
+  const [uniFilter, setUniFilter] = useState('');
+  const [catFilter, setCatFilter] = useState('');
+  const [awardFilter, setAwardFilter] = useState('');
+  const [sortBy, setSortBy] = useState<'createdAt' | 'views'>('views');
+  const [liPostUrlDraft, setLiPostUrlDraft] = useState<Record<string, string>>({});
+  const [liPostUrlSaving, setLiPostUrlSaving] = useState<string | null>(null);
+
 
   function loadRequests() {
     setReqLoading(true);
@@ -124,7 +131,20 @@ export default function ProjelerPage() {
   }
 
   const pendingCount = requests.filter(r => r.status === 'pending').length;
-  const visibleProjects = typeFilter ? projects.filter(p => p.type === typeFilter) : projects;
+
+  // Üniversite ve kategori listelerini projelerden türet
+  const universities = Array.from(new Set(projects.map(p => p.university).filter(Boolean))).sort() as string[];
+  const categories = Array.from(new Set(projects.map(p => p.projectCategory).filter(Boolean))).sort() as string[];
+
+  const visibleProjects = projects
+    .filter(p => !typeFilter || p.type === typeFilter)
+    .filter(p => !uniFilter || p.university === uniFilter)
+    .filter(p => !catFilter || p.projectCategory === catFilter)
+    .filter(p => !awardFilter || (awardFilter === 'odullu' ? p.awardCohortMonth != null : p.awardCohortMonth == null))
+    .sort((a, b) => sortBy === 'views'
+      ? ((b.linkedinViewCount ?? 0) + (b.viewCount ?? 0)) - ((a.linkedinViewCount ?? 0) + (a.viewCount ?? 0))
+      : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
 
   const sel = 'border border-gray-200 rounded-lg pl-3 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#26496b]/30 bg-white';
 
@@ -269,22 +289,55 @@ export default function ProjelerPage() {
       {/* ── Tab 2: Yayındaki Projeler ── */}
       {tab === 'projeler' && (
         <div>
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-            <div className="flex items-center gap-2">
-              {/* Type filter pills */}
+          {/* Filtreler + Yeni Proje */}
+          <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Tür filtreleri */}
               {([['', 'Tümü'], ['sahne', 'Sahne'], ['linkedin', 'LinkedIn']] as const).map(([v, l]) => (
                 <button key={v} onClick={() => setTypeFilter(v as '' | 'sahne' | 'linkedin')}
                   className={`text-xs font-medium px-2.5 py-1 rounded-full border transition-colors ${typeFilter === v ? 'bg-[#26496b] text-white border-[#26496b]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#26496b] hover:text-[#26496b]'}`}>
                   {l}
-                  {v === '' && projects.length > 0 && <span className="ml-1 opacity-60">({projects.length})</span>}
-                  {v !== '' && projects.filter(p => p.type === v).length > 0 && (
-                    <span className="ml-1 opacity-60">({projects.filter(p => p.type === v).length})</span>
-                  )}
+                  {v === '' && <span className="ml-1 opacity-60">({visibleProjects.length}/{projects.length})</span>}
                 </button>
               ))}
+
+              {/* Üniversite */}
+              {universities.length > 0 && (
+                <select value={uniFilter} onChange={e => setUniFilter(e.target.value)}
+                  className={`${sel} text-xs max-w-[180px]`}>
+                  <option value="">Tüm Üniversiteler</option>
+                  {universities.map(u => (
+                    <option key={u} value={u}>{u.replace(' Üniversitesi', ' Ü.').replace(' Teknik', ' T.')}</option>
+                  ))}
+                </select>
+              )}
+
+              {/* Kategori */}
+              {categories.length > 0 && (
+                <select value={catFilter} onChange={e => setCatFilter(e.target.value)}
+                  className={`${sel} text-xs`}>
+                  <option value="">Tüm Kategoriler</option>
+                  {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              )}
+
+              {/* Ödül filtresi */}
+              <select value={awardFilter} onChange={e => setAwardFilter(e.target.value)}
+                className={`${sel} text-xs`}>
+                <option value="">Ödül Durumu</option>
+                <option value="odullu">Ödüllü</option>
+                <option value="odul-yok">Ödülsüz</option>
+              </select>
+
+              {/* Sıralama */}
+              <select value={sortBy} onChange={e => setSortBy(e.target.value as 'createdAt' | 'views')}
+                className={`${sel} text-xs`}>
+                <option value="views">Görüntülenme ↓</option>
+                <option value="createdAt">Tarih ↓</option>
+              </select>
             </div>
             <Link href="/projeler/yeni"
-              className="flex items-center gap-2 px-4 py-2 bg-[#26496b] text-white text-sm font-semibold rounded-xl hover:bg-[#1e3a56] transition-colors">
+              className="flex items-center gap-2 px-4 py-2 bg-[#26496b] text-white text-sm font-semibold rounded-xl hover:bg-[#1e3a56] transition-colors shrink-0">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
@@ -326,20 +379,28 @@ export default function ProjelerPage() {
                           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${item.type === 'linkedin' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>
                             {item.type === 'linkedin' ? 'LinkedIn' : 'Sahne'}
                           </span>
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${STATUS_CLS[item.status] ?? 'bg-gray-100 text-gray-600'}`}>
-                            {PROJ_STATUS_LABELS[item.status] ?? item.status}
-                          </span>
                           <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${item.isPublished ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                             {item.isPublished ? 'Yayında' : 'Taslak'}
                           </span>
+                          {item.projectCategory && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-[#26496b]/8 text-[#26496b]">
+                              {item.projectCategory}
+                            </span>
+                          )}
+                          {item.awardCohortMonth != null && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-amber-100 text-amber-700">
+                              {item.awardCohortMonth}. Ay #{item.awardRank}
+                            </span>
+                          )}
                         </div>
                         <p className="font-semibold text-sm text-gray-900 leading-snug truncate">{item.title}</p>
-                        {item.authorName && (
-                          <p className="text-xs text-[#26496b]/70 mt-0.5 truncate">
-                            {item.authorName}
-                            {item.authorTag && <span className="ml-1.5 opacity-70">· {item.authorTag}</span>}
-                          </p>
-                        )}
+                        <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-2 flex-wrap">
+                          {item.university && <span>{item.university.replace(' Üniversitesi', ' Ü.').replace(' Teknik', ' T.')}</span>}
+                          {item.graduationYear && <span className="opacity-60">· {item.graduationType ?? ''} {item.graduationYear}</span>}
+                          {(item.linkedinViewCount ?? 0) > 0 && (
+                            <span className="opacity-60">· {((item.linkedinViewCount ?? 0) + (item.viewCount ?? 0)).toLocaleString('tr-TR')} görüntülenme</span>
+                          )}
+                        </p>
                       </div>
 
                       {/* Actions */}
@@ -377,11 +438,47 @@ export default function ProjelerPage() {
                         )}
                         {item.linkedinUrl && (
                           <div>
-                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">LinkedIn</p>
+                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">LinkedIn Profil</p>
                             <a href={item.linkedinUrl} target="_blank" rel="noreferrer"
                               className="text-sm text-blue-600 hover:underline truncate block">{item.linkedinUrl}</a>
                           </div>
                         )}
+
+                        {/* LinkedIn Analitik Post URL */}
+                        <div>
+                          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+                            LinkedIn Analitik URL
+                            {item.linkedinPostUrl && (
+                              <a href={item.linkedinPostUrl} target="_blank" rel="noreferrer"
+                                className="ml-2 normal-case font-normal text-blue-500 hover:underline">↗ görüntüle</a>
+                            )}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="url"
+                              placeholder="https://www.linkedin.com/feed/update/urn:li:activity:..."
+                              value={liPostUrlDraft[item.id] ?? item.linkedinPostUrl ?? ''}
+                              onChange={e => setLiPostUrlDraft(prev => ({ ...prev, [item.id]: e.target.value }))}
+                              onBlur={async () => {
+                                const val = (liPostUrlDraft[item.id] ?? item.linkedinPostUrl ?? '').trim();
+                                if (val === (item.linkedinPostUrl ?? '')) return;
+                                setLiPostUrlSaving(item.id);
+                                try {
+                                  await adminApi.updateProject(item.id, { linkedinPostUrl: val || null } as never);
+                                  setProjects(prev => prev.map(p => p.id === item.id ? { ...p, linkedinPostUrl: val || null } : p));
+                                } finally { setLiPostUrlSaving(null); }
+                              }}
+                              className="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:border-[#0a66c2] focus:ring-1 focus:ring-[#0a66c2]/20 font-mono"
+                            />
+                            {liPostUrlSaving === item.id && (
+                              <span className="text-[10px] text-gray-400 shrink-0">Kaydediliyor…</span>
+                            )}
+                            {(item.linkedinPostUrl || liPostUrlDraft[item.id]) && liPostUrlSaving !== item.id && (
+                              <span className="text-[10px] text-green-600 shrink-0">✓</span>
+                            )}
+                          </div>
+                        </div>
+
                         <div className="flex flex-wrap gap-x-6 gap-y-2">
                           {item.hashtags && item.hashtags.length > 0 && (
                             <div>
@@ -424,6 +521,7 @@ export default function ProjelerPage() {
           )}
         </div>
       )}
+
     </div>
   );
 }

@@ -12,7 +12,24 @@ export function getCurrentUserRoles(): string[] {
   }
 }
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
+export async function refreshAccessToken(): Promise<string | null> {
+  const refreshToken = localStorage.getItem('refresh_token');
+  if (!refreshToken) return null;
+  try {
+    const res = await fetch(`${API_URL}/api/v1/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${refreshToken}` },
+    });
+    if (!res.ok) return null;
+    const data = await res.json() as { accessToken: string };
+    localStorage.setItem('access_token', data.accessToken);
+    return data.accessToken;
+  } catch {
+    return null;
+  }
+}
+
+async function request<T>(path: string, options?: RequestInit, retry = true): Promise<T> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
   const res = await fetch(`${API_URL}/api/v1${path}`, {
     ...options,
@@ -23,11 +40,21 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     },
   });
 
+  if (res.status === 401 && retry) {
+    const newToken = await refreshAccessToken();
+    if (newToken) return request<T>(path, options, false);
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    window.location.href = '/login';
+    return Promise.reject(new Error('Oturum süresi doldu'));
+  }
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({})) as { message?: string };
     throw new Error(err.message ?? `HTTP ${res.status}`);
   }
 
+  if (res.status === 204 || res.headers.get('content-length') === '0') return undefined as T;
   return res.json() as Promise<T>;
 }
 
@@ -55,21 +82,126 @@ export const adminApi = {
     request<{
       id: string; type: string; state: string; applicantEmail: string;
       formData: Record<string, unknown>; adminNotes: string | null;
-      createdAt: string; stateLogs: Array<{ fromState: string | null; toState: string; createdAt: string; reason: string | null }>;
+      createdAt: string; paymentDueAt: string | null;
+      paymentStatus: 'pending' | 'reminded' | 'expired' | 'verified' | 'failed' | 'waived' | null;
+      stateLogs: Array<{ fromState: string | null; toState: string; createdAt: string; reason: string | null }>;
       validNextStates: string[];
     }>(`/admin/applications/${id}`),
 
-  transitionState: (id: string, toState: string, reason?: string) =>
+  transitionState: (
+    id: string,
+    toState: string,
+    options?: { reason?: string; paymentAmountKurus?: number; paymentDescription?: string },
+  ) =>
     request(`/admin/applications/${id}/state`, {
       method: 'PATCH',
-      body: JSON.stringify({ toState, reason }),
+      body: JSON.stringify({ toState, ...options }),
     }),
 
   updateNotes: (id: string, adminNotes: string) =>
-    request(`/admin/applications/${id}/notes`, {
+    request<{ syncedToProfile: boolean }>(`/admin/applications/${id}/notes`, {
       method: 'PATCH',
       body: JSON.stringify({ adminNotes }),
     }),
+
+  resendStateEmail: (id: string) =>
+    request(`/admin/applications/${id}/resend-state-email`, { method: 'POST' }),
+
+  sendInterviewInvite: (id: string, data: { meetUrl?: string }) =>
+    request(`/admin/applications/${id}/send-interview-invite`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }),
+
+  resendSetup: (id: string) =>
+    request(`/admin/applications/${id}/resend-setup`, { method: 'POST' }),
+
+  resendPaymentReminder: (id: string) =>
+    request(`/admin/applications/${id}/resend-payment-reminder`, { method: 'POST' }),
+
+  sendWhatsapp: (id: string, message: string) =>
+    request(`/admin/applications/${id}/send-whatsapp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message }),
+    }),
+
+  waivePayment: (id: string, reason: string) =>
+    request(`/admin/applications/${id}/waive-payment`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
+  extendPaymentDueDate: (id: string, extraDays: number) =>
+    request(`/admin/applications/${id}/payment/extend-due-date`, {
+      method: 'PATCH',
+      body: JSON.stringify({ extraDays }),
+    }),
+
+  markPaymentFailed: (id: string, reason: string) =>
+    request(`/admin/applications/${id}/payment/mark-failed`, {
+      method: 'PATCH',
+      body: JSON.stringify({ reason }),
+    }),
+
+  revokeWaiver: (id: string) =>
+    request(`/admin/applications/${id}/payment/revoke-waiver`, { method: 'POST' }),
+
+  deleteApplication: (id: string) =>
+    request<{ id: string; deleted: boolean }>(`/admin/applications/${id}`, { method: 'DELETE' }),
+
+  getPaymentSummary: () =>
+    request<PaymentSummary>('/admin/payments/summary'),
+
+  listPayments: (params?: {
+    status?: string; tier?: string; from?: string; to?: string;
+    overdue?: string; waived?: string; proofPending?: string;
+    cursor?: string; limit?: string;
+  }) => {
+    const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params ?? {}).filter(([, v]) => v !== '' && v !== undefined)) as Record<string, string>
+    ).toString();
+    return request<{
+      data: PaymentRow[];
+      next_cursor: string | null;
+      has_more: boolean;
+    }>(`/admin/payments${qs ? `?${qs}` : ''}`);
+  },
+
+  getTimeline: (id: string) =>
+    request<TimelineEvent[]>(`/admin/applications/${id}/timeline`),
+
+  // ─── Scheduling ───────────────────────────────────────────────────────────────
+
+  listSlots: (params?: { slotType?: string; onlyAvailable?: boolean; from?: string; to?: string }) => {
+    const qs = new URLSearchParams(
+      Object.entries(params ?? {})
+        .filter(([, v]) => v !== undefined && v !== '')
+        .reduce((acc, [k, v]) => ({ ...acc, [k]: String(v) }), {}),
+    ).toString();
+    return request<AvailabilitySlot[]>(`/admin/scheduling/slots${qs ? `?${qs}` : ''}`);
+  },
+
+  createSlot: (data: { startAt: string; endAt: string; slotType?: string; capacity?: number; notes?: string }) =>
+    request<AvailabilitySlot>('/admin/scheduling/slots', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  deleteSlot: (id: string) =>
+    request(`/admin/scheduling/slots/${id}`, { method: 'DELETE' }),
+
+  createInterviewRequest: (applicationId: string, data: { slotId: string; meetUrl?: string }) =>
+    request<{ id: string; confirmUrl: string; confirmToken: string }>(`/admin/applications/${applicationId}/request-interview`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  getInterviewRequest: (applicationId: string) =>
+    request<{ id: string; state: string; slot: AvailabilitySlot; meetUrl: string | null } | null>(
+      `/admin/applications/${applicationId}/interview-request`,
+    ),
 
   // ─── CMS: Pages ──────────────────────────────────────────────────────────────
 
@@ -125,7 +257,107 @@ export const adminApi = {
     request(`/admin/cms/events/${id}`, { method: 'DELETE' }),
 
   listEventAttendees: (id: string) =>
-    request<{ count: number; attendees: Array<{ userId: string; displayName: string | null; avatarUrl: string | null; profession: string | null; joinedAt: string }> }>(`/admin/cms/events/${id}/attendees`),
+    request<{ count: number; attendees: Array<{ id: string; userId: string | null; displayName: string | null; avatarUrl: string | null; profession: string | null; joinedAt: string; ticketCode: string | null; ticketTier: string; checkedIn: boolean; checkedInAt: string | null; registrationType: string }> }>(`/admin/cms/events/${id}/attendees`),
+
+  checkinAttendance: (id: string, registrationType: 'member' | 'public') =>
+    request<{ checkedIn: boolean; checkedInAt: string | null }>(`/admin/cms/attendances/${id}/checkin`, {
+      method: 'PATCH',
+      body: JSON.stringify({ registrationType }),
+    }),
+
+  checkinByTicket: (ticketCode: string) =>
+    request<{ success: boolean; displayName: string | null; alreadyCheckedIn: boolean; registrationType: string; checkedIn: boolean }>('/admin/cms/checkin/scan', {
+      method: 'POST',
+      body: JSON.stringify({ ticketCode }),
+    }),
+
+  copyEvent: (id: string) =>
+    request<CmsEvent>(`/admin/cms/events/${id}/copy`, { method: 'POST' }),
+
+  listWaitlist: (eventId: string) =>
+    request<{ count: number; waitlist: Array<{ id: string; userId: string | null; email: string | null; displayName: string | null; notifiedAt: string | null; createdAt: string }> }>(`/admin/cms/events/${eventId}/waitlist`),
+
+  createDiscussionRoom: (eventId: string) =>
+    request<{ postId: string; alreadyExists: boolean }>(`/admin/cms/events/${eventId}/discussion-room`, { method: 'POST' }),
+
+  // ─── Analytics ───────────────────────────────────────────────────────────────
+
+  getEventStats: (id: string) =>
+    request<{ viewCount: number; memberRegistrations: number; publicRegistrations: number; totalRegistrations: number; checkedInCount: number; waitlistCount: number; maxCapacity: number | null; fillRate: number | null; registrationTrend: Array<{ day: string; count: number }> }>(`/admin/cms/events/${id}/stats`),
+
+  uploadSpeakerPhoto: async (file: File): Promise<{ key: string; url: string }> => {
+    const token = localStorage.getItem('access_token');
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch(`${API_URL}/api/v1/upload`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    });
+    if (!res.ok) throw new Error('Fotoğraf yüklenemedi.');
+    return res.json() as Promise<{ key: string; url: string }>;
+  },
+
+  // ─── Sponsors ────────────────────────────────────────────────────────────────
+
+  listSponsors: (eventId: string) =>
+    request<EventSponsor[]>(`/admin/cms/events/${eventId}/sponsors`),
+  createSponsor: (eventId: string, dto: Partial<EventSponsor>) =>
+    request<EventSponsor>(`/admin/cms/events/${eventId}/sponsors`, { method: 'POST', body: JSON.stringify(dto) }),
+  updateSponsor: (id: string, dto: Partial<EventSponsor>) =>
+    request<EventSponsor>(`/admin/cms/sponsors/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+  deleteSponsor: (id: string) =>
+    request(`/admin/cms/sponsors/${id}`, { method: 'DELETE' }),
+  uploadSponsorLogo: async (file: File): Promise<{ key: string; url: string }> => {
+    const token = localStorage.getItem('access_token');
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch(`${API_URL}/api/v1/upload`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    });
+    if (!res.ok) throw new Error('Logo yüklenemedi.');
+    return res.json() as Promise<{ key: string; url: string }>;
+  },
+
+  // ─── Speakers ────────────────────────────────────────────────────────────────
+
+  listSpeakers: (eventId: string) =>
+    request<EventSpeaker[]>(`/admin/cms/events/${eventId}/speakers`),
+  createSpeaker: (eventId: string, dto: Partial<EventSpeaker>) =>
+    request<EventSpeaker>(`/admin/cms/events/${eventId}/speakers`, { method: 'POST', body: JSON.stringify(dto) }),
+  updateSpeaker: (id: string, dto: Partial<EventSpeaker>) =>
+    request<EventSpeaker>(`/admin/cms/speakers/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+  deleteSpeaker: (id: string) =>
+    request(`/admin/cms/speakers/${id}`, { method: 'DELETE' }),
+
+  // ─── Sessions ─────────────────────────────────────────────────────────────────
+
+  listSessions: (eventId: string) =>
+    request<EventSession[]>(`/admin/cms/events/${eventId}/sessions`),
+  createSession: (eventId: string, dto: Partial<EventSession>) =>
+    request<EventSession>(`/admin/cms/events/${eventId}/sessions`, { method: 'POST', body: JSON.stringify(dto) }),
+  updateSession: (id: string, dto: Partial<EventSession>) =>
+    request<EventSession>(`/admin/cms/sessions/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+  deleteSession: (id: string) =>
+    request(`/admin/cms/sessions/${id}`, { method: 'DELETE' }),
+
+  // ─── Registration Questions ───────────────────────────────────────────────────
+
+  listRegQuestions: (eventId: string) =>
+    request<RegQuestion[]>(`/admin/cms/events/${eventId}/registration-questions`),
+  createRegQuestion: (eventId: string, dto: { question: string; questionType?: string; options?: string[]; isRequired?: boolean }) =>
+    request<RegQuestion>(`/admin/cms/events/${eventId}/registration-questions`, { method: 'POST', body: JSON.stringify(dto) }),
+  deleteRegQuestion: (id: string) =>
+    request(`/admin/cms/registration-questions/${id}`, { method: 'DELETE' }),
+  listRegAnswers: (eventId: string) =>
+    request<RegAnswer[]>(`/admin/cms/events/${eventId}/registration-answers`),
+
+  // ─── Event Invitation ─────────────────────────────────────────────────────────
+
+  sendInvitations: (eventId: string, opts: { segment?: 'all' | 'active'; channel?: 'email' | 'whatsapp' | 'both' } = {}) =>
+    request<{ emailSent: number; whatsappSent: number; total: number; eventTitle: string }>(`/admin/cms/events/${eventId}/invite`, { method: 'POST', body: JSON.stringify({ segment: opts.segment ?? 'all', channel: opts.channel ?? 'email' }) }),
 
   // ─── CMS: Projects ────────────────────────────────────────────────────────────
 
@@ -145,6 +377,15 @@ export const adminApi = {
 
   deleteProject: (id: string) =>
     request(`/admin/cms/projects/${id}`, { method: 'DELETE' }),
+
+  bulkUpdateLinkedinViews: (items: Array<{ id: string; linkedinViewCount: number; linkedinClickCount?: number; linkedinLikeCount?: number; linkedinCommentCount?: number; linkedinPostUrl?: string }>) =>
+    request<{ updated: number }>('/admin/cms/projects/bulk-linkedin-views', {
+      method: 'PATCH',
+      body: JSON.stringify({ items }),
+    }),
+
+  generateKunye: (id: string) =>
+    request<Omit<CmsProject, 'id' | 'slug' | 'title' | 'createdAt' | 'updatedAt' | 'createdBy'>>(`/admin/cms/projects/${id}/generate-kunye`, { method: 'POST' }),
 
   // ─── CMS: Talents ────────────────────────────────────────────────────────────
 
@@ -255,6 +496,9 @@ export const adminApi = {
 
   getCommunityHealth: () =>
     request<CommunityHealth>('/admin/dashboard/community-health'),
+
+  getLevelStats: () =>
+    request<LevelStats>('/admin/dashboard/level-stats'),
 
   getMutfakBehaviorStats: (periodMonths: 3 | 6 | 12 = 12) =>
     request<MutfakBehaviorStats>(`/admin/dashboard/mutfak-behavior?period=${periodMonths}`),
@@ -448,11 +692,32 @@ export const adminApi = {
     );
   },
 
-  updateFeedbackStatus: (id: string, status: string, adminNotes?: string) =>
+  updateFeedbackStatus: (id: string, status: string, adminNotes?: string, adminReply?: string, assignedTo?: string) =>
     request(`/community/admin/feedback/${id}/status`, {
       method: 'PATCH',
-      body: JSON.stringify({ status, ...(adminNotes ? { adminNotes } : {}) }),
+      body: JSON.stringify({
+        status,
+        ...(adminNotes !== undefined ? { adminNotes } : {}),
+        ...(adminReply !== undefined ? { adminReply } : {}),
+        ...(assignedTo !== undefined ? { assignedTo } : {}),
+      }),
     }),
+
+  getFeedbackHistory: (id: string) =>
+    request<FeedbackHistoryEntry[]>(`/community/admin/feedback/${id}/history`),
+
+  getFeedbackStats: () =>
+    request<FeedbackStats>('/community/admin/stats'),
+
+  findSimilarResolved: (params: { q?: string; subCategory?: string; category?: string; limit?: number }) => {
+    const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)]))
+    ).toString();
+    return request<SimilarResolvedTicket[]>(`/community/admin/similar-resolved${qs ? `?${qs}` : ''}`);
+  },
+
+  generateReplyDraft: (id: string) =>
+    request<{ draft: string }>(`/community/admin/feedback/${id}/ai-draft`, { method: 'POST' }),
 
   // ─── Marketplace: Content Requests ───────────────────────────────────────────
 
@@ -586,6 +851,102 @@ export const adminApi = {
   deleteTraining: (id: string) =>
     request(`/admin/cms/trainings/${id}`, { method: 'DELETE' }),
 
+  // ─── Kurs Bölümleri ───────────────────────────────────────────────────────────
+
+  listSections: (trainingId: string) =>
+    request<Array<{ id: string; title: string; description: string | null; sortOrder: number; lessons: Array<{ id: string; slug: string; title: string; contentType: string; durationMinutes: number | null; isFree: boolean; sortOrder: number; isPublished: boolean; videoUrl: string | null; body: string | null; viewCount: number }> }>>(`/admin/cms/trainings/${trainingId}/sections`),
+
+  createSection: (trainingId: string, dto: { title: string; description?: string; sortOrder?: number }) =>
+    request<{ id: string; title: string; description: string | null; sortOrder: number }>(`/admin/cms/trainings/${trainingId}/sections`, { method: 'POST', body: JSON.stringify(dto) }),
+
+  updateSection: (id: string, dto: { title?: string; description?: string; sortOrder?: number }) =>
+    request<{ id: string; title: string }>(`/admin/cms/sections/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+
+  deleteSection: (id: string) =>
+    request(`/admin/cms/sections/${id}`, { method: 'DELETE' }),
+
+  // ─── Kurs Dersleri ────────────────────────────────────────────────────────────
+
+  createLesson: (sectionId: string, dto: {
+    slug: string; title: string; contentType?: string; videoUrl?: string;
+    body?: string; durationMinutes?: number; sortOrder?: number; isFree?: boolean; xpReward?: number;
+  }) =>
+    request<{ id: string; title: string; slug: string }>(`/admin/cms/sections/${sectionId}/lessons`, { method: 'POST', body: JSON.stringify(dto) }),
+
+  updateLesson: (id: string, dto: Record<string, unknown>) =>
+    request<{ id: string; title: string }>(`/admin/cms/lessons/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+
+  deleteLesson: (id: string) =>
+    request(`/admin/cms/lessons/${id}`, { method: 'DELETE' }),
+
+  listAnnouncements: (trainingId: string) =>
+    request<Array<{ id: string; title: string; body: string; createdAt: string }>>(`/admin/cms/trainings/${trainingId}/announcements`),
+
+  createAnnouncement: (trainingId: string, dto: { title: string; body: string }) =>
+    request<{ id: string; title: string; body: string; createdAt: string }>(`/admin/cms/trainings/${trainingId}/announcements`, { method: 'POST', body: JSON.stringify(dto) }),
+
+  deleteAnnouncement: (id: string) =>
+    request(`/admin/cms/announcements/${id}`, { method: 'DELETE' }),
+
+  getTrainingAnalytics: (qs = '') =>
+    request<{
+      totalEnrollments: number;
+      completedCount: number;
+      completionRate: number;
+      avgProgress: number;
+      quizAttempts: number;
+      quizPassRate: number;
+      avgQuizScore: number;
+      totalCertificates: number;
+      topCourses: Array<{ id: string; title: string; slug: string; enrollmentCount: number; level: string | null; format: string | null }>;
+    }>(`/admin/cms/trainings/analytics${qs}`),
+
+  // ─── Quiz Yönetimi ───────────────────────────────────────────────────────────
+
+  listQuizzes: (trainingId: string) =>
+    request<Array<{ id: string; title: string; passingScore: number; maxAttempts: number; randomizeQuestions: boolean; questionPoolSize: number | null; showCorrectAnswers: boolean; timeLimitMinutes: number | null; questions: unknown[] }>>(`/admin/cms/trainings/${trainingId}/quizzes`),
+
+  updateQuizSettings: (quizId: string, dto: { maxAttempts?: number; randomizeQuestions?: boolean; questionPoolSize?: number | null; showCorrectAnswers?: boolean; timeLimitMinutes?: number | null; passingScore?: number; title?: string }) =>
+    request<{ id: string; title: string; passingScore: number; maxAttempts: number }>(`/admin/cms/quizzes/${quizId}/settings`, { method: 'PATCH', body: JSON.stringify(dto) }),
+
+  // ─── Ödeme Yönetimi ──────────────────────────────────────────────────────────
+
+  inviteUserToCourse: (trainingId: string, email: string) =>
+    request<{ invited: boolean; email: string; displayName: string }>(`/admin/cms/trainings/${trainingId}/invite`, {
+      method: 'POST', body: JSON.stringify({ email }),
+    }),
+
+  listCoursePayments: () =>
+    request<Array<{
+      id: string; amount: string; status: string;
+      paymentRef: string | null; adminNote: string | null;
+      createdAt: string; trainingId: string; trainingTitle: string;
+      userId: string; displayName: string | null; email: string;
+    }>>('/admin/cms/course-payments'),
+
+  confirmCoursePayment: (id: string, adminNote?: string) =>
+    request<{ confirmed: boolean }>(`/admin/cms/course-payments/${id}/confirm`, {
+      method: 'POST', body: JSON.stringify({ adminNote }),
+    }),
+
+  rejectCoursePayment: (id: string, adminNote?: string) =>
+    request<{ rejected: boolean }>(`/admin/cms/course-payments/${id}/reject`, {
+      method: 'POST', body: JSON.stringify({ adminNote }),
+    }),
+
+  uploadLessonPdf: async (file: File): Promise<{ key: string; url: string }> => {
+    const token = localStorage.getItem('access_token');
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch(`${API_URL}/api/v1/upload`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    });
+    if (!res.ok) throw new Error('PDF yüklenemedi.');
+    return res.json() as Promise<{ key: string; url: string }>;
+  },
+
   // ─── Q&A ─────────────────────────────────────────────────────────────────────
 
   listQaQuestions: (params?: { status?: string; category?: string }) => {
@@ -661,9 +1022,508 @@ export const adminApi = {
 
   deleteExamResource: (id: string) =>
     request(`/admin/cms/exam-resources/${id}`, { method: 'DELETE' }),
+
+  // ─── Admin Messaging ──────────────────────────────────────────────────────────
+
+  sendBroadcast: (dto: {
+    target: 'user' | 'tier' | 'all';
+    targetUserId?: string;
+    targetTier?: string;
+    subject: string;
+    body: string;
+    sendEmail?: boolean;
+    sendNotification?: boolean;
+  }) =>
+    request<{ sent: number }>('/admin/messages/send', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    }),
+
+  previewBroadcastCount: (target: string, targetTier?: string, targetUserId?: string) => {
+    const params = new URLSearchParams({ target });
+    if (targetTier) params.set('targetTier', targetTier);
+    if (targetUserId) params.set('targetUserId', targetUserId);
+    return request<{ count: number }>(`/admin/messages/preview-count?${params.toString()}`);
+  },
+
+  getBroadcastHistory: () =>
+    request<Array<{
+      id: string;
+      target: string;
+      targetTier: string | null;
+      subject: string;
+      body: string;
+      sentCount: number;
+      sentEmail: boolean;
+      sentNotification: boolean;
+      createdAt: string;
+      adminDisplayName: string | null;
+    }>>('/admin/messages/history'),
+
+  // ─── Admin Inbox (direct DM threads) ─────────────────────────────────────────
+
+  getAdminInboxThreads: () =>
+    request<Array<{
+      threadId: string;
+      user1Id: string;
+      user2Id: string;
+      lastMessageAt: string;
+      lastBody: string | null;
+      unreadCount: number;
+      counterpart: { id: string; displayName: string | null; avatarUrl: string | null; profession: string | null } | null;
+    }>>('/admin/messages/inbox'),
+
+  getAdminInboxMessages: (userId: string, opts?: { before?: string; limit?: number }) => {
+    const params = new URLSearchParams();
+    if (opts?.before) params.set('before', opts.before);
+    if (opts?.limit) params.set('limit', String(opts.limit));
+    const qs = params.toString();
+    return request<{
+      data: Array<{ id: string; threadId: string; senderId: string; recipientId: string; body: string; isRead: boolean; createdAt: string }>;
+      hasMore: boolean;
+    }>(`/admin/messages/inbox/${userId}${qs ? `?${qs}` : ''}`);
+  },
+
+  sendAdminInboxMessage: (userId: string, body: string) =>
+    request<{ id: string; threadId: string; senderId: string; recipientId: string; body: string; isRead: boolean; createdAt: string }>(
+      `/admin/messages/inbox/${userId}`,
+      { method: 'POST', body: JSON.stringify({ body }) },
+    ),
+
+  deleteAdminInboxThread: (userId: string) =>
+    request<void>(`/admin/messages/inbox/${userId}`, { method: 'DELETE' }),
+
+  // ─── Store: Faturalar ────────────────────────────────────────────────────
+
+  listInvoices: (params?: { status?: string; limit?: number; offset?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.status) qs.set('status', params.status);
+    if (params?.limit) qs.set('limit', String(params.limit));
+    if (params?.offset) qs.set('offset', String(params.offset));
+    const q = qs.toString();
+    return request<StoreInvoice[]>(`/store/admin/invoices${q ? `?${q}` : ''}`);
+  },
+
+  retryInvoice: (id: string) =>
+    request<StoreInvoice>(`/store/admin/invoices/${id}/retry`, { method: 'POST' }),
+
+  // ─── Store: Koleksiyonlar ─────────────────────────────────────────────────
+
+  listCollections: () =>
+    request<StoreCollection[]>('/store/admin/collections'),
+
+  createCollection: (dto: { slug: string; title: string; description?: string; coverImage?: string; productIds?: string[]; sortOrder?: number }) =>
+    request<{ id: string }>('/store/admin/collections', { method: 'POST', body: JSON.stringify(dto) }),
+
+  updateCollection: (id: string, dto: Partial<{ title: string; description: string; coverImage: string; productIds: string[]; isActive: boolean; sortOrder: number }>) =>
+    request<StoreCollection>(`/store/admin/collections/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+
+  deleteCollection: (id: string) =>
+    request<void>(`/store/admin/collections/${id}`, { method: 'DELETE' }),
+
+  // ─── Store: Escrow Ödemeler ───────────────────────────────────────────────
+
+  getPayoutSummary: () =>
+    request<{ summary: StorePayoutSummaryItem[]; payouts: SellerPayout[] }>('/store/admin/payouts/summary'),
+
+  listPayouts: (status?: string) => {
+    const qs = status ? `?status=${status}` : '';
+    return request<SellerPayout[]>(`/store/admin/payouts${qs}`);
+  },
+
+  createPayout: (sellerId: string, itemIds: string[], adminNotes?: string) =>
+    request<{ id: string; totalAmount: number }>('/store/admin/payouts', {
+      method: 'POST',
+      body: JSON.stringify({ sellerId, itemIds, ...(adminNotes ? { adminNotes } : {}) }),
+    }),
+
+  markPayoutPaid: (id: string, adminNotes?: string) =>
+    request<SellerPayout>(`/store/admin/payouts/${id}/paid`, {
+      method: 'PATCH',
+      body: JSON.stringify({ adminNotes: adminNotes ?? '' }),
+    }),
+
+  // ─── Store: Satıcılar ─────────────────────────────────────────────────────
+
+  listStoreSellers: (status?: string) => {
+    const qs = status ? `?status=${status}` : '';
+    return request<StoreSeller[]>(`/store/admin/sellers${qs}`);
+  },
+
+  reviewStoreSeller: (id: string, dto: {
+    status: 'approved' | 'rejected' | 'suspended';
+    adminNotes?: string;
+    commissionRate?: number;
+    iyzicоSubMerchantKey?: string;
+  }) =>
+    request<StoreSeller>(`/store/admin/sellers/${id}/review`, {
+      method: 'PATCH',
+      body: JSON.stringify(dto),
+    }),
+
+  updateStoreSeller: (id: string, dto: {
+    commissionRate?: number;
+    iyzicоSubMerchantKey?: string;
+    iban?: string;
+    adminNotes?: string;
+  }) =>
+    request<StoreSeller>(`/store/admin/sellers/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(dto),
+    }),
+
+  // ─── Store: Ürünler ───────────────────────────────────────────────────────
+
+  listAdminStoreProducts: async (params?: { type?: string; status?: string; ownerType?: string }): Promise<StoreProduct[]> => {
+    const qs = params ? new URLSearchParams(params as Record<string, string>).toString() : '';
+    const res = await request<StoreProduct[] | { data: StoreProduct[] }>(`/store/admin/products${qs ? `?${qs}` : ''}`);
+    return Array.isArray(res) ? res : (res as { data: StoreProduct[] }).data ?? [];
+  },
+
+  createStoreProduct: (dto: {
+    slug: string; ownerType: 'vakif' | 'seller'; sellerId?: string;
+    title: string; subtitle?: string; description: string;
+    type: 'digital' | 'physical' | 'app';
+    price: number; memberPrice?: number;
+    images?: string[]; downloadUrl?: string; stock?: number;
+    tags?: string[]; badgeLabel?: string; badgeColor?: string;
+    status?: string; sortOrder?: number;
+  }) =>
+    request<{ id: string }>('/store/admin/products', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    }),
+
+  updateStoreProduct: (id: string, dto: Record<string, unknown>) =>
+    request<StoreProduct>(`/store/admin/products/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(dto),
+    }),
+
+  deleteStoreProduct: (id: string) =>
+    request(`/store/admin/products/${id}`, { method: 'DELETE' }),
+
+  // ─── Store: Kuponlar ──────────────────────────────────────────────────────
+
+  listStoreCoupons: () =>
+    request<StoreCoupon[]>('/store/admin/coupons'),
+
+  createStoreCoupon: (dto: {
+    code: string; description?: string;
+    discountType: 'percentage' | 'fixed'; discountValue: number;
+    minOrderAmount?: number; maxUses?: number; expiresAt?: string;
+  }) =>
+    request<{ id: string }>('/store/admin/coupons', { method: 'POST', body: JSON.stringify(dto) }),
+
+  toggleStoreCoupon: (id: string, isActive: boolean) =>
+    request<{ id: string; isActive: boolean }>(`/store/admin/coupons/${id}/toggle`, {
+      method: 'PATCH', body: JSON.stringify({ isActive }),
+    }),
+
+  deleteStoreCoupon: (id: string) =>
+    request(`/store/admin/coupons/${id}`, { method: 'DELETE' }),
+
+  // ─── Store: Analytics ─────────────────────────────────────────────────────
+
+  getStoreAnalytics: (days?: number) =>
+    request<StoreAnalytics>(`/store/admin/analytics${days ? `?days=${days}` : ''}`),
+
+  getAdvancedAnalytics: (days?: number) =>
+    request<StoreAdvancedAnalytics>(`/store/admin/analytics/advanced${days ? `?days=${days}` : ''}`),
+
+  // ─── Store: Reviews ───────────────────────────────────────────────────────
+
+  listAdminReviews: (published?: boolean) => {
+    const qs = published !== undefined ? `?published=${published}` : '';
+    return request<StoreReview[]>(`/store/admin/reviews${qs}`);
+  },
+
+  publishReview: (id: string, isPublished: boolean) =>
+    request<{ id: string; isPublished: boolean }>(`/store/admin/reviews/${id}/publish`, {
+      method: 'PATCH', body: JSON.stringify({ isPublished }),
+    }),
+
+  deleteReview: (id: string) =>
+    request(`/store/admin/reviews/${id}`, { method: 'DELETE' }),
+
+  // ─── Store: Gift Cards ────────────────────────────────────────────────────
+
+  listGiftCards: () => request<StoreGiftCard[]>('/store/admin/gift-cards'),
+
+  createGiftCard: (dto: { purchasedByEmail: string; recipientEmail: string; recipientName: string; amount: number; message?: string; expiresAt?: string }) =>
+    request<{ id: string; code: string }>('/store/admin/gift-cards', { method: 'POST', body: JSON.stringify(dto) }),
+
+  // ─── Store: İade ─────────────────────────────────────────────────────────
+
+  listReturns: (status?: string) => {
+    const qs = status ? `?status=${status}` : '';
+    return request<StoreReturn[]>(`/store/admin/returns${qs}`);
+  },
+
+  resolveReturn: (id: string, dto: { status: 'approved' | 'rejected' | 'completed'; adminNotes?: string; refundAmount?: number; restockItems?: boolean }) =>
+    request<{ id: string; status: string }>(`/store/admin/returns/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+
+  // ─── Store: Kargo ─────────────────────────────────────────────────────────
+
+  calculateShipping: (weightGrams: number, city: string) =>
+    request<Array<{ provider: string; cost: number; estimatedDays: number }>>('/store/shipping/calculate', {
+      method: 'POST', body: JSON.stringify({ weightGrams, city }),
+    }),
+
+  createShipment: (orderId: string, provider: 'yurtici' | 'mng' | 'ptt') =>
+    request<{ id: string; trackingNumber: string }>(`/store/admin/orders/${orderId}/shipments`, {
+      method: 'POST', body: JSON.stringify({ provider }),
+    }),
+
+  getShipments: (orderId: string) =>
+    request<StoreShipment[]>(`/store/admin/orders/${orderId}/shipments`),
+
+  // ─── Store: Abonelikler ───────────────────────────────────────────────────
+
+  listAdminSubscriptions: (status?: string) => {
+    const qs = status ? `?status=${status}` : '';
+    return request<StoreSubscription[]>(`/store/admin/subscriptions${qs}`);
+  },
+
+  cancelSubscription: (id: string) =>
+    request<{ id: string; cancelled: boolean }>(`/store/subscriptions/${id}/cancel`, { method: 'PATCH' }),
+
+  // ─── Store: B2B ───────────────────────────────────────────────────────────
+
+  listB2bGroups: () => request<Array<{ id: string; name: string; discountPct: number }>>('/store/admin/b2b/groups'),
+
+  createB2bGroup: (name: string, discountPct: number) =>
+    request<{ id: string }>('/store/admin/b2b/groups', { method: 'POST', body: JSON.stringify({ name, discountPct }) }),
+
+  setB2bPrice: (groupId: string, productId: string, priceKurus: number) =>
+    request('/store/admin/b2b/prices', { method: 'POST', body: JSON.stringify({ groupId, productId, priceKurus }) }),
+
+  // ─── Store: Kargo İade Etiketi ────────────────────────────────────────────
+
+  sendStockNotifications: (productId: string) =>
+    request<{ notified: number }>(`/store/admin/products/${productId}/send-stock-notifications`, { method: 'POST' }),
+
+  // ─── Store: Email Marketing ───────────────────────────────────────────────
+
+  sendStoreCampaign: (dto: { subject: string; body: string; targetType: 'all_buyers' | 'product_buyers' }) =>
+    request<{ sent: number }>('/store/admin/campaigns', { method: 'POST', body: JSON.stringify(dto) }),
+
+  // ─── Store: Siparişler ────────────────────────────────────────────────────
+
+  listAdminStoreOrders: (params?: { status?: string; paymentStatus?: string; limit?: number }) => {
+    const sp: Record<string, string> = {};
+    if (params?.status) sp.status = params.status;
+    if (params?.paymentStatus) sp.paymentStatus = params.paymentStatus;
+    if (params?.limit) sp.limit = String(params.limit);
+    const qs = new URLSearchParams(sp).toString();
+    return request<StoreOrder[]>(`/store/admin/orders${qs ? `?${qs}` : ''}`);
+  },
+
+  getStoreOrder: (id: string) =>
+    request<StoreOrder & { items: StoreOrderItem[] }>(`/store/admin/orders/${id}`),
+
+  updateStoreOrderStatus: (id: string, status: string) =>
+    request<{ id: string }>(`/store/admin/orders/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
+
+  updateStoreItemShipping: (itemId: string, dto: {
+    shippingStatus: 'preparing' | 'shipped' | 'delivered';
+    trackingNumber?: string;
+    trackingCompany?: string;
+  }) =>
+    request<{ id: string }>(`/store/admin/orders/items/${itemId}/shipping`, {
+      method: 'PATCH',
+      body: JSON.stringify(dto),
+    }),
+
+  // ── Newsletter ──────────────────────────────────────────────────────────
+  getNewsletterSubscribers: (limit = 50, offset = 0) =>
+    request<BrevoSubscribers>(`/admin/newsletter/subscribers?limit=${limit}&offset=${offset}`),
+
+  updateSubscriberStatus: (email: string, emailBlacklisted: boolean) =>
+    request<{ ok: boolean }>(`/admin/newsletter/subscribers/${encodeURIComponent(email)}/status`, {
+      method: 'PATCH', body: JSON.stringify({ emailBlacklisted }),
+    }),
+
+  removeSubscriber: (email: string) =>
+    request<{ ok: boolean }>(`/admin/newsletter/subscribers/${encodeURIComponent(email)}`, {
+      method: 'DELETE',
+    }),
+
+  getMonthlyContent: (month: string) =>
+    request<MonthlyContent>(`/admin/newsletter/monthly-content?month=${month}`),
+
+  listNewsletters: () =>
+    request<Newsletter[]>('/admin/newsletter/newsletters'),
+
+  getNewsletter: (id: string) =>
+    request<Newsletter>(`/admin/newsletter/newsletters/${id}`),
+
+  createNewsletter: (dto: {
+    title: string; month: string; subject: string;
+    htmlBody?: string; selectedContent?: Record<string, unknown>;
+    channels?: string[]; whatsappTemplateName?: string; whatsappLanguage?: string;
+    scheduledAt?: string;
+  }) =>
+    request<Newsletter>('/admin/newsletter/newsletters', { method: 'POST', body: JSON.stringify(dto) }),
+
+  updateNewsletter: (id: string, dto: Partial<{
+    title: string; subject: string; htmlBody: string;
+    selectedContent: Record<string, unknown>; channels: string[];
+    whatsappTemplateName: string; whatsappLanguage: string;
+    scheduledAt: string | null;
+  }>) =>
+    request<Newsletter>(`/admin/newsletter/newsletters/${id}`, { method: 'PUT', body: JSON.stringify(dto) }),
+
+  deleteNewsletter: (id: string) =>
+    request<{ ok: boolean }>(`/admin/newsletter/newsletters/${id}`, { method: 'DELETE' }),
+
+  testSendNewsletter: (id: string, email: string) =>
+    request<{ ok: boolean }>(`/admin/newsletter/newsletters/${id}/test`, { method: 'POST', body: JSON.stringify({ email }) }),
+
+  sendNewsletter: (id: string) =>
+    request<Newsletter>(`/admin/newsletter/newsletters/${id}/send`, { method: 'POST' }),
+
+  getNewsletterStats: (id: string) =>
+    request<{ delivered: number; opens: number; clicks: number; unsubscriptions: number; hardBounces: number; softBounces: number; openRate: number; clickRate: number } | null>(
+      `/admin/newsletter/newsletters/${id}/stats`
+    ),
+
+  getWhatsappTemplates: () =>
+    request<{ templates: Array<{ name: string; status: string; language: string; category: string }> }>(
+      '/admin/newsletter/whatsapp-templates'
+    ),
+
+  uploadNewsletterImage: async (file: File): Promise<{ key: string; url: string }> => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await fetch(`${API_URL}/api/v1/admin/newsletter/upload-image`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: fd,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({})) as { message?: string };
+      throw new Error(err.message ?? `HTTP ${res.status}`);
+    }
+    return res.json() as Promise<{ key: string; url: string }>;
+  },
+
+  getWelcomeSettings: () =>
+    request<{ enabled: boolean; subject: string; html: string }>('/admin/newsletter/welcome-settings'),
+
+  updateWelcomeSettings: (body: { enabled: boolean; subject: string; html: string }) =>
+    request<{ ok: boolean }>('/admin/newsletter/welcome-settings', {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+
+  // ── Newsletter Automations ──────────────────────────────────────────────────
+  listAutomations: () =>
+    request<NewsletterAutomation[]>('/admin/newsletter/automations'),
+
+  createAutomation: (dto: { name: string; description?: string; triggerType: string; steps: AutomationStep[] }) =>
+    request<NewsletterAutomation>('/admin/newsletter/automations', { method: 'POST', body: JSON.stringify(dto) }),
+
+  updateAutomation: (id: string, dto: Partial<{ name: string; description: string; steps: AutomationStep[]; status: string }>) =>
+    request<NewsletterAutomation>(`/admin/newsletter/automations/${id}`, { method: 'PUT', body: JSON.stringify(dto) }),
+
+  setAutomationStatus: (id: string, status: 'active' | 'paused' | 'archived') =>
+    request<NewsletterAutomation>(`/admin/newsletter/automations/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+
+  deleteAutomation: (id: string) =>
+    request<{ ok: boolean }>(`/admin/newsletter/automations/${id}`, { method: 'DELETE' }),
+
+  getAutomationLogs: (id: string) =>
+    request<AutomationLog[]>(`/admin/newsletter/automations/${id}/logs`),
+
+  // ── Subscriber Profiles & Tags ─────────────────────────────────────────────
+  listNewsletterTags: () =>
+    request<Array<{ slug: string; label: string; color: string }>>('/admin/newsletter/tags'),
+
+  createNewsletterTag: (body: { slug: string; label: string; color?: string }) =>
+    request<{ slug: string; label: string; color: string }>('/admin/newsletter/tags', { method: 'POST', body: JSON.stringify(body) }),
+
+  deleteNewsletterTag: (slug: string) =>
+    request<{ ok: boolean }>(`/admin/newsletter/tags/${slug}`, { method: 'DELETE' }),
+
+  getSubscriberProfile: (email: string) =>
+    request<SubscriberProfile>(`/admin/newsletter/subscriber-profile/${encodeURIComponent(email)}`),
+
+  upsertSubscriberProfile: (email: string, body: { tags?: string[]; interestAreas?: string[]; region?: string; notes?: string }) =>
+    request<{ ok: boolean }>(`/admin/newsletter/subscriber-profile/${encodeURIComponent(email)}`, { method: 'PUT', body: JSON.stringify(body) }),
+
+  bulkTagSubscribers: (emails: string[], addTags?: string[], removeTags?: string[]) =>
+    request<{ updated: number }>('/admin/newsletter/subscribers/bulk-tag', { method: 'POST', body: JSON.stringify({ emails, addTags, removeTags }) }),
+
+  previewSegment: (body: { tags?: string[]; regions?: string[]; sources?: string[]; interestAreas?: string[]; behavior?: 'active_90d' | 'inactive_90d' | 'never_opened' }) =>
+    request<{ count: number; sample: string[]; behaviorDataAvailable: boolean }>('/admin/newsletter/segments/preview', { method: 'POST', body: JSON.stringify(body) }),
+
+  getBrevoContactsCount: () =>
+    request<{ count: number }>('/admin/newsletter/brevo-contacts/count'),
+
+  getBrevoGrowth: () =>
+    request<{ totalNewThisMonth: number; weeks: Array<{ label: string; count: number }> }>('/admin/newsletter/brevo-contacts/growth'),
+
+  generatePreferenceToken: (email: string) =>
+    request<{ token: string; url: string }>('/admin/newsletter/subscribers/generate-token', { method: 'POST', body: JSON.stringify({ email }) }),
+
+  importSubscribers: (emails: string[]) =>
+    request<{ added: number; failed: number }>('/admin/newsletter/subscribers/import', { method: 'POST', body: JSON.stringify({ emails }) }),
+
+  previewSegment: (filters: { tags?: string[]; regions?: string[]; sources?: string[]; interestAreas?: string[]; behavior?: string }) =>
+    request<{ count: number; sample: string[]; behaviorDataAvailable: boolean }>('/admin/newsletter/segments/preview', { method: 'POST', body: JSON.stringify(filters) }),
+
+  sendToSegment: (id: string, filters: { tags?: string[]; regions?: string[]; sources?: string[]; interestAreas?: string[]; behavior?: string }) =>
+    request<{ ok: boolean; recipientCount: number; campaignId: number }>(`/admin/newsletter/newsletters/${id}/send-segment`, { method: 'POST', body: JSON.stringify(filters) }),
+
+  getInactiveSubscribers: (days?: number) =>
+    request<{ count: number; emails: string[]; thresholdDays: number }>(`/admin/newsletter/inactive-subscribers${days ? `?days=${days}` : ''}`),
 };
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
+
+export interface AutomationStep {
+  delayDays: number;
+  subject: string;
+  htmlBody: string;
+  previewText?: string;
+}
+
+export interface NewsletterAutomation {
+  id: string;
+  name: string;
+  description: string | null;
+  triggerType: string;
+  status: string;
+  steps: AutomationStep[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SubscriberProfile {
+  email: string;
+  tags: string[];
+  interestAreas: string[];
+  region: string | null;
+  source: string | null;
+  notes: string | null;
+}
+
+export interface AutomationLog {
+  id: string;
+  automationId: string;
+  subscriberEmail: string;
+  stepIndex: number;
+  status: string;
+  scheduledAt: string;
+  sentAt: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+}
 
 export interface CmsPage {
   id: string;
@@ -705,11 +1565,77 @@ export interface CmsEvent {
   maxCapacity?: number | null;
   isCancelled?: boolean;
   attendeeCount?: number;
+  publicCount?: number;
   isPublished: boolean;
   source?: string | null;
+  price?: number;
+  paymentUrl?: string | null;
+  mutfakPostId?: string | null;
   createdBy?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface EventSponsor {
+  id: string;
+  eventId: string;
+  companyName: string;
+  logoKey?: string | null;
+  websiteUrl?: string | null;
+  tier: string;
+  description?: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface EventSpeaker {
+  id: string;
+  eventId: string;
+  name: string;
+  title?: string | null;
+  affiliation?: string | null;
+  bio?: string | null;
+  avatarUrl?: string | null;
+  linkedinUrl?: string | null;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface EventSession {
+  id: string;
+  eventId: string;
+  speakerId?: string | null;
+  speakerName?: string | null;
+  speakerTitle?: string | null;
+  speakerAffiliation?: string | null;
+  speakerAvatarUrl?: string | null;
+  title: string;
+  description?: string | null;
+  sessionType: string;
+  hall?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface RegQuestion {
+  id: string;
+  eventId: string;
+  question: string;
+  questionType: string;
+  options?: string[] | null;
+  isRequired: boolean;
+  sortOrder: number;
+}
+
+export interface RegAnswer {
+  attendanceId: string;
+  userId: string;
+  displayName: string | null;
+  question: string;
+  answer: string;
 }
 
 export interface CmsProject {
@@ -729,9 +1655,40 @@ export interface CmsProject {
   authorTagColor?: string | null;
   accentGradient?: string | null;
   linkedinUrl?: string | null;
+  linkedinViewCount?: number;
+  linkedinClickCount?: number;
+  linkedinLikeCount?: number;
+  linkedinCommentCount?: number;
+  linkedinPostUrl?: string | null;
+  viewCount?: number;
   hashtags?: string[] | null;
   externalLinks?: Array<{ label: string; href: string }> | null;
   imageKeys?: string[] | null;
+  // Künye alanları
+  problem?: string | null;
+  solution?: string | null;
+  features?: string[] | null;
+  gains?: { time?: boolean; cost?: boolean; quality?: boolean; safety?: boolean } | null;
+  innovationScore?: { local?: boolean; national?: boolean; sector?: boolean; academic?: boolean } | null;
+  maturityLevel?: string | null;
+  impactDomains?: string[] | null;
+  targetAudience?: string[] | null;
+  projectType?: string[] | null;
+  editorialNote?: string | null;
+  editorialScore?: number | null;
+  editorialStrengths?: string[] | null;
+  // Haritakademi künye
+  university?: string | null;
+  graduationType?: string | null;
+  graduationYear?: number | null;
+  projectCategory?: string | null;
+  // Ödül
+  awardCohortMonth?: number | null;
+  awardRank?: number | null;
+  finalist?: boolean;
+  winner?: boolean;
+  awardCommunityVotes?: number | null;
+  awardFinalScore?: number | null;
   createdBy?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -751,6 +1708,7 @@ export interface AdminUser {
   skillTags: string[];
   corporateName: string | null;
   verificationStatus: string;
+  level: 'izleyici' | 'katilimci' | 'katki_sunan' | 'etki_yaratan';
 }
 
 export interface DashboardStats {
@@ -920,8 +1878,34 @@ export interface AdminMenteeApplication {
 }
 
 export interface FeedbackItem {
-  id: string; email: string | null; subject: string; body: string;
-  type: string; source: string; status: string; adminNotes: string | null; createdAt: string;
+  id: string; ticketNo: number; email: string | null; name: string | null; subject: string; body: string;
+  type: string; source: string; status: string; adminNotes: string | null; adminReply: string | null;
+  createdAt: string; urgency: string | null; subCategory: string | null; expectation: string | null;
+  userType: string | null; assignedTo: string | null; attachmentUrls: string | null;
+  satisfactionScore: number | null; aiSummary: string | null; routingActions: string | null;
+  displayName: string | null; userId: string | null; resolvedAt: string | null;
+}
+
+export interface FeedbackHistoryEntry {
+  id: string; feedbackId: string; fromStatus: string | null; toStatus: string;
+  changedBy: string | null; adminNotes: string | null; createdAt: string;
+}
+
+export interface FeedbackStats {
+  total: number;
+  byStatus: Array<{ status: string; count: number }>;
+  bySource: Array<{ source: string; count: number }>;
+  byUrgency: Array<{ urgency: string | null; count: number }>;
+  byUserType: Array<{ userType: string | null; count: number }>;
+  byExpectation: Array<{ expectation: string | null; count: number }>;
+  avgSatisfaction: string | null;
+  topCategories: Array<{ category: string; count: number }>;
+}
+
+export interface SimilarResolvedTicket {
+  id: string; ticketNo: number; subject: string; body: string;
+  subCategory: string | null; adminNotes: string | null; adminReply: string | null;
+  satisfactionScore: number | null; source: string; resolvedAt: string | null; createdAt: string;
 }
 
 export interface ContentRequestItem {
@@ -961,10 +1945,16 @@ export interface ClubEventItem {
 export interface TrainingItem {
   id: string; slug: string; title: string;
   instructor: string | null; instructorTitle: string | null;
+  instructorBio: string | null; instructorAvatarKey: string | null;
   format: string | null; level: string | null; duration: string | null;
-  price: string | null; memberPrice: string | null; description: string | null;
-  tags: string[]; isPublished: boolean; registrationUrl: string | null;
-  startDate: string | null; source: string | null; createdAt: string; updatedAt: string;
+  price: string | null; memberPrice: string | null;
+  accessLevel: string; description: string | null; body: string | null;
+  coverImageKey: string | null; tags: string[]; prerequisites: string[];
+  certificateThreshold: number | null; enrollmentCount: number;
+  isPublished: boolean; registrationUrl: string | null;
+  startDate: string | null; source: string | null;
+  lessonCount?: number; createdAt: string; updatedAt: string;
+  enrollStats?: { total: number; invited: number; ongoing: number; finished: number };
 }
 
 export interface ExamResource {
@@ -1309,6 +2299,59 @@ export interface OnboardingMetrics {
   }>;
 }
 
+export interface TimelineEvent {
+  id: string;
+  at: string;
+  type: 'state_change' | 'audit' | 'notes' | 'interview' | 'payment';
+  title: string;
+  description?: string;
+  actor?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface PaymentSummary {
+  pendingPayments: number;
+  overduePayments: number;
+  remindedPayments: number;
+  waitingVerification: number;
+  verifiedThisMonth: number;
+  failedPayments: number;
+  waivedPayments: number;
+  expiredPayments: number;
+  totalVerifiedAmountKurus: number;
+  remindersSentThisMonth: number;
+}
+
+export interface PaymentRow {
+  id: string;
+  type: string;
+  state: string;
+  applicantEmail: string;
+  applicantUserId: string | null;
+  paymentStatus: string;
+  paymentDueAt: string | null;
+  paymentAmountKurus: number | null;
+  paymentDescription: string | null;
+  reminderCount: number;
+  lastReminderAt: string | null;
+  createdAt: string;
+  displayName: string | null;
+  membershipTier: string | null;
+}
+
+export interface AvailabilitySlot {
+  id: string;
+  adminId: string;
+  startAt: string;
+  endAt: string;
+  slotType: 'membership' | 'mentorship';
+  capacity: number;
+  bookedCount: number;
+  notes: string | null;
+  createdAt: string;
+  admin?: { id: string; profile?: { displayName: string } | null };
+}
+
 export interface CommunityHealth {
   atRisk: Array<{
     userId: string;
@@ -1339,4 +2382,272 @@ export interface CommunityHealth {
     body: string;
     type: 'trend' | 'opportunity' | 'warning';
   }>;
+}
+
+export interface StoreReturn {
+  id: string; orderId: string; orderItemId: string | null;
+  buyerId: string | null; buyerEmail: string; reason: string;
+  status: 'pending' | 'approved' | 'rejected' | 'completed';
+  adminNotes: string | null; refundAmount: number | null; restockItems: boolean;
+  resolvedAt: string | null; createdAt: string;
+}
+
+export interface StoreShipment {
+  id: string; orderId: string; provider: string;
+  trackingNumber: string | null; trackingUrl: string | null;
+  shippingCostKurus: number; status: string; labelUrl: string | null; createdAt: string;
+}
+
+export interface StoreSubscription {
+  id: string; productId: string | null; buyerId: string | null;
+  buyerEmail: string; buyerName: string;
+  interval: 'monthly' | 'quarterly' | 'yearly';
+  priceKurus: number; status: 'active' | 'paused' | 'cancelled' | 'past_due';
+  nextBillingAt: string | null; cancelledAt: string | null; createdAt: string;
+}
+
+export interface StoreAdvancedAnalytics {
+  period: number;
+  avgLTV: number;
+  topCustomers: Array<{ email: string; total: number }>;
+  repeatBuyers: number;
+  conversionRate: number;
+  periodRevenue: number;
+  totalOrders: number;
+  salesByDay: Array<{ label: string; count: number }>;
+}
+
+export interface StoreAnalytics {
+  totalRevenue: number;
+  totalOrders: number;
+  avgOrderValue: number;
+  period: number;
+  dailyTrend: Array<{ day: string; orders: number; revenue: number }>;
+  topProducts: Array<{ title: string; quantity: number; revenue: number }>;
+}
+
+export interface StoreReview {
+  id: string;
+  productId: string | null;
+  orderId: string | null;
+  buyerId: string | null;
+  buyerName: string;
+  buyerEmail: string;
+  rating: number;
+  comment: string | null;
+  isPublished: boolean;
+  createdAt: string;
+}
+
+export interface StoreGiftCard {
+  id: string;
+  code: string;
+  originalAmount: number;
+  balance: number;
+  purchasedByEmail: string;
+  recipientEmail: string;
+  recipientName: string;
+  message: string | null;
+  isActive: boolean;
+  expiresAt: string | null;
+  createdAt: string;
+}
+
+export interface StoreCoupon {
+  id: string;
+  code: string;
+  description: string | null;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  minOrderAmount: number;
+  maxUses: number | null;
+  usedCount: number;
+  expiresAt: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface StoreSeller {
+  id: string;
+  userId: string | null;
+  applicantName: string;
+  email: string;
+  phone: string | null;
+  businessType: 'bireysel' | 'kurumsal';
+  businessName: string | null;
+  taxNumber: string | null;
+  iban: string | null;
+  productDescription: string;
+  commissionRate: string | null;
+  iyzicоSubMerchantKey: string | null;
+  status: 'pending' | 'approved' | 'rejected' | 'suspended';
+  appliedFrom: 'sahne' | 'mutfak';
+  adminNotes: string | null;
+  approvedAt: string | null;
+  createdAt: string;
+}
+
+export interface StoreProduct {
+  id: string;
+  slug: string;
+  ownerType: 'vakif' | 'seller';
+  sellerId: string | null;
+  title: string;
+  subtitle: string | null;
+  description: string;
+  type: 'digital' | 'physical' | 'app';
+  price: number;
+  memberPrice: number | null;
+  images: string[];
+  downloadUrl: string | null;
+  stock: number | null;
+  tags: string[];
+  badgeLabel: string | null;
+  badgeColor: string | null;
+  variants: Array<{ name: string; values: string[]; priceModifier?: number }>;
+  status: 'draft' | 'active' | 'paused' | 'archived';
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StoreOrder {
+  id: string;
+  buyerId: string | null;
+  buyerName: string;
+  buyerEmail: string;
+  shippingAddress: Record<string, unknown> | null;
+  subtotal: number;
+  total: number;
+  iyzicоConversationId: string | null;
+  iyzicоPaymentId: string | null;
+  paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
+  status: 'pending' | 'processing' | 'partially_shipped' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface StoreOrderItem {
+  id: string;
+  orderId: string;
+  productId: string | null;
+  productSnapshot: { title: string; price: number; type: string; ownerType: string; downloadUrl: string | null };
+  sellerId: string | null;
+  quantity: number;
+  unitPrice: number;
+  commissionAmount: number;
+  sellerAmount: number;
+  shippingStatus: 'pending' | 'preparing' | 'shipped' | 'delivered';
+  trackingNumber: string | null;
+  trackingCompany: string | null;
+  shippedAt: string | null;
+  deliveredAt: string | null;
+  payoutStatus: 'held' | 'released' | 'disputed' | 'cancelled';
+  buyerConfirmedAt: string | null;
+  autoReleaseAt: string | null;
+  createdAt: string;
+}
+
+export interface StoreInvoice {
+  id: string;
+  orderId: string;
+  invoiceNumber: string;
+  invoiceType: 'e_arsiv' | 'e_fatura';
+  status: 'draft' | 'sent' | 'failed' | 'cancelled';
+  buyerName: string;
+  buyerEmail: string;
+  buyerTaxNumber: string | null;
+  subtotal: number;
+  vatAmount: number;
+  total: number;
+  providerInvoiceId: string | null;
+  webhookSentAt: string | null;
+  issuedAt: string;
+  createdAt: string;
+}
+
+export interface StoreCollection {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  coverImage: string | null;
+  productIds: string[];
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface StorePayoutSummaryItem {
+  sellerId: string;
+  sellerName: string;
+  sellerEmail: string;
+  iban: string | null;
+  releasedAmount: number;
+  itemCount: number;
+  itemIds: string[];
+}
+
+export interface SellerPayout {
+  id: string;
+  sellerId: string;
+  totalAmount: number;
+  status: 'pending' | 'paid' | 'cancelled';
+  itemIds: string[];
+  adminNotes: string | null;
+  paidAt: string | null;
+  createdAt: string;
+}
+
+export interface LevelStats {
+  distribution: {
+    izleyici: number;
+    katilimci: number;
+    katki_sunan: number;
+    etki_yaratan: number;
+    total: number;
+  };
+  topActions: Array<{ actionId: string; count: number }>;
+  trackedUsers: number;
+}
+
+// ─── Newsletter ───────────────────────────────────────────────────────────────
+
+export interface Newsletter {
+  id: string;
+  title: string;
+  month: string;
+  subject: string;
+  htmlBody: string | null;
+  selectedContent: Record<string, unknown> | null;
+  channels: string[];
+  whatsappTemplateName: string | null;
+  whatsappLanguage: string | null;
+  brevioCampaignId: number | null;
+  status: 'draft' | 'scheduled' | 'sending' | 'sent' | 'failed';
+  scheduledAt: string | null;
+  sentAt: string | null;
+  emailCount: number | null;
+  whatsappCount: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MonthlyContent {
+  month: string;
+  events: Array<{ id: string; slug: string; title: string; type: string; dateStart: string; location: string | null; isPublished: boolean }>;
+  trainings: Array<{ id: string; slug: string; title: string; instructor: string | null; level: string | null; format: string | null; isPublished: boolean; startDate: string | null }>;
+  jobs: Array<{ id: string; title: string; company: string; location: string | null; type: string; publishedAt: string | null }>;
+  competitions: Array<{ id: string; slug: string; title: string; deadline: string | null }>;
+  qa: Array<{ id: string; questionText: string; category: string; createdAt: string; isFeatured: boolean }>;
+  projects: Array<{ id: string; slug: string; title: string; authorName: string | null; authorTag: string | null; status: string; isPublished: boolean }>;
+  talents: Array<{ id: string; title: string; category: string; displayName: string; isPublished: boolean }>;
+  surveys: Array<{ id: string; title: string; description: string | null; status: string; responseCount: number }>;
+  products: Array<{ id: string; slug: string; title: string; type: string; price: number }>;
+  idols: Array<{ id: string; name: string; title: string; organization: string; description?: string; mediaUrl?: string }>;
+}
+
+export interface BrevoSubscribers {
+  contacts: Array<{ email: string; createdAt: string; emailBlacklisted: boolean }>;
+  count: number;
 }
