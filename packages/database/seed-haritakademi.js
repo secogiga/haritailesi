@@ -44,30 +44,29 @@ function authorInitials(name) {
 }
 
 // ─── Ödül listesi [authorFragment, projectFragment, cohortMonth, rank] ──────────
+// Ay numaraları: 1=Ocak, 2=Şubat, 3=Mart, 4=Nisan, 5=Mayıs (ilk ay atlandı)
 const AWARD_WINNERS = [
-  // 1. Ay
-  ['Ufuk Polat',          'Koordinat',        1, 1],
-  ['Yusuf Furkan Özkan',  'Terrain',          1, 3],
-  // 2. Ay
-  ['Ebru Taşkın',         '18 Madde',         2, 1],
-  ['Metehan Kurt',        'Karayolu',         2, 2],
-  ['Yasin',               'Derinlik',         2, 3],
-  // 3. Ay
-  ['Esma Güneş',          'Orman',            3, 1],
-  ['Muzaffer Bulut',      'Nokta',            3, 2],
-  ['Alpaslan Karakuş',    'Ondulasyon',       3, 3],
-  // 4. Ay
-  ['İbrahim Caner Bozkurt', 'QGIS',          4, 1],
-  ['Ayşe Alakaş',         'Madencilik',       4, 2],
-  ['Rıza Karaman',        'CAD',              4, 3],  // "Mobile CAD Pro" = CadGIS
-  // 5. Ay
-  ['Yusuf Ziya Öztürk',   'Yapay',            5, 1],
-  ['Ali Kılıç',           'NCZ',              5, 2],
-  ['Furkan Ceylan',       'Hesaplama',        5, 3],
+  // 1. Ay (Ocak)
+  ['Ebru Taşkın',         '18 Madde',         1, 1],
+  ['Metehan Kurt',        'Karayolu',         1, 2],
+  ['Yasin',               'Derinlik',         1, 3],
+  // 2. Ay (Şubat)
+  ['Esma Güneş',          'Orman',            2, 1],
+  ['Muzaffer Bulut',      'Nokta',            2, 2],
+  ['Alpaslan Karakuş',    'Ondulasyon',       2, 3],
+  // 3. Ay (Mart)
+  ['İbrahim Caner Bozkurt', 'QGIS',          3, 1],
+  ['Ayşe Alakaş',         'Madencilik',       3, 2],
+  ['Rıza Karaman',        'CAD',              3, 3],  // "Mobile CAD Pro" = CadGIS
+  // 4. Ay (Nisan)
+  ['Yusuf Ziya Öztürk',   'Yapay',            4, 1],
+  ['Ali Kılıç',           'NCZ',              4, 2],
+  ['Furkan Ceylan',       'Hesaplama',        4, 3],
   // 6. Ay
-  ['Hamdi Gündüz',        'Netpromine',       6, 1],
-  ['Ahmet Hakan Köksal',  'GeoPorsuk',        6, 2],
-  ['Ufuk Polat',          'UFUKview',         6, 3],
+  // 5. Ay (Mayıs)
+  ['Hamdi Gündüz',        'Netpromine',       5, 1],
+  ['Ahmet Hakan Köksal',  'GeoPorsuk',        5, 2],
+  ['Ufuk Polat',          'UFUKview',         5, 3],
 ];
 
 function findAward(authorName, projectName) {
