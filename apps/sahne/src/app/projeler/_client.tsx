@@ -17,10 +17,11 @@ function mediaUrl(key: string) {
 
 function SpotlightStrip({ project }: { project: CmsProject }) {
   const accent = project.accentGradient ?? 'from-[#26496b] to-[#66aca9]';
+  const resolveKey = (key: string) => key.startsWith('/') ? encodeURI(key) : key.startsWith('covers/') ? mediaUrl(key) : `/projects/${key}`;
   const coverSrc = project.imageKeys?.[0]
-    ? mediaUrl(project.imageKeys[0])
+    ? resolveKey(project.imageKeys[0])
     : project.coverImageKey
-      ? mediaUrl(project.coverImageKey)
+      ? resolveKey(project.coverImageKey)
       : null;
 
   return (
@@ -101,6 +102,11 @@ function SpotlightStrip({ project }: { project: CmsProject }) {
   );
 }
 
+const AY_LABELS: Record<number, string> = {
+  1: 'Ocak', 2: 'Şubat', 3: 'Mart', 4: 'Nisan', 5: 'Mayıs',
+  6: 'Haziran', 7: 'Temmuz', 8: 'Ağustos', 9: 'Eylül', 10: 'Ekim', 11: 'Kasım', 12: 'Aralık',
+};
+
 // ── Ayın Öne Çıkan 3 Projesi ───────────────────────────────────────────────────
 
 const RANK_CONFIG = [
@@ -138,10 +144,17 @@ const RANK_CONFIG = [
 
 function TopThreeSection({ projects }: { projects: CmsProject[] }) {
   const dominantViews = (p: CmsProject) => Math.max(p.viewCount, p.linkedinViewCount ?? 0);
-  const top3 = [...projects].sort((a, b) => dominantViews(b) - dominantViews(a)).slice(0, 3);
+
+  // Ödül ataması olan projeleri en son aya göre göster
+  const awardProjects = projects.filter(p => p.awardCohortMonth != null && p.awardRank != null);
+  const maxMonth = awardProjects.length > 0 ? Math.max(...awardProjects.map(p => p.awardCohortMonth!)) : null;
+  const top3 = maxMonth != null
+    ? awardProjects.filter(p => p.awardCohortMonth === maxMonth).sort((a, b) => (a.awardRank ?? 99) - (b.awardRank ?? 99))
+    : [...projects].sort((a, b) => dominantViews(b) - dominantViews(a)).slice(0, 3);
+
   if (top3.length < 2) return null;
 
-  const month = new Date().toLocaleDateString('tr-TR', { month: 'long' });
+  const month = maxMonth != null ? AY_LABELS[maxMonth] ?? `${maxMonth}. Ay` : new Date().toLocaleDateString('tr-TR', { month: 'long' });
 
   return (
     <div>
@@ -149,7 +162,7 @@ function TopThreeSection({ projects }: { projects: CmsProject[] }) {
       <div className="flex items-center justify-between gap-4 mb-4">
         <div>
           <h2 className="text-base font-black text-gray-900 dark:text-slate-100 tracking-tight">Ayın Öne Çıkan 3 Projesi</h2>
-          <p className="text-[11px] text-gray-400 dark:text-slate-500 mt-0.5 capitalize">{month} ayının en çok görüntülenen projeleri</p>
+          <p className="text-[11px] text-gray-400 dark:text-slate-500 mt-0.5 capitalize">{month} ayının Haritakademi ödüllü projeleri</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-[9px] font-black tracking-[0.15em] uppercase text-[#66aca9] bg-[#66aca9]/10 border border-[#66aca9]/20 px-3 py-1.5 rounded-full">
@@ -304,9 +317,14 @@ function LinkedinProjelerGrid({ projects }: { projects: CmsProject[] }) {
   if (!featured) return null;
 
   const accent = (p: CmsProject) => p.accentGradient ?? 'from-[#26496b] to-[#66aca9]';
+  const resolveKeyFn = (key: string): string => {
+    if (key.startsWith('/')) return encodeURI(key);
+    if (key.startsWith('covers/')) return `${API_URL}/api/v1/media?key=${encodeURIComponent(key)}`;
+    return `/projects/${key}`;
+  };
   const coverSrc = (p: CmsProject): string | null => {
-    if (p.coverImageKey) return p.coverImageKey.startsWith('covers/') ? `${API_URL}/api/v1/media?key=${encodeURIComponent(p.coverImageKey)}` : `/projects/${p.coverImageKey}`;
-    if (p.imageKeys?.[0]) return `${API_URL}/api/v1/media?key=${encodeURIComponent(p.imageKeys[0])}`;
+    if (p.coverImageKey) return resolveKeyFn(p.coverImageKey);
+    if (p.imageKeys?.[0]) return resolveKeyFn(p.imageKeys[0]);
     return null;
   };
 
@@ -637,6 +655,14 @@ export function ProjelerClient({
   const filteredSahne = filteredAll.filter((p) => p.type === 'sahne');
   const filteredLinkedin = filteredAll.filter((p) => p.type === 'linkedin');
 
+  const topProjects = useMemo(
+    () =>
+      [...allProjects]
+        .sort((a, b) => ((b.linkedinViewCount ?? 0) + b.viewCount) - ((a.linkedinViewCount ?? 0) + a.viewCount))
+        .slice(0, 6),
+    [allProjects]
+  );
+
   const isFiltered = activeTab !== 'all';
   const isEmpty = filteredAll.length === 0;
   const sortLabel = sortBy === 'popular' ? 'En Popüler' : 'En Yeni';
@@ -734,22 +760,22 @@ export function ProjelerClient({
       )}
 
       {/* Projeler */}
-      {filteredAll.length > 0 && (
+      {topProjects.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#66aca9] animate-pulse" />
             <span className="text-xs font-semibold uppercase tracking-widest text-[#66aca9]">
               Sahne&apos;den Seçmeler
             </span>
-            <span className="text-xs text-gray-400 dark:text-slate-500">({filteredAll.length})</span>
+            <span className="text-xs text-gray-400 dark:text-slate-500">En Popüler 5</span>
           </div>
 
           {viewMode === 'grid' ? (
-            <SahneProjelerGrid projects={filteredAll} />
+            <SahneProjelerGrid projects={topProjects} />
           ) : (
             <div className="flex gap-4 items-start">
               <div className="flex-1 min-w-0 space-y-2">
-                {filteredAll.map((p) => (
+                {topProjects.map((p) => (
                   <PanelProjectCard
                     key={p.id}
                     project={p}

@@ -40,7 +40,7 @@ const CONTRIBUTION_LEVELS = [
   },
   {
     no: 3,
-    name: 'Üretici',
+    name: 'Katkı Sunan',
     desc: 'İçerik üretir, katkı sunar.',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,20 +52,8 @@ const CONTRIBUTION_LEVELS = [
   },
   {
     no: 4,
-    name: 'Kolaylaştırıcı',
-    desc: 'Organizasyon yapar, insanları bir araya getirir.',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
-      </svg>
-    ),
-    color: 'bg-violet-100 text-violet-600',
-    activeColor: 'bg-violet-500',
-  },
-  {
-    no: 5,
-    name: 'Etki Üreticisi',
-    desc: 'Mentorluk verir, eğitim düzenler, topluluğa yön verir.',
+    name: 'Etki Yaratan',
+    desc: 'Mentörlük verir, topluluğa yön verir.',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
@@ -277,7 +265,7 @@ export default async function SahnePage() {
             <div className="text-center mb-12">
               <div className="text-xs font-semibold uppercase tracking-widest text-[#66aca9] mb-3">Katkı Basamağı</div>
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-slate-100 mb-3">
-                Küçük adımlarla büyük etki.
+                Küçük Adımlarla Büyük Etki
               </h2>
               <p className="text-gray-500 dark:text-slate-400 max-w-xl mx-auto">
                 Sistem seni zorlamaz; yönlendirir. Her katkı bir sonraki basamağa taşır.
@@ -315,8 +303,7 @@ export default async function SahnePage() {
 
             <div className="mt-10 text-center">
               <Link
-                href={`${WEB_URL}/uye-ol` as `https://${string}`}
-                target="_blank" rel="noopener noreferrer"
+                href="#kesfet"
                 className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-[#26496b] hover:bg-[#1d3a57] rounded-xl transition-colors"
               >
                 Sahneye İlk Adım
@@ -507,9 +494,6 @@ export default async function SahnePage() {
             </div>
           </div>
         </section>
-
-        {/* ── Meslekte Yeni İdoller ─────────────────────────────────────── */}
-        <IdollerSection />
 
         {/* ── Haberita: Sektörden Haberler ──────────────────────────────── */}
         <HaberitaSection />
@@ -978,7 +962,23 @@ export default async function SahnePage() {
             </div>
             <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
               <span>© {new Date().getFullYear()} Haritailesi Vakfı. Tüm hakları saklıdır.</span>
-              <div className="flex gap-4">
+              <div className="flex items-center gap-5">
+                <a href="https://www.instagram.com/haritailesi" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="text-gray-500 hover:text-white transition-colors">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                  </svg>
+                </a>
+                <a href="https://www.linkedin.com/company/haritailesi-vakf%C4%B1" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="text-gray-500 hover:text-white transition-colors">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                  </svg>
+                </a>
+                <a href="https://www.youtube.com/@haritailesi" target="_blank" rel="noopener noreferrer" aria-label="YouTube" className="text-gray-500 hover:text-white transition-colors">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                  </svg>
+                </a>
+                <div className="w-px h-3 bg-gray-700" />
                 <Link href={`${WEB_URL}/hakkimizda/tuzuk`} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">KVKK</Link>
                 <Link href={`${WEB_URL}/iletisim`} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">İletişim</Link>
               </div>

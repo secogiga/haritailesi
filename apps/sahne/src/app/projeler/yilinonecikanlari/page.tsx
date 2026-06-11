@@ -16,9 +16,14 @@ const year = new Date().getFullYear();
 function mediaUrl(key: string) {
   return `${API_URL}/api/v1/media?key=${encodeURIComponent(key)}`;
 }
+function resolveKey(key: string): string {
+  if (key.startsWith('/')) return encodeURI(key);
+  if (key.startsWith('covers/')) return mediaUrl(key);
+  return `/projects/${key}`;
+}
 function coverOf(p: CmsProject): string | null {
-  if (p.coverImageKey) return p.coverImageKey.startsWith('covers/') ? mediaUrl(p.coverImageKey) : `/projects/${p.coverImageKey}`;
-  if (p.imageKeys?.[0]) return mediaUrl(p.imageKeys[0]);
+  if (p.coverImageKey) return resolveKey(p.coverImageKey);
+  if (p.imageKeys?.[0]) return resolveKey(p.imageKeys[0]);
   return null;
 }
 function shortTitle(p: CmsProject) {
@@ -26,8 +31,14 @@ function shortTitle(p: CmsProject) {
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
-  GIS: '🗺️', Fotogrametri: '📷', Madencilik: '⛏️', 'Yapay Zeka': '🤖',
-  İnşaat: '🏗️', Haritacılık: '🧭', Ulaşım: '🛣️', Tarım: '🌾',
+  'Mesleki Uygulama': '⚙️',
+  'Mesleki Proje': '💼',
+  'Eğitim': '🎓',
+  'Bilgi Paylaşımı': '📚',
+  'Analiz Çalışması': '🔬',
+  'Mesleki Yayın': '📄',
+  'Blog Yazısı': '✍️',
+  'Saha Ölçümü': '🏔️',
 };
 
 export default async function OneCikanlarPage() {
@@ -54,18 +65,24 @@ export default async function OneCikanlarPage() {
   const totalLinkedinViews = projects.reduce((s, p) => s + (p.linkedinViewCount ?? 0), 0);
   const editorialCount = projects.filter((p) => p.editorialScore).length;
 
-  // Kategori kazananları: toplam görüntülenmeye göre
+  // Kategori kazananları: projectCategory alanına göre, toplam görüntülenmeye göre sırala
+  const CATEGORY_ORDER = ['Mesleki Uygulama', 'Mesleki Proje', 'Eğitim', 'Bilgi Paylaşımı', 'Analiz Çalışması', 'Mesleki Yayın', 'Blog Yazısı', 'Saha Ölçümü'];
   const categoryMap = new Map<string, CmsProject>();
   for (const p of projects) {
-    const cat = p.projectType?.[0];
+    const cat = p.projectCategory;
     if (!cat) continue;
     const existing = categoryMap.get(cat);
     if (!existing || scoreOf(p) > scoreOf(existing)) categoryMap.set(cat, p);
   }
-  const categories = Array.from(categoryMap.entries()).slice(0, 5);
+  const categories = CATEGORY_ORDER
+    .filter((cat) => categoryMap.has(cat))
+    .map((cat) => [cat, categoryMap.get(cat)!] as [string, CmsProject])
+    .slice(0, 6);
 
-  // Wall of Fame: cover'ı olan tüm projeler
-  const wallProjects = projects.filter((p) => coverOf(p)).slice(0, 21);
+  // Wall of Fame: her ayın birincisi (awardRank === 1), aya göre sıralı
+  const wallProjects = projects
+    .filter((p) => p.awardRank === 1 && p.awardCohortMonth != null)
+    .sort((a, b) => (a.awardCohortMonth ?? 0) - (b.awardCohortMonth ?? 0));
 
   return (
     <>
@@ -152,20 +169,20 @@ export default async function OneCikanlarPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {([
                     {
-                      icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>,
-                      value: editorialCount || projects.length, label: 'Seçilen Proje',
+                      icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>,
+                      value: 70, label: 'Toplam Proje',
                     },
                     {
-                      icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
+                      icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>,
                       value: projects.length, label: 'Aday Proje',
                     },
                     {
-                      icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>,
-                      value: totalSahneViews.toLocaleString('tr-TR'), label: 'Sahne Görüntülenme',
+                      icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" /></svg>,
+                      value: 8, label: 'Kategori',
                     },
                     {
-                      icon: <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>,
-                      value: totalLinkedinViews.toLocaleString('tr-TR'), label: 'LinkedIn Görüntülenme',
+                      icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>,
+                      value: totalLinkedinViews >= 1000 ? `${Math.round(totalLinkedinViews / 1000)}K` : totalLinkedinViews.toLocaleString('tr-TR'), label: 'Görüntülenme',
                     },
                   ] as { icon: React.ReactNode; value: string | number; label: string }[]).map(({ icon, value, label }) => (
                     <div key={label} className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
@@ -389,21 +406,34 @@ export default async function OneCikanlarPage() {
                     <svg className="w-5 h-5 text-[#66aca9]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                     </svg>
-                    <h2 className="text-xl font-black text-white">Wall of Fame</h2>
+                    <h2 className="text-xl font-black text-white">Yılın En İyi Projesi Adayları</h2>
                   </div>
-                  <p className="text-slate-400 text-xs ml-8">{year} yılı finalist projeleri</p>
+                  <p className="text-slate-400 text-xs ml-8">{year} yılı aylık birinci projeler</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-7 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 {wallProjects.map((p) => {
-                  const cover = coverOf(p)!;
+                  const cover = coverOf(p);
+                  const AY_LABELS: Record<number, string> = { 1: 'Ocak', 2: 'Şubat', 3: 'Mart', 4: 'Nisan', 5: 'Mayıs', 6: 'Haziran' };
+                  const ayLabel = p.awardCohortMonth ? AY_LABELS[p.awardCohortMonth] ?? `${p.awardCohortMonth}. Ay` : '';
                   return (
                     <Link key={p.id} href={`/projeler/${p.slug}`}
-                      className="group relative aspect-square rounded-xl overflow-hidden bg-slate-800">
-                      <img src={cover} alt={shortTitle(p)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 opacity-70 group-hover:opacity-100" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end p-2">
-                        <p className="text-[9px] font-semibold text-white line-clamp-2 leading-tight">{shortTitle(p)}</p>
+                      className="group relative rounded-2xl overflow-hidden bg-slate-800 border border-slate-700/50 hover:border-amber-400/40 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
+                      <div className="aspect-[4/3] overflow-hidden">
+                        {cover
+                          ? <img src={cover} alt={shortTitle(p)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                          : <div className="w-full h-full bg-gradient-to-br from-[#26496b] to-[#66aca9] opacity-30" />}
+                      </div>
+                      <div className="absolute top-2 left-2">
+                        <span className="inline-flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-500 text-white">
+                          <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                          {ayLabel} BİRİNCİSİ
+                        </span>
+                      </div>
+                      <div className="p-3">
+                        <p className="text-[10px] text-slate-400 mb-0.5">{p.authorName}</p>
+                        <p className="text-xs font-bold text-white line-clamp-2 leading-snug group-hover:text-amber-400 transition-colors">{shortTitle(p)}</p>
                       </div>
                     </Link>
                   );
@@ -413,7 +443,7 @@ export default async function OneCikanlarPage() {
               <div className="flex justify-center mt-8">
                 <Link href="/projeler"
                   className="inline-flex items-center gap-2 text-sm font-semibold text-[#66aca9] border border-[#66aca9]/30 px-5 py-2.5 rounded-full hover:bg-[#66aca9]/5 transition-colors">
-                  Tüm Finalistleri Görüntüle →
+                  Tüm Projeleri Görüntüle →
                 </Link>
               </div>
             </div>

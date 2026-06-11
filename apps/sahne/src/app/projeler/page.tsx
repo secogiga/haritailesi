@@ -18,6 +18,19 @@ export default async function ProjelerPage() {
     cms.projects({ type: 'linkedin' }).then((r) => r ?? []),
   ]);
 
+  const allProjects = [...sahneProjects, ...linkedinProjects];
+  const totalProjects = allProjects.length;
+  const uniqueAuthors = new Set(allProjects.map(p => p.authorName).filter(Boolean)).size;
+  const totalViews = allProjects.reduce((sum, p) => sum + (p.linkedinViewCount ?? 0) + (p.viewCount ?? 0), 0);
+  const uniqueCategories = new Set(allProjects.map(p => p.projectCategory).filter(Boolean)).size;
+
+  const STATS = [
+    { label: 'Toplam Proje', value: '70' },
+    { label: 'Aday Proje', value: '18' },
+    { label: 'Kategori', value: '8' },
+    { label: 'Görüntülenme', value: totalViews >= 1000 ? `${Math.round(totalViews / 1000)}K` : totalViews.toString() },
+  ];
+
   return (
     <>
       <Navbar />
@@ -98,6 +111,18 @@ export default async function ProjelerPage() {
             style={{ clipPath: 'ellipse(55% 100% at 50% 100%)' }}
           />
         </section>
+
+        {/* ── İstatistik Bar ── */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {STATS.map(s => (
+              <div key={s.label} className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 px-4 py-4 text-center shadow-sm">
+                <p className="text-3xl font-black text-[#26496b] dark:text-[#66aca9] leading-none tabular-nums">{s.value}</p>
+                <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1.5 font-semibold uppercase tracking-widest">{s.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
 
         <ProjelerClient
           sahneProjects={sahneProjects}

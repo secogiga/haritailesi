@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Navbar from '@/components/Navbar';
+import { PageActionTracker } from '@/components/PageActionTracker';
 
 const API = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000';
 
@@ -324,6 +325,7 @@ export default function SinavlarPage() {
   return (
     <>
       <Navbar />
+      <PageActionTracker actionId="v-sinavlar" />
       <main className="min-h-screen dark:bg-[#070c1a]">
 
         {/* ── Hero ─────────────────────────────────────────────────────── */}

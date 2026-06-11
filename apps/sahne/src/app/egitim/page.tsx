@@ -1,187 +1,91 @@
 import type { Metadata } from 'next';
 import Navbar from '@/components/Navbar';
-import { cms, type Training } from '@/lib/api';
+import { PageActionTracker } from '@/components/PageActionTracker';
+import { cms } from '@/lib/api';
+import { CourseFilters } from './_filters';
+import { EgitimGonderButton, EgitimGonderCTA } from '@/components/EgitimGonder';
+import { ModuleNewsletterBar } from '@/components/ModuleNewsletterBar';
+import { EgitimHeroRight } from '@/components/EgitimHeroRight';
 
 export const metadata: Metadata = {
   title: 'Eğitim',
   description: 'Haritailesi eğitim programları: harita, geomatik ve CBS alanında online ve yüz yüze kurslar.',
 };
 
-const mutfakUrl = process.env['NEXT_PUBLIC_MUTFAK_URL'] ?? 'https://mutfak.haritailesi.org';
-const webUrl = process.env['NEXT_PUBLIC_WEB_URL'] ?? 'https://haritailesi.org';
-
-const LEVEL_COLORS: Record<string, string> = {
-  'Başlangıç': 'bg-emerald-100 text-emerald-700',
-  'Temel': 'bg-blue-100 text-blue-700',
-  'Orta': 'bg-amber-100 text-amber-700',
-  'İleri': 'bg-red-100 text-red-700',
-};
-
-function getLevelColor(level: string | null): string {
-  if (!level) return 'bg-gray-100 text-gray-600';
-  for (const [key, cls] of Object.entries(LEVEL_COLORS)) {
-    if (level.includes(key)) return cls;
-  }
-  return 'bg-gray-100 text-gray-600';
-}
-
-function CourseCard({ course }: { course: Training }) {
-  const tags: string[] = Array.isArray(course.tags) ? course.tags : [];
-
-  return (
-    <article className="flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-gray-200 dark:hover:border-slate-700 transition-all overflow-hidden">
-      <div className="h-1.5 bg-gradient-to-r from-[#26496b] to-[#66aca9]" />
-      <div className="flex flex-col flex-1 p-6">
-        <div className="flex flex-wrap gap-1.5 mb-4">
-          {course.level && (
-            <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${getLevelColor(course.level)}`}>
-              {course.level}
-            </span>
-          )}
-          {course.format && (
-            <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-[#26496b]/10 text-[#26496b] dark:bg-blue-900/30 dark:text-blue-300">
-              {course.format}
-            </span>
-          )}
-          {course.startDate && new Date(course.startDate) > new Date() && (
-            <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-violet-100 text-violet-700">
-              {new Date(course.startDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
-            </span>
-          )}
-        </div>
-
-        <h2 className="text-base font-bold text-gray-900 dark:text-slate-100 leading-snug mb-3">
-          {course.title}
-        </h2>
-
-        {course.description && (
-          <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed mb-4 flex-1 line-clamp-3">
-            {course.description}
-          </p>
-        )}
-
-        <div className="space-y-1.5 mb-4">
-          {course.instructor && (
-            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
-              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              <span>
-                {course.instructor}
-                {course.instructorTitle && <span className="text-gray-400 dark:text-slate-500"> · {course.instructorTitle}</span>}
-              </span>
-            </div>
-          )}
-          {(course.format || course.duration) && (
-            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
-              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>{[course.format, course.duration].filter(Boolean).join(' · ')}</span>
-            </div>
-          )}
-        </div>
-
-        {tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-5">
-            {tags.map((tag) => (
-              <span key={tag} className="text-xs text-gray-500 dark:text-slate-400 bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded">
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-slate-800 mt-auto">
-          <div>
-            {course.price ? (
-              <>
-                <div className="text-base font-bold text-gray-900 dark:text-slate-100">{course.price}</div>
-                {course.memberPrice && (
-                  <div className="text-xs text-emerald-600">Üye Fiyatı: {course.memberPrice}</div>
-                )}
-              </>
-            ) : (
-              <>
-                <div className="text-base font-bold text-emerald-600">Ücretsiz</div>
-                <div className="text-xs text-gray-400 dark:text-slate-500">Üyeye Özel</div>
-              </>
-            )}
-          </div>
-          <a
-            href={course.registrationUrl ?? `${mutfakUrl}/giris`}
-            target={course.registrationUrl ? '_blank' : undefined}
-            rel={course.registrationUrl ? 'noreferrer' : undefined}
-            className="px-4 py-2 text-sm font-semibold text-white bg-[var(--color-mavi)] hover:bg-[var(--color-mavi-acik)] rounded-xl transition-colors"
-          >
-            Kaydol
-          </a>
-        </div>
-      </div>
-    </article>
-  );
-}
-
 export default async function EgitimPage() {
-  const courses = await cms.trainings();
+  const [courses, leaderboard] = await Promise.all([
+    cms.trainings(),
+    cms.trainingLeaderboard(10),
+  ]);
+
+  const totalStudents = courses.reduce((s, c) => s + c.enrollmentCount, 0);
 
   return (
     <>
       <Navbar />
-      <main className="min-h-screen dark:bg-[#070c1a]">
+      <PageActionTracker actionId="v-egitim" />
+      <main className="min-h-screen bg-[#f8fafc] dark:bg-[#070c1a]">
+
         {/* Hero */}
-        <section className="bg-white dark:bg-slate-950 border-b border-gray-100 dark:border-slate-800 py-12 sm:py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-xs font-semibold uppercase tracking-widest text-[var(--color-teal)] mb-3">
-              Sahne Modülleri
-            </div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-slate-100 mb-3">
-              Eğitim
-            </h1>
-            <p className="text-gray-500 dark:text-slate-400 max-w-2xl">
-              Harita, geomatik ve CBS alanında uzman eğitmenlerle online ve yüz yüze kurslar.
-              Üye indirimleri ile erişilebilir fiyatlar.
-            </p>
-          </div>
-        </section>
-
-        {/* Course grid */}
-        <section className="py-12 sm:py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            {courses.length === 0 ? (
-              <div className="text-center py-20">
-                <p className="text-4xl mb-4">📚</p>
-                <h2 className="text-xl font-bold text-gray-700 dark:text-slate-200 mb-2">Yakında</h2>
-                <p className="text-gray-500 dark:text-slate-400 max-w-md mx-auto">
-                  Eğitim programları hazırlanıyor. Yeni kurslar ve sertifika programları için takipte kalın.
+        <section className="relative bg-[#0d1b2a] overflow-hidden">
+          <div className="absolute inset-0 opacity-[0.04]"
+            style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '28px 28px' }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#26496b]/40 via-transparent to-[#66aca9]/20 pointer-events-none" />
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-14 sm:pt-16 sm:pb-20">
+            <div className="flex flex-col lg:flex-row lg:items-end gap-8 lg:gap-16">
+              <div className="flex-1">
+                <div className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-[#66aca9] mb-5 bg-[#66aca9]/10 border border-[#66aca9]/20 px-3.5 py-1.5 rounded-full">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 14l9-5-9-5-9 5 9 5z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                  </svg>
+                  Haritailesi Eğitim
+                </div>
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-[1.05] tracking-tight mb-5">
+                  Kariyerini<br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#66aca9] to-[#4d9996]">İleri Taşı</span>
+                </h1>
+                <p className="text-slate-400 text-base sm:text-lg max-w-xl leading-relaxed mb-6">
+                  Öğrenirken öğretmek, öğretirken gelişmek... Bilgi paylaştıkça değer kazanıyor. Uzman eğitmenlerle hazırlanmış eğitimler.
                 </p>
+                <EgitimGonderButton />
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {courses.map((course) => (
-                  <CourseCard key={course.id} course={course} />
-                ))}
-              </div>
-            )}
-
-            {/* CTA banner */}
-            <div className="mt-10 rounded-2xl bg-gradient-to-br from-[#26496b] to-[#1a3350] p-6 sm:p-8 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
-              <div>
-                <p className="text-sm font-bold mb-1">Eğitim Kataloğu Genişliyor</p>
-                <p className="text-sm text-white/70 max-w-lg">
-                  Yeni kurslar ve sertifika programları yakında ekleniyor.
-                  Üye olarak tüm içeriklere öncelikli erişim hakkı kazanın.
-                </p>
-              </div>
-              <a
-                href={`${webUrl}/uye-ol`}
-                className="shrink-0 px-5 py-2.5 text-sm font-semibold text-[#26496b] bg-white hover:bg-white/90 rounded-xl transition-colors"
-              >
-                Üye Ol
-              </a>
+              <EgitimHeroRight
+                count={250}
+                stats={[
+                  { value: courses.length, label: 'Kurs', color: 'text-[#66aca9]', icon: (
+                    <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                  )},
+                  { value: totalStudents, label: 'Öğrenci', color: 'text-white', icon: (
+                    <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  )},
+                  { value: courses.filter(c => !c.price).length, label: 'Ücretsiz', color: 'text-emerald-400', icon: (
+                    <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" /></svg>
+                  )},
+                ]}
+              />
             </div>
           </div>
+          <div className="absolute bottom-0 left-0 right-0 h-8 bg-[#f8fafc] dark:bg-[#070c1a]"
+            style={{ clipPath: 'ellipse(55% 100% at 50% 100%)' }}
+          />
         </section>
+
+
+        {courses.length === 0 ? (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-[#26496b]/8 flex items-center justify-center mx-auto mb-5">
+              <svg className="w-8 h-8 text-[#26496b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-slate-200 mb-2">Eğitimler Hazırlanıyor</h2>
+            <p className="text-gray-500 dark:text-slate-400">Yeni kurslar ve sertifika programları yakında yayında.</p>
+          </div>
+        ) : (
+          <CourseFilters courses={courses} leaderboard={leaderboard} />
+        )}
       </main>
     </>
   );

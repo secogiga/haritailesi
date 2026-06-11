@@ -60,20 +60,26 @@ export function SahneProjelerGrid({ projects: allProjects }: { projects: CmsProj
             const thumb = coverOf(p);
             const maturityLabel = p.maturityLevel ? (MATURITY_LABELS[p.maturityLevel] ?? p.maturityLevel) : null;
             const maturityColor = p.maturityLevel ? (MATURITY_COLORS[p.maturityLevel] ?? 'bg-gray-100 text-gray-500') : null;
+            const accent = p.accentGradient ?? 'from-[#26496b] to-[#66aca9]';
             return (
               <button
                 key={p.id}
                 onClick={() => setFeaturedId(p.id)}
-                className="w-full text-left flex items-center gap-3 p-3 rounded-xl border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-[#26496b]/30 hover:shadow-sm transition-all"
+                className="group w-full text-left flex items-center gap-3 p-3 rounded-xl border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-transparent hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 relative overflow-hidden"
               >
-                <div className="w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-gray-100 dark:bg-slate-800">
+                {/* Hover renk arka planı */}
+                <div className={`absolute inset-0 bg-gradient-to-r ${accent} opacity-0 group-hover:opacity-[0.07] transition-opacity duration-200`} />
+                {/* Sol kenar çizgisi */}
+                <div className={`absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b ${accent} opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-l-xl`} />
+
+                <div className="w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-gray-100 dark:bg-slate-800 group-hover:scale-105 transition-transform duration-200">
                   {thumb ? (
                     <img src={thumb} alt={p.title} className="w-full h-full object-cover" />
                   ) : (
-                    <div className={`w-full h-full bg-gradient-to-br ${p.accentGradient ?? 'from-[#26496b] to-[#66aca9]'} opacity-40`} />
+                    <div className={`w-full h-full bg-gradient-to-br ${accent} opacity-40`} />
                   )}
                 </div>
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 relative">
                   <div className="flex items-center gap-1.5 mb-0.5">
                     <div className="w-4 h-4 rounded-full text-white flex items-center justify-center text-[8px] font-bold shrink-0"
                       style={{ backgroundColor: p.authorAvatarColor ?? '#26496b' }}>
@@ -81,7 +87,7 @@ export function SahneProjelerGrid({ projects: allProjects }: { projects: CmsProj
                     </div>
                     <p className="text-[10px] text-gray-400 dark:text-slate-500 truncate">{p.authorName}</p>
                   </div>
-                  <p className="text-[12px] font-bold leading-snug line-clamp-2 text-gray-800 dark:text-slate-200">
+                  <p className="text-[12px] font-bold leading-snug line-clamp-2 text-gray-800 dark:text-slate-200 group-hover:text-[#26496b] dark:group-hover:text-[#66aca9] transition-colors duration-200">
                     {p.title.includes(' — ') ? p.title.split(' — ').slice(1).join(' — ') : p.title}
                   </p>
                   {maturityLabel && (

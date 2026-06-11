@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import SoruCevapClient from './SoruCevapClient';
+import { PageActionTracker } from '@/components/PageActionTracker';
 
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000';
 
@@ -32,5 +33,10 @@ async function getPublishedQA(category?: string): Promise<QaItem[]> {
 
 export default async function SoruCevapPage() {
   const items = await getPublishedQA();
-  return <SoruCevapClient initialItems={items} />;
+  return (
+    <>
+      <PageActionTracker actionId="v-sc" />
+      <SoruCevapClient initialItems={items} />
+    </>
+  );
 }

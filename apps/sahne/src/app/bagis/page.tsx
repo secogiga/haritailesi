@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
+import { PageActionTracker } from '@/components/PageActionTracker';
 import Link from 'next/link';
 
 const API = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000/api/v1';
@@ -24,18 +25,6 @@ const UYELIK_TIERS = [
     borderColor: 'border-emerald-200 hover:border-emerald-300',
     activeBorder: 'border-emerald-500 bg-emerald-50/50',
     description: 'Lisans ve lisansüstü öğrencilere ücretsiz. Mesleğin gençleriyle ağ kur.',
-  },
-  {
-    id: 'new_graduate_member',
-    label: 'Mesleğin Geleceği',
-    sublabel: 'İlk 2 Yıl Ücretsiz',
-    price: 0,
-    free: true,
-    donCat: 'mezun',
-    badgeColor: 'bg-sky-100 text-sky-800',
-    borderColor: 'border-sky-200 hover:border-sky-300',
-    activeBorder: 'border-sky-500 bg-sky-50/50',
-    description: 'Mezuniyetin üzerinden 2 yıl geçmemiş meslektaşlar için ücretsiz üyelik.',
   },
   {
     id: 'individual_member',
@@ -143,6 +132,8 @@ export default function BagisPage() {
   const [error, setError] = useState('');
   const [refCode, setRefCode] = useState('');
   const [bankAmount, setBankAmount] = useState(0);
+  const [loadTime] = useState(() => Date.now());
+  const [honeypot, setHoneypot] = useState('');
 
   // iyzico overlay
   const [showIyzico, setShowIyzico] = useState(false);
@@ -187,6 +178,7 @@ export default function BagisPage() {
 
   async function submitUyelik(e: React.FormEvent) {
     e.preventDefault();
+    if (honeypot || Date.now() - loadTime < 2000) return;
     setError('');
     if (!selectedTierId) { setError('Lütfen bir üyelik türü seçin.'); return; }
     if (!form.name.trim() || !form.surname.trim() || !form.email.trim()) {
@@ -255,6 +247,7 @@ export default function BagisPage() {
 
   async function submitGenel(e: React.FormEvent) {
     e.preventDefault();
+    if (honeypot || Date.now() - loadTime < 2000) return;
     setError('');
     if (!form.name.trim() || !form.surname.trim() || !form.email.trim()) {
       setError('Ad, soyad ve e-posta zorunludur.'); return;
@@ -291,6 +284,7 @@ export default function BagisPage() {
 
   async function submitKurumsal(e: React.FormEvent) {
     e.preventDefault();
+    if (honeypot || Date.now() - loadTime < 2000) return;
     setError('');
     if (!form.name.trim() || !form.surname.trim() || !form.email.trim() || !form.company.trim()) {
       setError('Tüm alanlar zorunludur.'); return;
@@ -332,6 +326,7 @@ export default function BagisPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
+      <PageActionTracker actionId="v-bagis" />
 
       {/* iyzico overlay */}
       {showIyzico && (
@@ -392,6 +387,9 @@ export default function BagisPage() {
                       </button>
                     ))}
                   </div>
+
+                  {/* Honeypot — bot tuzağı, tüm form tabları için */}
+                  <input type="text" name="website" value={honeypot} onChange={e => setHoneypot(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: 'absolute', left: '-9999px', top: 0, width: '1px', height: '1px', opacity: 0 }} />
 
                   {/* ── ÜYELİK TAB ── */}
                   {mainTab === 'uyelik' && (
@@ -759,7 +757,6 @@ export default function BagisPage() {
                     <div className="space-y-2.5">
                       {[
                         { label: 'Haritailesi Genç', price: 'Ücretsiz', sub: 'Öğrenciler için' },
-                        { label: 'Mesleğin Geleceği', price: 'Ücretsiz', sub: 'İlk 2 yıl' },
                         { label: 'Mesleğin Değer Ortağı', price: '1.750 ₺/yıl', sub: 'Değer Ortağı Bağışı' },
                         { label: 'Kurumsal Üye', price: '7.000 ₺/yıl', sub: 'Değer Katan Marka' },
                       ].map((item) => (

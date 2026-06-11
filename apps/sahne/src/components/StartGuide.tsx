@@ -2,8 +2,24 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type React from 'react';
-import { sahneTrack } from '@/contexts/SahneAuthContext';
 import Link from 'next/link';
+import { useSahneAuth, sahneTrack } from '@/contexts/SahneAuthContext';
+import { MemberCard } from '@/components/MemberCard';
+import {
+  ALL_ACTIONS,
+  LEVEL_CONFIG,
+  calculateLevel,
+  loadLevelActions,
+  saveLevelAction,
+  getNextSuggestedAction,
+  canAccess,
+  MEMBER_TIERS,
+  type Level,
+  type RehberAction,
+} from '@/lib/rehber';
+
+const MEMBER_TIERS_SET = new Set<string>(MEMBER_TIERS);
+const WEB_URL = process.env['NEXT_PUBLIC_WEB_URL'] ?? 'https://haritailesi.org';
 
 // ─── SVG ikonlar ──────────────────────────────────────────────────────────────
 
@@ -82,107 +98,64 @@ const IcoNewspaper = () => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
   </svg>
 );
-const IcoCheck = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+const IcoHeart = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
   </svg>
 );
-const IcoSparkle = () => (
-  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-    <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
+const IcoMessage = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
   </svg>
 );
-
-// ─── Types & Data ──────────────────────────────────────────────────────────────
-
-type InterestKey = 'etkinlik' | 'mentorluk' | 'icerik' | 'proje' | 'egitim' | 'topluluk';
-
-interface Task {
-  id: string;
-  categoryId: InterestKey;
-  label: string;
-  desc: string;
-  href: string;
-  cta: string;
-  isAhaMoment: boolean;
-  external?: boolean;
-}
-
-const INTERESTS: {
-  key: InterestKey; label: string; icon: React.ReactNode; desc: string;
-  color: string; selectedColor: string; activeRing: string;
-}[] = [
-  { key: 'etkinlik',  label: 'Etkinlik & Organizasyon', icon: <IcoCalendar />, desc: 'Kongre, workshop, networking',      color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400',   selectedColor: 'bg-emerald-500',   activeRing: 'ring-emerald-400' },
-  { key: 'mentorluk', label: 'Mentörlük',                icon: <IcoBrain />,   desc: 'Rehberlik al veya ver',            color: 'text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400',           selectedColor: 'bg-amber-500',     activeRing: 'ring-amber-400' },
-  { key: 'icerik',    label: 'İçerik Üretimi',           icon: <IcoPencil />,  desc: 'Yaz, paylaş, katkı sun',          color: 'text-sky-600 bg-sky-50 dark:bg-sky-900/20 dark:text-sky-400',                 selectedColor: 'bg-sky-500',       activeRing: 'ring-sky-400' },
-  { key: 'proje',     label: 'Projeler',                 icon: <IcoMap />,     desc: 'Geliştir veya katıl',              color: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400',             selectedColor: 'bg-blue-500',      activeRing: 'ring-blue-400' },
-  { key: 'egitim',    label: 'Eğitim & Araştırma',      icon: <IcoCap />,     desc: 'Öğren, uygula, büyü',             color: 'text-teal-600 bg-teal-50 dark:bg-teal-900/20 dark:text-teal-400',             selectedColor: 'bg-teal-500',      activeRing: 'ring-teal-400' },
-  { key: 'topluluk',  label: 'Topluluk Alanı',           icon: <IcoPeople />,  desc: 'Tanış, konuş, katıl',             color: 'text-violet-600 bg-violet-50 dark:bg-violet-900/20 dark:text-violet-400',     selectedColor: 'bg-violet-500',    activeRing: 'ring-violet-400' },
-];
-
-const MUTFAK_URL = process.env['NEXT_PUBLIC_MUTFAK_URL'] ?? 'https://mutfak.haritailesi.org';
-
-const ALL_TASKS: Task[] = [
-  // Etkinlik
-  { id: 'etk-1', categoryId: 'etkinlik',  label: 'Yaklaşan etkinliklere katıl',   desc: 'Kongre, çalıştay ve webinar takvimine gir, ilk etkinliğini seç.',      href: '/etkinlikler',  cta: 'Takvime Git →',      isAhaMoment: true },
-  { id: 'etk-2', categoryId: 'etkinlik',  label: 'Etkinlik fikri öner',           desc: 'Topluluğun ihtiyaç duyduğu etkinliği öner, birlikte organize edelim.', href: '/gorusleriniz', cta: 'Öner →',             isAhaMoment: false },
-  { id: 'etk-3', categoryId: 'etkinlik',  label: 'Mutfak\'ta organize ol',        desc: 'Üyelerle plan yap, ekip kur, etkinlik hazırlığı başlat.',               href: MUTFAK_URL,      cta: 'Mutfak\'a Gir →',   isAhaMoment: false, external: true },
-
-  // Mentorluk
-  { id: 'men-1', categoryId: 'mentorluk', label: 'Bir mentörle bağlan',           desc: 'Alanına uygun aktif mentörü bul, ilk bağlantını kur.',                  href: '/mentorluk',    cta: 'Mentör Bul →',       isAhaMoment: true },
-  { id: 'men-2', categoryId: 'mentorluk', label: 'Mentor ol',                     desc: 'Bilgi ve deneyimini genç meslektaşlarla paylaş.',                       href: '/mentorluk',    cta: 'Başvur →',           isAhaMoment: false },
-  { id: 'men-3', categoryId: 'mentorluk', label: 'Meslektaşları tanı',            desc: 'Sektörün farklı alanlarından profesyonelleri keşfet.',                   href: '/uyeler',       cta: 'Üyelere Bak →',      isAhaMoment: false },
-
-  // İçerik
-  { id: 'ice-1', categoryId: 'icerik',    label: 'İlk içeriğini paylaş',          desc: 'Yazı, analiz veya deneyimini topluluğa sun; ilk adım her zaman en değerlisidir.', href: MUTFAK_URL, cta: 'Mutfak\'a Gir →', isAhaMoment: true, external: true },
-  { id: 'ice-2', categoryId: 'icerik',    label: 'Forum\'a katıl',                desc: 'Sorular sor, fikirler paylaş, tartışmalara dahil ol.',                   href: '/soru-cevap',   cta: 'Git →',              isAhaMoment: false },
-  { id: 'ice-3', categoryId: 'icerik',    label: 'Haberita\'ya katkı ver',        desc: 'Sektörden haber, analiz veya köşe yazısı gönder.',                      href: 'https://haberita.com', cta: 'İncele →',    isAhaMoment: false, external: true },
-
-  // Proje
-  { id: 'prj-1', categoryId: 'proje',     label: 'Projeyi topluluğa sun',         desc: 'Geliştirdiğin ya da katkı sunduğun projeyi Sahne\'de paylaş.',          href: '/projeler',     cta: 'Projelere Bak →',    isAhaMoment: true },
-  { id: 'prj-2', categoryId: 'proje',     label: 'Açık projelere katıl',          desc: 'Topluluğun aktif projelerini keşfet, ekibe dahil ol.',                  href: '/projeler',     cta: 'Keşfet →',           isAhaMoment: false },
-  { id: 'prj-3', categoryId: 'proje',     label: 'İş birliği bul',               desc: 'Proje ortağı veya ekip üyesi arıyorsan topluluğa sor.',                 href: '/soru-cevap',   cta: 'Sor →',              isAhaMoment: false },
-
-  // Eğitim
-  { id: 'egt-1', categoryId: 'egitim',    label: 'Eğitim programlarını keşfet',   desc: 'Online ve yüz yüze sertifika kurslarına göz at.',                       href: '/egitim',       cta: 'Programlara Bak →',  isAhaMoment: false },
-  { id: 'egt-2', categoryId: 'egitim',    label: 'Sınav kaynaklarına ulaş',       desc: 'KPSS, CBS ve sektör sınavlarına hazırlan.',                              href: '/sinavlar',     cta: 'Git →',              isAhaMoment: false },
-  { id: 'egt-3', categoryId: 'egitim',    label: 'Mentörden öğren',              desc: 'Deneyimli bir profesyonelden birebir öğrenme fırsatını yakala.',          href: '/mentorluk',    cta: 'Mentor Bul →',       isAhaMoment: true },
-
-  // Topluluk
-  { id: 'top-1', categoryId: 'topluluk',  label: 'Topluluk akışına katıl',        desc: 'Mutfak\'taki üye akışını keşfet, ilk gönderini paylaş.',                href: MUTFAK_URL,      cta: 'Mutfak\'a Gir →',   isAhaMoment: true, external: true },
-  { id: 'top-2', categoryId: 'topluluk',  label: 'Haritailesi Genç\'e bak',       desc: 'Öğrenci kulüpleri ve gençlik topluluğunu keşfet.',                       href: '/genc',         cta: 'Keşfet →',           isAhaMoment: false },
-  { id: 'top-3', categoryId: 'topluluk',  label: 'Üyeleri keşfet',               desc: 'Sektörün farklı alanlarından insanları tanı, bağlantı kur.',             href: '/uyeler',       cta: 'Üyelere Bak →',      isAhaMoment: false },
-];
+const IcoEye = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+  </svg>
+);
+const IcoMegaphone = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+  </svg>
+);
+const IcoPusula = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="12" cy="12" r="2" />
+    <path strokeLinecap="round" d="M12 3v6M12 15v6M3 12h6M15 12h6" />
+  </svg>
+);
 
 // ─── Özgür keşif kategorileri ─────────────────────────────────────────────────
+
+const MUTFAK_URL = process.env['NEXT_PUBLIC_MUTFAK_URL'] ?? 'https://mutfak.haritailesi.org';
 
 const FREE_CATEGORIES: {
   title: string; desc: string; href: string;
   icon: React.ReactNode; gradient: string; pulse?: string; note?: string; external?: boolean;
 }[] = [
-  { title: 'İçerik Üretimi',         desc: 'Yaz, paylaş, katkı sun. Forum ve Mutfak\'ta üret.',         href: '/soru-cevap',   icon: <IcoPencil />,    gradient: 'from-sky-500 to-blue-600',          pulse: '200+ içerik' },
-  { title: 'Etkinlik & Organizasyon',desc: 'Kongre, workshop ve networking etkinlikleri.',                href: '/etkinlikler',  icon: <IcoCalendar />,  gradient: 'from-emerald-500 to-teal-600',       pulse: '25+ etkinlik' },
+  { title: 'Soru & Cevap',           desc: 'Sorular sor, cevapları birlikte bulalım.',                   href: '/soru-cevap',   icon: <IcoPencil />,    gradient: 'from-sky-500 to-blue-600',          pulse: '200+ içerik' },
+  { title: 'Etkinlikler',            desc: 'Mesleki etkinlikleri keşfet, katıl ve paylaş.',              href: '/etkinlikler',  icon: <IcoCalendar />,  gradient: 'from-emerald-500 to-teal-600',       pulse: '25+ etkinlik' },
   { title: 'Mentörlük',              desc: 'Deneyimli profesyonellerden birebir rehberlik.',              href: '/mentorluk',    icon: <IcoBrain />,     gradient: 'from-amber-500 to-orange-600',       pulse: '14 aktif mentor' },
-  { title: 'Projeler',               desc: 'Topluluk projelerini keşfet, Haritakademi\'de yer al.',      href: '/projeler',     icon: <IcoMap />,       gradient: 'from-blue-500 to-indigo-600',        pulse: '3 aktif proje' },
-  { title: 'Eğitimler',              desc: 'Online ve yüz yüze sertifika programları.',                   href: '/egitim',       icon: <IcoCap />,       gradient: 'from-teal-500 to-cyan-600',          pulse: '8 program' },
-  { title: 'Topluluk Alanı',         desc: 'Tanış, konuş, katıl. Haritailesi Genç dahil.',               href: '/genc',         icon: <IcoPeople />,    gradient: 'from-violet-500 to-purple-600',      pulse: '500+ üye' },
+  { title: 'Projeler',               desc: 'Topluluğun projelerini keşfet, katkı ver, kendi projeni paylaş.', href: '/projeler', icon: <IcoMap />,       gradient: 'from-blue-500 to-indigo-600',        pulse: '3 aktif proje' },
+  { title: 'Eğitimler',              desc: 'Mesleki gelişim için online ve yüz yüze eğitimler.',         href: '/egitim',       icon: <IcoCap />,       gradient: 'from-teal-500 to-cyan-600',          pulse: '8 program' },
+  { title: 'Haritailesi Genç',       desc: 'Gençliğin avantajlarını yaşa.',                              href: '/genc',         icon: <IcoPeople />,    gradient: 'from-violet-500 to-purple-600',      pulse: '500+ üye' },
   { title: 'Yetenekler',             desc: 'Topluluğun meslek dışı yetenekleri — müzik, resim, dans.',   href: '/yetenekler',   icon: <IcoStar />,      gradient: 'from-pink-500 to-rose-600',          pulse: 'Topluluktan' },
-  { title: 'Araştırma & Analiz',     desc: 'Soru & Cevap, anketler ve sektör verileri.',                 href: '/soru-cevap',   icon: <IcoChart />,     gradient: 'from-rose-500 to-pink-600',          pulse: '200+ soru' },
-  { title: 'Medya & Video',          desc: 'Haritailesi TV — sektörel içerikler ve röportajlar.',         href: 'https://www.youtube.com/@haritailesi', icon: <IcoVideo />, gradient: 'from-red-500 to-rose-600', pulse: '50+ video', external: true },
-  { title: 'İlan Panosu',            desc: 'Sektöre özel iş ilanları ve kariyer fırsatları.',            href: '/ilanlar',      icon: <IcoBriefcase />, gradient: 'from-gray-500 to-slate-600',         pulse: 'Aktif ilanlar' },
-  { title: 'Mağaza',                 desc: 'Dijital kaynaklar, üye kitleri ve topluluk içerikleri.',     href: '/magaza',       icon: <IcoStore />,     gradient: 'from-purple-500 to-indigo-600',      pulse: 'Yeni ürünler' },
-  { title: 'Yarışmalar',             desc: 'Fotoğraf, proje ve makale yarışmaları.',                      href: '/yarismalar',   icon: <IcoTrophy />,    gradient: 'from-amber-400 to-yellow-600',       pulse: 'Açık yarışmalar' },
-  { title: 'Mutfak — Üretim Alanı', desc: 'Kapalı topluluk. Üretim, iş birliği, ekip çalışması.',      href: MUTFAK_URL,      icon: <IcoLock />,      gradient: 'from-[#26496b] to-[#1d3a57]',        pulse: 'Aktif üretim', note: 'Üyelere Özel', external: true },
-  { title: 'Haritailesi',            desc: 'Vakfın ana sitesi. Misyon, projeler ve topluluğun yüzleri.', href: process.env['NEXT_PUBLIC_WEB_URL'] ?? 'https://haritailesi.org', icon: <IcoGlobe />, gradient: 'from-[#26496b] to-[#1d3a57]', pulse: 'Ana Site', external: true },
-  { title: 'Haritakademi',           desc: 'Sektörel proje, eğitim, etkinlik ve mesleki gelişim.',       href: 'https://www.linkedin.com/showcase/haritakademi', icon: <IcoCap />, gradient: 'from-blue-600 to-blue-800', pulse: 'LinkedIn', external: true },
-  { title: 'Haberita',               desc: 'Harita mühendislerinin ilk ve tek haber merkezi.',            href: 'https://haberita.com', icon: <IcoNewspaper />, gradient: 'from-amber-500 to-amber-700', pulse: 'Haberler', external: true },
-  { title: 'Haritakariyer',          desc: 'İş ilanları, kariyer fırsatları ve sektörel işe alım.',      href: 'https://www.linkedin.com/showcase/haritakariyer', icon: <IcoBriefcase />, gradient: 'from-[#66aca9] to-teal-700', pulse: 'LinkedIn', external: true },
+  { title: 'Haritailesi TV',         desc: 'Sektörel içerikler ve röportajlar.',                         href: 'https://www.youtube.com/@haritailesi', icon: <IcoVideo />, gradient: 'from-red-500 to-rose-600', pulse: '50+ video', external: true },
+  { title: 'İlan Panosu',            desc: 'Meslektaşlardan ilanlar, duyurular ve fırsatlar.',           href: '/ilanlar',      icon: <IcoBriefcase />, gradient: 'from-gray-500 to-slate-600',         pulse: 'Aktif ilanlar' },
+  { title: 'Mağaza',                 desc: 'Topluluğun ve vakfın ürettiği ürünleri keşfet.',             href: '/magaza',       icon: <IcoStore />,     gradient: 'from-purple-500 to-indigo-600',      pulse: 'Yeni ürünler' },
+  { title: 'Sen Ne Dersin?', desc: 'Anketlere katıl, testlerle kendini değerlendir ve topluluğun görüşünü şekillendir.', href: '/sen-ne-dersin', icon: <IcoMessage />, gradient: 'from-violet-500 to-purple-600', pulse: 'Topluluk Sesi' },
+
+  { title: 'Haritailesi',            desc: 'Vakfın projelerini, topluluğunu ve ekosistemini keşfet.',    href: process.env['NEXT_PUBLIC_WEB_URL'] ?? 'https://haritailesi.org', icon: <IcoGlobe />, gradient: 'from-[#26496b] to-[#1d3a57]', pulse: 'Ana Site', external: true },
+  { title: 'Haritakademi',           desc: 'Mesleki gelişim için proje, eğitim ve etkinlik platformu.', href: 'https://www.linkedin.com/showcase/haritakademi', icon: <IcoCap />, gradient: 'from-blue-600 to-blue-800', pulse: 'LinkedIn', external: true },
+  { title: 'Haberita',               desc: 'Harita sektörüne özel haberler, içerikler ve röportajlar.',  href: 'https://haberita.com', icon: <IcoNewspaper />, gradient: 'from-amber-500 to-amber-700', pulse: 'Haberler', external: true },
+  { title: 'Haritakariyer',          desc: 'İş ilanları, kariyer fırsatları ve mesleki bağlantılar.',   href: 'https://www.linkedin.com/showcase/haritakariyer', icon: <IcoBriefcase />, gradient: 'from-[#66aca9] to-teal-700', pulse: 'LinkedIn', external: true },
+  { title: 'Meslekte Yeni İdoller',  desc: 'İlham veren meslektaşları ve hikâyelerini keşfet.',         href: '/meslekte-yeni-idoller', icon: <IcoStar />, gradient: 'from-amber-400 to-orange-500', pulse: 'İlham' },
+  { title: 'Bağış',                  desc: 'Haritailesi\'ne destek ol. Bağışınla topluluğun büyümesine katkı sun.', href: '/bagis', icon: <IcoHeart />, gradient: 'from-rose-500 to-pink-600', pulse: 'Destek Ol' },
+  { title: 'Haritailesi Pusula', desc: 'İhtiyacınızı anlatın, size en uygun desteği birlikte bulalım.', href: '/haritailesipusula', icon: <IcoPusula />, gradient: 'from-[#26496b] to-[#66aca9]', pulse: 'Yönünü Bul' },
+  { title: 'Öne Çık', desc: 'Projeni, markanı veya hikâyeni sektörün en aktif topluluğuyla buluştur.', href: '/one-cik', icon: <IcoMegaphone />, gradient: 'from-[#26496b] to-slate-700', pulse: 'Reklam · Tanıtım · İşbirliği' },
 ];
-
-// ─── localStorage keys ────────────────────────────────────────────────────────
-
-const LS_INTERESTS = 'sahne_interests';
-const LS_DONE = 'sahne_tasks_done';
 
 // ─── Toast bileşeni ───────────────────────────────────────────────────────────
 
@@ -242,415 +215,1194 @@ function ConfettiBurst({ onDone }: { onDone: () => void }) {
   );
 }
 
-// ─── Görev Kartı ─────────────────────────────────────────────────────────────
+// ─── Tüm kategoriler için gruplar ─────────────────────────────────────────────
 
-function TaskCard({
-  task,
-  done,
-  onDone,
-  isNext,
+const ACTION_GROUPS: Record<1 | 2 | 3 | 4, { label: string; ids: string[] }[]> = {
+  1: [
+    { label: 'Haritailesi\'ni Keşfet',       ids: ['v-vakif', 'v-tv', 'v-bagis', 'v-talepler', 'v-sosyaliz'] },
+    { label: 'Fırsatları Değerlendir',        ids: ['v-kariyer', 'v-haberita', 'v-egitim', 'v-etkinlikler', 'v-ilanlar', 'v-magaza'] },
+    { label: 'Öğrenciler',                    ids: ['v-hgenc', 'p-mezun', 'v-mentorluk', 'v-idoller'] },
+    { label: 'Mesleğine Sen de Değer Kat',    ids: ['v-akademi', 'v-sc', 'v-sinavlar', 'v-forum'] },
+    { label: 'Fikirlerinle Mesleğe Yön Ver',  ids: ['v-yarisma', 'v-anketler'] },
+  ],
+  2: [
+    { label: 'Etkinlik & Yarışma',  ids: ['p-etkinlik', 'p-yarisma', 'p-anket'] },
+    { label: 'Mentorluk',           ids: ['p-mentee', 'p-mentor'] },
+    { label: 'Destek & Satın Al',   ids: ['p-proje', 'p-yetenek', 'p-bagis', 'p-satin'] },
+    { label: 'Özel Programlar',     ids: ['p-hgenc', 'p-mezun'] },
+  ],
+  3: [
+    { label: 'Mutfak & Forum',      ids: ['c-gonderi', 'c-forum-soru', 'c-forum-cevap'] },
+    { label: 'Soru & Cevap',        ids: ['c-sc-soru', 'c-sc-cevap'] },
+    { label: 'İçerik & İlan',       ids: ['c-haberita', 'c-ilan', 'c-urun'] },
+    { label: 'Görüş & Talep',       ids: ['c-talep', 'c-gorus'] },
+  ],
+  4: [
+    { label: 'Mentorluk & Eğitim',  ids: ['d-mentor-seans', 'd-etkinlik', 'd-egitim'] },
+    { label: 'İçerik & Tanıtım',    ids: ['d-editor', 'd-kose', 'd-tanitim', 'd-isbirligi'] },
+    { label: 'Paylaş',              ids: ['d-yetenek', 'd-kariyer', 'd-proje'] },
+  ],
+};
+
+// ─── Aksiyon kartı ────────────────────────────────────────────────────────────
+
+function ActionCard({
+  action, isDone, isAccessible, tier, onDone,
 }: {
-  task: Task;
-  done: boolean;
-  onDone: (task: Task) => void;
-  isNext: boolean;
+  action: RehberAction;
+  isDone: boolean;
+  isAccessible: boolean;
+  tier: string | null;
+  onDone: (action: RehberAction) => void;
 }) {
-  const catInfo = INTERESTS.find((i) => i.key === task.categoryId);
-  const isExt = task.external || task.href.startsWith('http');
+  const isExt = action.external || action.href.startsWith('http');
 
-  const linkProps = isExt
-    ? { as: 'a' as const, href: task.href, target: '_blank', rel: 'noopener noreferrer' }
-    : { as: Link as React.ElementType, href: task.href };
+  if (!isAccessible) {
+    const needsLoginOnly = !tier && action.category === 2 && !action.requiredTiers;
+    return (
+      <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-100 dark:border-slate-800">
+        <span className="text-base shrink-0 opacity-25">{action.icon}</span>
+        <span className="text-xs text-gray-300 dark:text-slate-600 flex-1 min-w-0 truncate">{action.label}</span>
+        <span className="text-[9px] font-medium text-gray-400 dark:text-slate-600 border border-gray-200 dark:border-slate-700 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
+          {needsLoginOnly ? 'Giriş' : 'Üye'}
+        </span>
+      </div>
+    );
+  }
 
-  const wrapperCls = `group relative flex flex-col bg-white dark:bg-slate-900 rounded-2xl border shadow-sm transition-all duration-200 overflow-hidden ${
-    done
-      ? 'border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/40 dark:bg-emerald-950/20'
-      : task.isAhaMoment && isNext
-        ? 'border-amber-300 dark:border-amber-700 ring-2 ring-amber-300/40 hover:shadow-xl hover:-translate-y-1'
-        : isNext
-          ? 'border-[#26496b]/30 dark:border-blue-700/50 ring-2 ring-[#26496b]/15 hover:shadow-xl hover:-translate-y-1'
-          : 'border-gray-100 dark:border-slate-800 hover:shadow-lg hover:-translate-y-0.5 hover:border-gray-200 dark:hover:border-slate-700'
+  const containerCls = `group flex items-center gap-2 px-3 py-2.5 rounded-xl border transition-all ${
+    isDone
+      ? 'bg-emerald-50/70 dark:bg-emerald-950/25 border-emerald-100 dark:border-emerald-900/30'
+      : 'bg-white dark:bg-slate-900 border-gray-100 dark:border-slate-800 hover:border-gray-200 dark:hover:border-slate-700 hover:shadow-sm'
+  }`;
+  const labelCls = `text-xs font-medium flex-1 min-w-0 truncate leading-snug ${
+    isDone
+      ? 'text-gray-400 dark:text-slate-500 line-through'
+      : 'text-gray-700 dark:text-slate-300 group-hover:text-[#26496b] dark:group-hover:text-[#66aca9]'
   }`;
 
   return (
-    <div className={wrapperCls}>
-      {/* Top stripe */}
-      {task.isAhaMoment && !done && (
-        <div className="h-0.5 w-full bg-gradient-to-r from-amber-400 to-amber-600" />
+    <div className={containerCls}>
+      <span className="text-base shrink-0">{action.icon}</span>
+      {isExt ? (
+        <a href={action.href} target="_blank" rel="noopener noreferrer" className={labelCls}>
+          {action.label}
+        </a>
+      ) : (
+        <Link href={action.href} className={labelCls}>
+          {action.label}
+        </Link>
       )}
-      {done && (
-        <div className="h-0.5 w-full bg-gradient-to-r from-emerald-400 to-emerald-600" />
+      {action.isAhaMoment && !isDone && (
+        <span className="text-amber-400 text-[10px] shrink-0">✨</span>
       )}
+      <button
+        onClick={() => onDone(action)}
+        title={isDone ? 'Tamamlandı' : 'Yaptım olarak işaretle'}
+        className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors ${
+          isDone
+            ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400'
+            : 'text-gray-200 dark:text-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-500'
+        }`}
+      >
+        ✓
+      </button>
+    </div>
+  );
+}
 
-      {/* Badges */}
-      <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5">
-        {isNext && !done && (
-          <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-            task.isAhaMoment
-              ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-              : 'bg-[#26496b]/10 text-[#26496b] dark:bg-blue-900/30 dark:text-blue-400'
-          }`}>
-            {task.isAhaMoment ? '✨ Aha Anı' : 'Sıradaki'}
-          </span>
-        )}
-        {task.isAhaMoment && !isNext && !done && (
-          <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-50 text-amber-500 dark:bg-amber-900/20 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
-            ✨ Aha Anı
-          </span>
+// ─── 4 Seviye kartları ────────────────────────────────────────────────────────
+
+const LEVEL_CARD_META: Record<1 | 2 | 3 | 4, {
+  levelKey: Level; actionLabel: string; accessNote: string; icon: string;
+}> = {
+  1: { levelKey: 'izleyici',     actionLabel: 'Ziyaret Etmek', accessNote: 'Giriş gerekmez',               icon: '👁️' },
+  2: { levelKey: 'katilimci',    actionLabel: 'Katılmak',      accessNote: 'Bazıları için üyelik gerekir',  icon: '🤝' },
+  3: { levelKey: 'katki_sunan',  actionLabel: 'Oluşturmak',    accessNote: 'Üyelik gerekir',                icon: '✍️' },
+  4: { levelKey: 'etki_yaratan', actionLabel: 'Yapmak',        accessNote: 'Üyelik gerekir',                icon: '⭐' },
+};
+
+// ─── Tüm seviyeler için grup + öğe verisi ────────────────────────────────────
+
+type LevelGroupItem = { id: string; label: string; desc: string };
+type LevelGroup     = { label: string; icon: string; desc: string; items: LevelGroupItem[] };
+
+const LEVEL_GROUPS: Record<string, LevelGroup[]> = {
+  izleyici: [
+    { label: "Haritailesi'ni Keşfet", icon: '🌐', desc: 'Vakıf, TV, bağış ve daha fazlası', items: [
+      { id: 'v-vakif',    label: 'Vakıf Sayfası',            desc: "Haritailesi Vakfı'nı ve misyonunu tanı" },
+      { id: 'v-tv',       label: 'Haritailesi TV',            desc: 'Video içerikler ve sektörel röportajlar' },
+      { id: 'v-bagis',    label: 'Bağış Sayfası',            desc: 'Topluluğun büyümesine destek ol' },
+      { id: 'v-talepler', label: 'Haritailesi Pusula', desc: 'İhtiyacınızı anlatın, size en uygun desteği bulalım.' },
+      { id: 'v-sosyaliz', label: 'Sosyaliz!',                desc: 'Projen ve markanı toplulukla buluştur' },
+    ]},
+    { label: 'Fırsatları Değerlendir', icon: '💼', desc: 'Kariyer, haberler, eğitim ve etkinlikler', items: [
+      { id: 'v-kariyer',     label: 'Haritakariyer', desc: 'Yeni iş fırsatları' },
+      { id: 'v-haberita',    label: 'Haberita',       desc: 'En güncel mesleki haberlere ulaş' },
+      { id: 'v-egitim',      label: 'Eğitimler',      desc: 'En inovatif eğitimlere katıl' },
+      { id: 'v-etkinlikler', label: 'Etkinlikler',    desc: 'En güncel etkinliklere ulaş' },
+      { id: 'v-ilanlar',     label: 'İlanlar',         desc: 'İhtiyacına yönelik ilan paylaş' },
+      { id: 'v-magaza',      label: 'Mağaza',          desc: 'Kendine ait ürünleri satışa çıkar' },
+    ]},
+    { label: 'Öğrenciler', icon: '🎯', desc: 'Genç alan, mentorluk ve programlar', items: [
+      { id: 'v-hgenc',     label: 'Haritailesi Genç Alanı',          desc: 'Öğrencilere özel alan ve fırsatlar' },
+      { id: 'p-mezun',     label: 'Mesleğin Gelecekleri Programı',   desc: 'Seçilmiş öğrenci gelişim programı' },
+      { id: 'v-mentorluk', label: 'Haritailesi Mentörlük Sistemi',   desc: 'Deneyimli profesyonellerden rehberlik' },
+      { id: 'v-idoller',   label: 'Bir Mesleğin İdolünden İlham Al', desc: 'İlham veren hikayeleri keşfet' },
+    ]},
+    { label: 'Mesleğine Sen de Değer Kat', icon: '🎓', desc: 'Akademi, forum ve sınavlar', items: [
+      { id: 'v-akademi',  label: 'Haritakademi',       desc: 'Topluluğun projelerine gözat.' },
+      { id: 'v-sc',       label: 'Soru & Cevap',       desc: 'Sorular soruldu, çözümler üretildi.' },
+      { id: 'v-sinavlar', label: 'Sınavlar',            desc: 'Sınavlarda artık yalnız değilsin.' },
+      { id: 'v-forum',    label: 'Mutfak Kütüphanesi', desc: 'Topluluğun herkese açık paylaşımları.' },
+    ]},
+    { label: 'Fikirlerinle Mesleğe Yön Ver', icon: '💡', desc: 'Yarışmalar ve anketler', items: [
+      { id: 'v-yarisma',  label: 'Yarışmalar', desc: 'Mesleki gelişim odaklı yarışmaları incele.' },
+      { id: 'v-anketler', label: 'Anketler',   desc: 'Topluluğa yön veren anketlere gözat.' },
+    ]},
+  ],
+  katilimci: [
+    { label: 'Mesleğine Sen de Değer Kat', icon: '🤝', desc: 'Projelere ve yeteneklere destek ver', items: [
+      { id: 'p-proje',   label: 'Projelere Destek Ver',   desc: 'Topluluk projelerine geri bildirim ver.' },
+      { id: 'p-yetenek', label: 'Yeteneklere Destek Ver', desc: 'Meslektaşlarının yeteneklerini destekle' },
+    ]},
+    { label: 'Öğrenci', icon: '🎓', desc: 'Öğrenci programları ve fırsatları', items: [
+      { id: 'p-hgenc', label: "Haritailesi Genç'e Katıl",              desc: 'Öğrenci topluluğunun parçası ol' },
+      { id: 'p-mezun', label: 'Mesleğin Gelecekleri Programına Katıl', desc: 'Seçilmiş öğrenci gelişim programı' },
+    ]},
+    { label: 'Mesleğine Destek Ver', icon: '💪', desc: 'Etkinlik, eğitim, bağış, satın alma ve yarışmalar', items: [
+      { id: 'p-bagis',    label: 'Bağış Yap',        desc: 'Topluluğun büyümesine destek ol' },
+      { id: 'p-satin',    label: 'Satın Alma Yap',   desc: 'Topluluğun ürettiği ürünleri satın al' },
+      { id: 'p-etkinlik', label: 'Etkinliğe Katıl',  desc: 'Mesleki etkinliklerde yer al' },
+      { id: 'p-egitim',   label: 'Eğitime Katıl',    desc: 'Mesleki eğitimlere katıl ve gelişimini sürdür' },
+      { id: 'p-anket',    label: 'Ankete Katıl',      desc: 'Görüşlerinle topluluğa yön ver' },
+      { id: 'p-yarisma',  label: 'Yarışmaya Katıl',  desc: 'Mesleki yarışmalarda kendini göster' },
+    ]},
+  ],
+  katki_sunan: [
+    { label: 'Mesleğine Sen de Değer Kat', icon: '⭐', desc: 'Mentörlük, gönderi ve içerik üretimiyle topluluğa katkı sun', items: [
+      { id: 'p-mentor',   label: 'Mentör Ol',                  desc: 'Deneyimini paylaş, topluluğa rehberlik et' },
+      { id: 'c-gonderi',  label: 'Mutfakta Gönderi Paylaş',   desc: 'Topluluk alanında içerik üret' },
+      { id: 'c-haberita', label: "Haberita'ya İçerik Gönder", desc: 'Haber, analiz veya röportaj gönder' },
+    ]},
+    { label: 'Mesleğine Destek Ver', icon: '✍️', desc: "Forum ve S&C'ye cevap ver, görüş ilet", items: [
+      { id: 'c-sc-cevap',    label: 'S&C Cevabı Ver',         desc: 'Meslektaşlarının sorularını yanıtla' },
+      { id: 'c-forum-cevap', label: 'Forum Cevabı Yaz',       desc: 'Topluluk tartışmalarına katkı sun' },
+      { id: 'c-gorus',       label: 'Görüşlerinizi Gönderin', desc: 'Fikir ve önerilerini ekiple paylaş' },
+    ]},
+    { label: 'Fırsatları Değerlendir', icon: '🚀', desc: 'İlan ve ürün oluştur, soru sor', items: [
+      { id: 'c-ilan',       label: 'İlan Oluştur',            desc: 'İş ve fırsat ilanı paylaş' },
+      { id: 'c-urun',       label: 'Mağazada Ürün Oluştur',   desc: 'Kendi ürününü topluluğa sun' },
+      { id: 'c-talep',      label: 'Talebinizi İletin',        desc: 'Talep ve ihtiyaçlarını bildir' },
+      { id: 'c-sc-soru',    label: 'S&C Sorusu Sor',          desc: 'Topluluğa soru yönelt' },
+      { id: 'c-forum-soru', label: 'Forum Sorusu Aç',         desc: 'Tartışma başlat' },
+    ]},
+  ],
+  etki_yaratan: [
+    { label: 'Mesleğine Sen de Değer Kat', icon: '⭐', desc: 'Mentor seansı, eğitim ve etkinlik oluştur', items: [
+      { id: 'd-mentor-seans', label: 'Mentor Seansı Gerçekleştir', desc: 'Mentee ile bire bir rehberlik görüşmesi yap' },
+      { id: 'd-proje',        label: 'Projeni Gönder',              desc: 'Mesleki projenle topluluğa ilham ver' },
+      { id: 'd-egitim',       label: 'Eğitim Oluştur',             desc: 'Bilgini eğitim formatında paylaş' },
+      { id: 'd-etkinlik',     label: 'Etkinlik Oluştur',           desc: 'Topluluk için etkinlik düzenle' },
+      { id: 'd-editor',       label: 'Haberita Editörü Ol',        desc: 'Sektör haberlerini yönet ve yayınla' },
+    ]},
+    { label: 'Görünür Ol', icon: '🌟', desc: 'Tanıtım yap, kariyer hikayeni ve işbirliğini paylaş', items: [
+      { id: 'd-tanitim',   label: 'Tanıtım Yap',              desc: 'Çalışmalarını ve projenizi tanıt' },
+      { id: 'd-kariyer',   label: 'Kariyer Hikayeni Paylaş',  desc: 'Mesleki yolculuğunla ilham ver' },
+      { id: 'd-isbirligi', label: 'İşbirliği Yap',            desc: 'Ortak projeler ve iş birlikleri kur' },
+      { id: 'd-kose',      label: 'Haberita Köşe Yazarı Ol',  desc: 'Düzenli köşe yazılarıyla sektöre katkı sun' },
+      { id: 'd-yetenek',   label: 'Yeteneğini Paylaş',        desc: 'Meslek dışı yeteneklerini toplulukla paylaş' },
+    ]},
+  ],
+};
+
+function Cat1SubGroup({
+  group, actions, doneIds, onDone,
+}: {
+  group: { label: string; ids: string[] };
+  actions: RehberAction[];
+  doneIds: string[];
+  onDone: (action: RehberAction) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const meta = (LEVEL_GROUPS['izleyici'] ?? []).find(g => g.label === group.label);
+  const groupActions = actions.filter(a => group.ids.includes(a.id));
+  const done = new Set(doneIds);
+  const doneCount = groupActions.filter(a => done.has(a.id)).length;
+
+  return (
+    <div className="rounded-xl border border-gray-100 dark:border-slate-800 overflow-hidden">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
+      >
+        <span className="text-lg shrink-0">{meta?.icon ?? '📌'}</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold text-gray-800 dark:text-slate-200 leading-tight">{group.label}</p>
+          {meta?.desc && <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-0.5">{meta?.desc}</p>}
+        </div>
+        <span className="text-[10px] text-gray-400 dark:text-slate-500 shrink-0">{doneCount}/{groupActions.length}</span>
+        <svg className={`w-3 h-3 text-gray-300 dark:text-slate-600 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && (
+        <div className="border-t border-gray-50 dark:border-slate-800 px-2 pb-2 pt-1 flex flex-col gap-0.5">
+          {groupActions.map(action => (
+            <ActionCard
+              key={action.id}
+              action={action}
+              isDone={done.has(action.id)}
+              isAccessible={true}
+              tier={null}
+              onDone={onDone}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LevelGroupCard({
+  group, doneIds, onSelect,
+}: {
+  group: LevelGroup;
+  doneIds: string[];
+  onSelect: () => void;
+}) {
+  const done      = new Set(doneIds);
+  const doneCount = group.items.filter(i => done.has(i.id)).length;
+
+  return (
+    <button
+      onClick={onSelect}
+      className="w-full text-left bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm hover:border-gray-200 dark:hover:border-slate-700 overflow-hidden p-5"
+    >
+      <div className="flex items-start justify-between mb-4">
+        <div className="w-9 h-9 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-xl">
+          {group.icon}
+        </div>
+        <span className="text-[10px] text-gray-400 dark:text-slate-500 mt-1">{doneCount}/{group.items.length}</span>
+      </div>
+      <h3 className="text-sm font-bold text-gray-900 dark:text-slate-100 mb-1 leading-snug">{group.label}</h3>
+      <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed">{group.desc}</p>
+      <div className="mt-4">
+        <span className="text-xs font-semibold text-[#26496b] dark:text-[#66aca9]">İncele →</span>
+      </div>
+    </button>
+  );
+}
+
+function Cat1ItemCard({
+  item, action, isDone, onDone, onVisit,
+}: {
+  item: { id: string; label: string; desc: string };
+  action: RehberAction | undefined;
+  isDone: boolean;
+  onDone: (action: RehberAction) => void;
+  onVisit: (action: RehberAction) => void;
+}) {
+  if (!action) return null;
+  const isExt    = action.external || action.href.startsWith('http');
+  // Cat1 (Keşif): ziyaret = tamamlandı. Cat2+: sadece navigasyon, tracking server-side gelir.
+  const autoMark = action.category !== 2;
+  const desc     = item.desc;
+
+  return (
+    <div className={`relative bg-white dark:bg-slate-900 rounded-2xl border shadow-sm p-5 flex flex-col gap-3 cursor-pointer ${
+      isDone
+        ? 'border-emerald-100 dark:border-emerald-900/30'
+        : 'border-gray-100 dark:border-slate-800 hover:border-gray-200 dark:hover:border-slate-700'
+    }`}>
+      {isExt
+        ? <a href={action.href} target="_blank" rel="noopener noreferrer" onClick={() => { if (!isDone && autoMark) onDone(action); }} className="absolute inset-0 rounded-2xl" aria-label={item.label} />
+        : <Link href={action.href} onClick={() => { if (!isDone && autoMark) onVisit(action); }} className="absolute inset-0 rounded-2xl" aria-label={item.label} />
+      }
+      <div className="flex items-start justify-between">
+        <div className="w-9 h-9 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-xl">
+          {action.icon}
+        </div>
+      </div>
+      <div className="flex-1">
+        <h3 className={`text-sm font-bold leading-snug ${isDone ? 'text-gray-400 dark:text-slate-500 line-through' : 'text-gray-900 dark:text-slate-100'}`}>
+          {item.label}
+        </h3>
+        {desc && (
+          <p className="text-xs text-gray-500 dark:text-slate-400 mt-1 leading-relaxed">{desc}</p>
         )}
       </div>
+      <div className="relative z-10 flex items-center justify-between mt-auto gap-2">
+        <span className="text-xs font-semibold text-[#26496b] dark:text-[#66aca9]">Git →</span>
+        {autoMark && isDone && (
+          <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 px-2 py-0.5 rounded-full">Doğrulandı</span>
+        )}
+        {!autoMark && (
+          <button
+            onClick={e => { e.preventDefault(); e.stopPropagation(); if (!isDone) onDone(action); }}
+            disabled={isDone}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors duration-300 ${
+              isDone
+                ? 'bg-emerald-500 border-emerald-500 text-white cursor-default'
+                : 'bg-white dark:bg-transparent border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
+            }`}
+          >
+            Yaptım {isDone ? '✓' : ''}
+          </button>
+        )}
 
-      <div className="p-4 flex flex-col gap-2 flex-1">
-        {/* Category */}
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${done ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' : catInfo?.color ?? 'bg-gray-100 text-gray-500'} transition-colors`}>
-          {done ? <IcoCheck /> : catInfo?.icon}
-        </div>
-
-        <div className="flex-1">
-          <h3 className={`text-sm font-bold leading-snug ${done ? 'line-through text-gray-400 dark:text-slate-500' : 'text-gray-900 dark:text-slate-100'}`}>
-            {task.label}
-          </h3>
-          {!done && (
-            <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed mt-1">{task.desc}</p>
-          )}
-        </div>
-
-        <div className="flex items-center justify-between gap-2 mt-1">
-          {done ? (
-            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-              <IcoCheck /> Tamamlandı
-            </span>
-          ) : (
-            <LinkWrapper isExt={isExt} href={task.href}>
-              <span className={`text-xs font-semibold ${task.isAhaMoment ? 'text-amber-600 dark:text-amber-400' : 'text-[#26496b] dark:text-[#66aca9]'} group-hover:underline`}>
-                {task.cta}
-              </span>
-            </LinkWrapper>
-          )}
-
-          {!done && (
-            <button
-              onClick={() => onDone(task)}
-              className="shrink-0 px-2.5 py-1 text-[10px] font-semibold text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-lg transition-colors border border-transparent hover:border-emerald-200 dark:hover:border-emerald-800"
-              title="Yaptım olarak işaretle"
-            >
-              Yaptım ✓
-            </button>
-          )}
-        </div>
       </div>
     </div>
   );
 }
 
-function LinkWrapper({ isExt, href, children }: { isExt: boolean; href: string; children: React.ReactNode }) {
-  if (isExt) {
-    return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
-  }
-  return <Link href={href}>{children}</Link>;
+function LevelCard({
+  catNum, actions, doneIds, tier, onDone, isActive, defaultExpanded,
+}: {
+  catNum: 1 | 2 | 3 | 4;
+  actions: RehberAction[];
+  doneIds: string[];
+  tier: string | null;
+  onDone: (action: RehberAction) => void;
+  isActive: boolean;
+  defaultExpanded: boolean;
+}) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const meta = LEVEL_CARD_META[catNum];
+  const lvl  = LEVEL_CONFIG[meta.levelKey];
+  const done = new Set(doneIds);
+  const accessible = actions.filter(a => canAccess(a, tier));
+  const doneCount  = accessible.filter(a => done.has(a.id)).length;
+  const pct = accessible.length > 0 ? (doneCount / accessible.length) * 100 : 0;
+
+  return (
+    <div className={`bg-white dark:bg-slate-900 rounded-2xl border-2 shadow-sm overflow-hidden flex flex-col transition-all duration-200 ${
+      isActive
+        ? 'border-[#26496b]/30 dark:border-[#66aca9]/30 shadow-md'
+        : 'border-gray-100 dark:border-slate-800 hover:border-gray-200 dark:hover:border-slate-700 hover:shadow-md hover:-translate-y-0.5'
+    }`}>
+      {/* Kart başlığı — interest selection stilinde */}
+      <button onClick={() => setExpanded(v => !v)} className="w-full text-left px-5 pt-5 pb-4">
+        {/* İkon */}
+        <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl mb-4 ${lvl.bg} dark:bg-opacity-15`}>
+          {meta.icon}
+        </div>
+        {/* Seviye etiketi */}
+        <p className={`text-[10px] font-bold uppercase tracking-widest mb-0.5 ${lvl.color}`}>
+          {meta.actionLabel}
+        </p>
+        {/* Seviye adı */}
+        <p className="text-base font-bold text-gray-900 dark:text-slate-100 leading-tight">
+          {lvl.label}
+        </p>
+        <p className="text-[11px] text-gray-400 dark:text-slate-500 mt-1">{meta.accessNote}</p>
+
+        {/* Aktif badge */}
+        {isActive && (
+          <span className={`inline-block mt-2 text-[9px] font-bold uppercase tracking-widest rounded-full px-2.5 py-0.5 ${lvl.color} ${lvl.bg} dark:bg-opacity-15`}>
+            Aktif Seviye
+          </span>
+        )}
+
+        {/* İlerleme */}
+        <div className="mt-4 flex items-center gap-2">
+          <div className="flex-1 h-1 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
+            <div className={`h-full ${lvl.dot} rounded-full transition-all duration-500`} style={{ width: `${pct}%` }} />
+          </div>
+          <span className="text-[10px] text-gray-400 dark:text-slate-500 shrink-0">{doneCount}/{accessible.length}</span>
+        </div>
+
+        <div className="flex justify-end mt-3">
+          <svg className={`w-4 h-4 text-gray-300 dark:text-slate-600 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+
+      {/* Açılan içerik */}
+      {expanded && (
+        <div className="border-t border-gray-50 dark:border-slate-800 px-3 pb-3 pt-2 flex flex-col gap-1.5 flex-1">
+          {catNum === 1 ? (
+            ACTION_GROUPS[1].map(group => (
+              <Cat1SubGroup
+                key={group.label}
+                group={group}
+                actions={actions}
+                doneIds={doneIds}
+                onDone={onDone}
+              />
+            ))
+          ) : (
+            ACTION_GROUPS[catNum].map(group => {
+              const groupActions = actions.filter(a => group.ids.includes(a.id));
+              if (groupActions.length === 0) return null;
+              return (
+                <div key={group.label}>
+                  <p className="text-[9px] font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500 mb-1 px-1">
+                    {group.label}
+                  </p>
+                  <div className="flex flex-col gap-0.5">
+                    {groupActions.map(action => (
+                      <ActionCard
+                        key={action.id}
+                        action={action}
+                        isDone={done.has(action.id)}
+                        isAccessible={canAccess(action, tier)}
+                        tier={tier}
+                        onDone={onDone}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
+
+// ─── Seviye → aksiyon eşlemesi (3 görev / seviye) ───────────────────────────
+
+const INTEREST_TASKS: Record<string, string[]> = {
+  izleyici:    ['v-etkinlikler', 'v-mentorluk',  'v-haberita'],
+  katilimci:   ['p-etkinlik',    'p-mentee',     'p-anket'],
+  katki_sunan: ['c-gonderi',     'c-sc-soru',    'c-haberita'],
+  etki_yaratan:['d-mentor-seans','d-egitim',     'd-proje'],
+};
+
+// ─── İlgi alanları ────────────────────────────────────────────────────────────
+
+const LS_INTERESTS   = 'sahne_interests';
+const LS_JOURNEY_NAV = 'sahne_journey_nav';
+
+function loadInterests(): string[] {
+  if (typeof window === 'undefined') return [];
+  try { return JSON.parse(localStorage.getItem(LS_INTERESTS) ?? '[]') as string[]; } catch { return []; }
+}
+function saveInterests(ids: string[]): void {
+  if (typeof window !== 'undefined') localStorage.setItem(LS_INTERESTS, JSON.stringify(ids));
+}
+
+type JourneyNav = { mode: 'select' | 'journey' | 'free'; levelView: string | null; selectedGroup: string | null };
+function loadJourneyNav(): JourneyNav | null {
+  if (typeof window === 'undefined') return null;
+  try { return JSON.parse(localStorage.getItem(LS_JOURNEY_NAV) ?? 'null') as JourneyNav | null; } catch { return null; }
+}
+function saveJourneyNav(nav: JourneyNav): void {
+  if (typeof window !== 'undefined') localStorage.setItem(LS_JOURNEY_NAV, JSON.stringify(nav));
+}
+
+const INTERESTS: { id: string; level: string; label: string; desc: string; actionCount: number; icon: React.ReactNode; iconBg: string; iconColor: string; lineColor: string; levelColor: string }[] = [
+  { id: 'izleyici',     level: '1. Kademe', label: 'Keşif',        desc: 'Sistemi keşfeder, içerikleri takip eder.',         actionCount: 4, icon: <IcoEye />,    iconBg: 'bg-slate-100 dark:bg-slate-800/60',   iconColor: 'text-slate-500 dark:text-slate-400',    lineColor: 'bg-slate-400',    levelColor: 'text-slate-400 dark:text-slate-500'   },
+  { id: 'katilimci',    level: '2. Kademe', label: 'Katılımcı',    desc: 'İlk aksiyonlarını alır, etkinliklere katılır.',    actionCount: 3, icon: <IcoPeople />, iconBg: 'bg-blue-50 dark:bg-blue-950/40',      iconColor: 'text-blue-600 dark:text-blue-400',      lineColor: 'bg-blue-400',     levelColor: 'text-blue-400 dark:text-blue-500'     },
+  { id: 'katki_sunan',  level: '3. Kademe', label: 'Katkı Sunan',  desc: 'İçerik üretir, katkı sunar.',                     actionCount: 2, icon: <IcoPencil />, iconBg: 'bg-emerald-50 dark:bg-emerald-950/40', iconColor: 'text-emerald-600 dark:text-emerald-400', lineColor: 'bg-emerald-500',  levelColor: 'text-emerald-500 dark:text-emerald-600'},
+  { id: 'etki_yaratan', level: '4. Kademe', label: 'Etki Yaratan', desc: 'Mentörlük verir, topluluğa yön verir.',           actionCount: 1, icon: <IcoStar />,   iconBg: 'bg-amber-50 dark:bg-amber-950/40',    iconColor: 'text-amber-500 dark:text-amber-400',    lineColor: 'bg-amber-400',    levelColor: 'text-amber-400 dark:text-amber-500'   },
+];
+
+// ─── Level Assistant ──────────────────────────────────────────────────────────
+
+
 
 // ─── Ana bileşen ──────────────────────────────────────────────────────────────
 
 export function StartGuide() {
-  const [mode, setMode] = useState<'select' | 'guided' | 'free'>('select');
-  const [selectedInterests, setSelectedInterests] = useState<InterestKey[]>([]);
-  const [doneTasks, setDoneTasks] = useState<Set<string>>(new Set());
-  const [toast, setToast] = useState<{ msg: string; isAha: boolean } | null>(null);
-  const [showConfetti, setShowConfetti] = useState(false);
-  const initialized = useRef(false);
+  const { user, recordAction } = useSahneAuth();
+  const tier = user?.membershipTier ?? null;
 
-  // Load from localStorage
+  const [mounted, setMounted]               = useState(false);
+  const [mode, setMode]                     = useState<'select' | 'journey' | 'free'>('select');
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+  const [doneIds, setDoneIds]               = useState<string[]>([]);
+  const [levelView, setLevelView]           = useState<string | null>(null);
+  const [selectedGroup, setSelectedGroup]   = useState<string | null>(null);
+  const [toast, setToast]                   = useState<{ msg: string; isAha: boolean } | null>(null);
+  const [showConfetti, setShowConfetti]     = useState(false);
+  const [membershipCardId, setMembershipCardId] = useState<string | null>(null);
+
+  const firedIds = useRef(new Set<string>());
+
   useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
-    if (typeof window === 'undefined') return;
-
-    try {
-      const raw = localStorage.getItem(LS_INTERESTS);
-      if (raw) {
-        const parsed = JSON.parse(raw) as InterestKey[];
-        if (parsed.length > 0) {
-          setSelectedInterests(parsed);
-          setMode('guided');
-        }
-      }
-    } catch { /* ignore */ }
-
-    try {
-      const raw = localStorage.getItem(LS_DONE);
-      if (raw) {
-        setDoneTasks(new Set(JSON.parse(raw) as string[]));
-      }
-    } catch { /* ignore */ }
+    const handler = (e: Event) => {
+      const { levelId, groupLabel } = (e as CustomEvent<{ levelId: string; groupLabel: string }>).detail;
+      setMode('select');
+      setLevelView(levelId);
+      setSelectedGroup(groupLabel);
+      setTimeout(() => {
+        document.getElementById('kesfet')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 50);
+    };
+    window.addEventListener('open-startguide-group', handler);
+    return () => window.removeEventListener('open-startguide-group', handler);
   }, []);
 
-  function toggleInterest(key: InterestKey) {
-    setSelectedInterests((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
-    );
-  }
-
-  function confirmInterests() {
-    if (selectedInterests.length === 0) return;
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(LS_INTERESTS, JSON.stringify(selectedInterests));
+  // Yolculuğa Dön butonu ile dönülünce (router cache'ten, remount olmadan)
+  // localStorage'ı yeniden oku — tamamlanan kartlar görünsün
+  useEffect(() => {
+    function onReload() {
+      setDoneIds(loadLevelActions());
     }
-    setMode('guided');
-  }
+    window.addEventListener('sahne-reload-progress', onReload);
+    return () => window.removeEventListener('sahne-reload-progress', onReload);
+  }, []);
 
-  function resetInterests() {
-    setSelectedInterests([]);
-    setMode('select');
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(LS_INTERESTS);
+  useEffect(() => {
+    setMounted(true);
+    setDoneIds(loadLevelActions());
+    setSelectedInterests(loadInterests());
+    const nav = loadJourneyNav();
+    if (nav) {
+      setMode(nav.mode);
+      setLevelView(nav.levelView);
+      setSelectedGroup(nav.selectedGroup);
     }
-  }
+    if (sessionStorage.getItem('sahne_return_journey') === '1') {
+      sessionStorage.removeItem('sahne_return_journey');
+      setTimeout(() => {
+        document.getElementById('kesfet')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 150);
+    }
+  }, []);
 
-  const handleDone = useCallback((task: Task) => {
-    setDoneTasks((prev) => {
-      if (prev.has(task.id)) return prev; // idempotent — çift tık koruması
-      const next = new Set([...prev, task.id]);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(LS_DONE, JSON.stringify([...next]));
-      }
-      return next;
+  // Giriş yapılınca sunucu verisini doneIds'e merge et — localStorage silinse de korunur
+  useEffect(() => {
+    if (!user?.completedActionIds?.length) return;
+    setDoneIds(prev => {
+      const merged = Array.from(new Set([...prev, ...user.completedActionIds]));
+      return merged.length !== prev.length ? merged : prev;
     });
+  }, [user?.completedActionIds]);
 
-    if (doneTasks.has(task.id)) return; // efektleri yalnızca ilk tamamlamada tetikle
+  useEffect(() => {
+    if (!mounted) return;
+    saveJourneyNav({ mode, levelView, selectedGroup });
+  }, [mounted, mode, levelView, selectedGroup]);
 
-    if (task.isAhaMoment) {
-      setShowConfetti(true);
-      setToast({ msg: 'Aha anına ulaştın! Harika iş!', isAha: true });
-      sahneTrack('events', 'completed', { source: 'startguide', taskId: task.id, categoryId: task.categoryId });
-    } else {
-      setToast({ msg: 'Tamamlandı! Devam et.', isAha: false });
-      sahneTrack('engagement', 'clicked', { source: 'startguide', taskId: task.id, categoryId: task.categoryId });
+  // Browser geri tuşu desteği — levelView/selectedGroup history'ye push edilir
+  useEffect(() => {
+    if (!mounted) return;
+    if (levelView) {
+      window.history.pushState({ levelView, selectedGroup }, '');
     }
-  }, [doneTasks]);
+  }, [mounted, levelView, selectedGroup]);
 
-  // Compute visible tasks
-  const visibleTasks = ALL_TASKS.filter((t) => selectedInterests.includes(t.categoryId));
-  const totalCount = visibleTasks.length;
-  const doneCount = visibleTasks.filter((t) => doneTasks.has(t.id)).length;
-  const progressPct = totalCount > 0 ? (doneCount / totalCount) * 100 : 0;
-  const allDone = totalCount > 0 && doneCount === totalCount;
+  useEffect(() => {
+    const onPopState = (e: PopStateEvent) => {
+      const state = e.state as { levelView?: string | null; selectedGroup?: string | null } | null;
+      if (state?.levelView) {
+        setLevelView(state.levelView);
+        setSelectedGroup(state.selectedGroup ?? null);
+      } else {
+        setLevelView(null);
+        setSelectedGroup(null);
+        document.getElementById('kesfet')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
-  // Next task: first uncompleted aha moment, then first uncompleted regular
-  const nextTask =
-    visibleTasks.find((t) => !doneTasks.has(t.id) && t.isAhaMoment) ??
-    visibleTasks.find((t) => !doneTasks.has(t.id));
+  const toggleInterest = useCallback((id: string) => {
+    setSelectedInterests(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  }, []);
+
+  const handleStartJourney = useCallback(() => {
+    saveInterests(selectedInterests);
+    setLevelView(INTERESTS[0]!.id);
+    setSelectedGroup(null);
+  }, [selectedInterests]);
+
+  // Dahili link ziyaretlerinde: localStorage + server'a yaz ama state güncellenmesin.
+  // Kart "Doğrulandı" göstermez; kullanıcı dönünce mount'ta localStorage okunur.
+  const backToLevels = useCallback(() => {
+    setLevelView(null);
+    setSelectedGroup(null);
+    document.getElementById('kesfet')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
+
+  const checkLevelComplete = useCallback((newDone: string[]) => {
+    if (!levelView) return;
+    const interest = INTERESTS.find(i => i.id === levelView);
+    if (!interest) return;
+    const groups   = LEVEL_GROUPS[levelView] ?? [];
+    const levelIds = groups.flatMap(g => g.items.map(it => it.id));
+    const count    = newDone.filter(id => levelIds.includes(id)).length;
+    if (count >= interest.actionCount) {
+      setTimeout(() => backToLevels(), 800);
+    }
+  }, [levelView, backToLevels]);
+
+  const handleVisit = useCallback((action: RehberAction) => {
+    const current = loadLevelActions();
+    if (!current.includes(action.id)) {
+      saveLevelAction(action.id, current);
+      window.dispatchEvent(new CustomEvent('sahne-action-done', { detail: action.id }));
+    }
+    const newDone = current.includes(action.id) ? current : [...current, action.id];
+    void recordAction(action.id);
+    checkLevelComplete(newDone);
+  }, [recordAction, checkLevelComplete]);
+
+  const handleDone = useCallback((action: RehberAction) => {
+    const current = loadLevelActions();
+    if (!current.includes(action.id)) {
+      saveLevelAction(action.id, current);
+      window.dispatchEvent(new CustomEvent('sahne-action-done', { detail: action.id }));
+    }
+    const newDone = current.includes(action.id) ? current : [...current, action.id];
+    setDoneIds(prev => prev.includes(action.id) ? prev : [...prev, action.id]);
+    void recordAction(action.id);
+
+    if (!firedIds.current.has(action.id)) {
+      firedIds.current.add(action.id);
+      if (action.isAhaMoment) {
+        setShowConfetti(true);
+        setToast({ msg: 'Farkındalık Anı! Harika iş!', isAha: true });
+        sahneTrack('events', 'completed', { source: 'startguide', actionId: action.id });
+      } else {
+        sahneTrack('engagement', 'clicked', { source: 'startguide', actionId: action.id });
+      }
+    }
+    checkLevelComplete(newDone);
+  }, [recordAction, checkLevelComplete]);
+
+  if (!mounted) return null;
+
+  // Kişiselleştirilmiş görev listesi — seçilen ilgilerden 3'er aksiyon (dedup)
+  const seen = new Set<string>();
+  const visibleTasks: RehberAction[] = [];
+  for (const intId of selectedInterests) {
+    for (const actionId of INTEREST_TASKS[intId] ?? []) {
+      if (!seen.has(actionId)) {
+        seen.add(actionId);
+        const action = ALL_ACTIONS.find(a => a.id === actionId);
+        if (action) visibleTasks.push(action);
+      }
+    }
+  }
+  const journeyDone = visibleTasks.filter(a => doneIds.includes(a.id)).length;
+  const journeyPct  = visibleTasks.length > 0 ? (journeyDone / visibleTasks.length) * 100 : 0;
 
   return (
     <section className="py-16 sm:py-24 dark:bg-[#070c1a]" id="kesfet">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* ─── Header ─── */}
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-10">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
           <div>
             <div className="text-xs font-semibold uppercase tracking-widest text-[#66aca9] mb-2">
-              {mode === 'free' ? 'Özgür Keşif' : mode === 'select' ? 'Kişisel Rehber' : 'Yolculuğun'}
+              {mode === 'free' ? 'Özgür Keşif' : mode === 'select' ? 'Kişisel Rehber' : 'Haritailesi Yolculuğun'}
             </div>
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-slate-100">
               {mode === 'free'
                 ? 'Her kapı sana açık.'
                 : mode === 'select'
-                  ? 'Seni yönlendirelim. Ne yapmak istiyorsun?'
-                  : allDone
-                    ? 'Tüm adımları tamamladın! 🎉'
-                    : nextTask
-                      ? `Sıradaki adımın hazır.`
-                      : 'Yolculuğun başlıyor.'}
+                  ? 'Mesleğine Sen de Değer Kat!'
+                  : journeyDone > 0
+                    ? 'Sıradaki adımın hazır.'
+                    : 'Yolculuğun başlıyor.'}
             </h2>
             <p className="mt-1.5 text-gray-500 dark:text-slate-400 text-sm max-w-xl">
               {mode === 'free'
                 ? 'İstediğin alana gir, istediğin hızda ilerle. Sistem bekler, zorlamaz.'
                 : mode === 'select'
-                  ? 'İlgilendiğin alanları seç — sana özel adımlarını hazırlayalım.'
-                  : allDone
-                    ? 'Bütün hedeflerini tamamladın. Haritailesi topluluğunda iz bırakıyorsun.'
-                    : 'Aşağıdaki görevleri sırayla ya da istediğin sıraya göre tamamla.'}
+                  ? 'Mesleğine nasıl katkı sunmak istediğine yön verelim — sana özel adımlarını oluşturalım.'
+                  : 'Haritailesi ekosisteminde adım adım ilerle. Her tamamlanan aksiyon seni bir sonraki seviyeye yaklaştırır.'}
             </p>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
-            {mode === 'guided' && (
-              <button
-                onClick={resetInterests}
-                className="text-xs font-medium text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800"
-              >
-                İlgilerimi Değiştir
-              </button>
+          <button
+            onClick={() => setMode(m => m === 'free' ? 'select' : 'free')}
+            className="shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 dark:border-slate-700 text-sm font-medium text-gray-600 dark:text-slate-300 hover:border-[#66aca9] hover:text-[#26496b] dark:hover:text-[#66aca9] hover:shadow-[0_0_12px_rgba(102,172,169,0.2)] transition-all duration-200"
+          >
+            {mode === 'free' ? (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+                Yolculuğuma Dön
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                </svg>
+                Özgür Keşif
+              </>
             )}
-            <button
-              onClick={() => setMode(mode === 'free' ? (selectedInterests.length > 0 ? 'guided' : 'select') : 'free')}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 dark:border-slate-700 text-sm font-medium text-gray-600 dark:text-slate-300 hover:border-[#66aca9] hover:text-[#26496b] dark:hover:text-[#66aca9] hover:shadow-[0_0_12px_rgba(102,172,169,0.2)] transition-all duration-200"
-            >
-              {mode === 'free' ? (
-                <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>Yönlendirmeli moda dön</>
-              ) : (
-                <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>Özgür keşif</>
-              )}
-            </button>
-          </div>
+          </button>
         </div>
 
-        {/* ─── Interest Selection ─── */}
+        {/* ─── Select Mode ─── */}
         {mode === 'select' && (
           <div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-              {INTERESTS.map((interest) => {
-                const isSelected = selectedInterests.includes(interest.key);
-                return (
+            {levelView ? (
+              selectedGroup ? (
+                /* Katman 3 — grup içi aksiyon kartları */
+                <div>
                   <button
-                    key={interest.key}
-                    onClick={() => toggleInterest(interest.key)}
-                    className={`group relative flex flex-col items-center gap-3 p-5 rounded-2xl border-2 shadow-sm text-center transition-all duration-200 ${
-                      isSelected
-                        ? 'border-[#26496b] bg-[#26496b]/5 dark:bg-[#26496b]/20 shadow-lg -translate-y-1'
-                        : 'bg-white dark:bg-slate-900 border-gray-100 dark:border-slate-800 hover:shadow-lg hover:-translate-y-1 hover:border-gray-200 dark:hover:border-slate-700'
-                    }`}
+                    onClick={() => setSelectedGroup(null)}
+                    className="flex items-center gap-1.5 text-sm text-gray-400 dark:text-slate-500 hover:text-[#26496b] dark:hover:text-[#66aca9] transition-colors mb-5"
                   >
-                    {isSelected && (
-                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#26496b] flex items-center justify-center">
-                        <IcoCheck />
-                      </div>
-                    )}
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${interest.color} transition-all duration-200 group-hover:scale-110`}>
-                      {interest.icon}
-                    </div>
-                    <div>
-                      <span className="block text-xs font-bold text-gray-800 dark:text-slate-100 leading-snug">{interest.label}</span>
-                      <span className="block text-[10px] text-gray-400 dark:text-slate-500 leading-tight mt-0.5">{interest.desc}</span>
-                    </div>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    {selectedGroup}
                   </button>
-                );
-              })}
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-              <p className="text-xs text-gray-400 dark:text-slate-500">
-                {selectedInterests.length === 0
-                  ? 'En az bir alan seç'
-                  : `${selectedInterests.length} alan seçildi — ${selectedInterests.length * 3} kişisel görev hazırlanıyor`}
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setMode('free')}
-                  className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 transition-colors"
-                >
-                  Özgür keşfet →
-                </button>
-                <button
-                  onClick={confirmInterests}
-                  disabled={selectedInterests.length === 0}
-                  className="px-6 py-2.5 bg-[#26496b] text-white text-sm font-semibold rounded-xl hover:bg-[#1e3a56] disabled:opacity-40 transition-colors shadow-sm"
-                >
-                  Yolculuğumu Başlat →
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ─── Guided Mode ─── */}
-        {mode === 'guided' && (
-          <div>
-            {/* Progress bar */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm px-5 py-4 mb-6">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="flex gap-1.5">
-                    {selectedInterests.map((key) => {
-                      const info = INTERESTS.find((i) => i.key === key);
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {(LEVEL_GROUPS[levelView]?.find(g => g.label === selectedGroup)?.items ?? []).map(item => {
+                      const action = ALL_ACTIONS.find(a => a.id === item.id);
                       return (
-                        <span key={key} className={`w-6 h-6 rounded-lg flex items-center justify-center ${info?.color ?? ''}`} title={info?.label}>
-                          <span className="scale-75">{info?.icon}</span>
-                        </span>
+                        <Cat1ItemCard
+                          key={item.id}
+                          item={item}
+                          action={action}
+                          isDone={doneIds.includes(item.id)}
+                          onDone={handleDone}
+                          onVisit={handleVisit}
+                        />
                       );
                     })}
                   </div>
-                  <span className="text-xs text-gray-500 dark:text-slate-400">
-                    {selectedInterests.map((k) => INTERESTS.find((i) => i.key === k)?.label).join(', ')}
-                  </span>
+                  {!user && (
+                    <p className="mt-4 text-xs text-gray-400 dark:text-slate-500 text-center">
+                      İlerlemenin kaybolmaması için{' '}
+                      <a
+                        href={`${process.env['NEXT_PUBLIC_MUTFAK_URL'] ?? 'https://mutfak.haritailesi.org'}/giris`}
+                        className="underline hover:text-[#26496b] dark:hover:text-[#66aca9] transition-colors"
+                      >
+                        giriş yap
+                      </a>
+                      {' '}— tarayıcı temizlenince anonim ilerleme sıfırlanır.
+                    </p>
+                  )}
                 </div>
-                <span className={`text-sm font-bold ${allDone ? 'text-emerald-600' : 'text-[#26496b] dark:text-[#66aca9]'}`}>
-                  {doneCount} / {totalCount}
-                </span>
-              </div>
-              <div className="h-2 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-700 ${allDone ? 'bg-emerald-500' : 'bg-gradient-to-r from-[#26496b] to-[#66aca9]'}`}
-                  style={{ width: `${progressPct}%` }}
-                />
-              </div>
-              {allDone && (
-                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mt-2 flex items-center gap-1.5">
-                  <IcoSparkle /> Tüm adımları tamamladın!
-                </p>
-              )}
-            </div>
-
-            {/* Sıradaki Adımın - hero card */}
-            {nextTask && !allDone && (
-              <div className={`rounded-2xl border-2 p-6 mb-6 ${
-                nextTask.isAhaMoment
-                  ? 'bg-gradient-to-br from-amber-50 to-white dark:from-amber-950/20 dark:to-slate-900 border-amber-300 dark:border-amber-700'
-                  : 'bg-gradient-to-br from-[#26496b]/5 to-white dark:from-[#26496b]/10 dark:to-slate-900 border-[#26496b]/25 dark:border-blue-800/50'
-              }`}>
-                <div className="flex items-start gap-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-                    nextTask.isAhaMoment ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400' : 'bg-[#26496b]/10 text-[#26496b] dark:bg-blue-900/30 dark:text-blue-400'
-                  }`}>
-                    {nextTask.isAhaMoment ? <IcoSparkle /> : INTERESTS.find((i) => i.key === nextTask.categoryId)?.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className={`text-[10px] font-bold uppercase tracking-widest ${nextTask.isAhaMoment ? 'text-amber-500' : 'text-[#26496b]/60 dark:text-blue-500'}`}>
-                        {nextTask.isAhaMoment ? '✨ Aha Anı — Sıradaki Adımın' : 'Sıradaki Adımın'}
-                      </span>
-                    </div>
-                    <h3 className="text-base font-bold text-gray-900 dark:text-slate-100 mb-1">{nextTask.label}</h3>
-                    <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed">{nextTask.desc}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 mt-5 flex-wrap">
-                  <LinkWrapper isExt={nextTask.external ?? nextTask.href.startsWith('http')} href={nextTask.href}>
-                    <span className={`inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-colors ${
-                      nextTask.isAhaMoment ? 'bg-amber-500 hover:bg-amber-600' : 'bg-[#26496b] hover:bg-[#1e3a56]'
-                    }`}>
-                      {nextTask.cta}
-                    </span>
-                  </LinkWrapper>
+              ) : (
+                /* Katman 2 — grup kutuları */
+                <div>
                   <button
-                    onClick={() => handleDone(nextTask)}
-                    className="px-4 py-2.5 text-sm font-semibold text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-xl transition-colors border border-gray-200 dark:border-slate-700 hover:border-emerald-200 dark:hover:border-emerald-800"
+                    onClick={backToLevels}
+                    className="flex items-center gap-1.5 text-sm text-gray-400 dark:text-slate-500 hover:text-[#26496b] dark:hover:text-[#66aca9] transition-colors mb-5"
                   >
-                    Yaptım ✓
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Seviyelere Dön
+                  </button>
+
+                  {/* ── Seviye tamamlama bandı ── */}
+                  {(() => {
+                    const currentInterest = INTERESTS.find(i => i.id === levelView);
+                    if (!currentInterest) return null;
+                    const groups   = LEVEL_GROUPS[levelView] ?? [];
+                    const allIds   = groups.flatMap(g => g.items.map(it => it.id));
+                    const doneCount = doneIds.filter(id => allIds.includes(id)).length;
+                    if (doneCount < currentInterest.actionCount) return null;
+                    const nextIdx  = INTERESTS.findIndex(i => i.id === levelView) + 1;
+                    const next     = INTERESTS[nextIdx];
+                    const needsMember = next && (next.id === 'katki_sunan' || next.id === 'etki_yaratan') && !MEMBER_TIERS_SET.has(tier ?? '');
+                    return (
+                      <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border border-emerald-200 dark:border-emerald-800/50 px-5 py-4">
+                        <div className="flex items-center gap-3 flex-1">
+                          <span className="text-2xl shrink-0">🎉</span>
+                          <div>
+                            <p className="text-sm font-bold text-gray-900 dark:text-slate-100">{currentInterest.label} tamamlandı!</p>
+                            <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+                              {next
+                                ? needsMember
+                                  ? `${next.label} bölümüne erişmek için üye olman gerekiyor.`
+                                  : `Sıradaki kademe hazır — ${next.label} adımlarını keşfet.`
+                                : 'Tüm kademeleri tamamladın, harika bir yolculuktu!'}
+                            </p>
+                          </div>
+                        </div>
+                        {next && (needsMember ? (
+                          <a
+                            href={`${WEB_URL}/uye-ol`}
+                            className="shrink-0 px-4 py-2 rounded-xl bg-[#26496b] hover:bg-[#1d3a57] text-white text-xs font-bold shadow-sm"
+                          >
+                            Üye Ol →
+                          </a>
+                        ) : (
+                          <button
+                            onClick={() => { setLevelView(next.id); setSelectedGroup(null); }}
+                            className="shrink-0 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm"
+                          >
+                            {next.label}'a Geç →
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })()}
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {(LEVEL_GROUPS[levelView] ?? []).map(group => (
+                      <LevelGroupCard
+                        key={group.label}
+                        group={group}
+                        doneIds={doneIds}
+                        onSelect={() => setSelectedGroup(group.label)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )
+            ) : (
+              /* Katman 1 — 4 seviye kartı */
+              <>
+                {/* ── Üye kartı (giriş yapanlara) ── */}
+                <div className="flex justify-end mb-6">
+                  <MemberCard />
+                </div>
+
+                {/* ── Kademe tamamlama bandı ── */}
+                {(() => {
+                  // En son tamamlanan kademeyi bul (sonraki kademe varsa göster)
+                  let completedInterest: typeof INTERESTS[number] | null = null;
+                  let nextInterest: typeof INTERESTS[number] | null = null;
+                  for (let i = 0; i < INTERESTS.length - 1; i++) {
+                    const lvl     = INTERESTS[i]!;
+                    const groups  = LEVEL_GROUPS[lvl.id] ?? [];
+                    const ids     = groups.flatMap(g => g.items.map(it => it.id));
+                    const done    = doneIds.filter(id => ids.includes(id)).length;
+                    if (done >= lvl.actionCount) {
+                      completedInterest = lvl;
+                      nextInterest      = INTERESTS[i + 1]!;
+                    }
+                  }
+                  if (!completedInterest || !nextInterest) return null;
+                  const needsMember = (nextInterest.id === 'katki_sunan' || nextInterest.id === 'etki_yaratan')
+                    && !MEMBER_TIERS_SET.has(tier ?? '');
+                  return (
+                    <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 rounded-2xl bg-gradient-to-r from-blue-50 to-teal-50 dark:from-blue-950/30 dark:to-teal-950/30 border border-blue-100 dark:border-blue-900/50 px-5 py-4">
+                      <div className="flex items-center gap-3 flex-1">
+                        <span className="text-2xl shrink-0">🎉</span>
+                        <div>
+                          <p className="text-sm font-bold text-gray-900 dark:text-slate-100">{completedInterest.label} tamamlandı!</p>
+                          <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+                            {needsMember
+                              ? `${nextInterest.label} bölümüne erişmek için üye olman gerekiyor.`
+                              : `Artık ${nextInterest.label} adımlarını alabilirsin — seni daha fazlası bekliyor.`}
+                          </p>
+                        </div>
+                      </div>
+                      {needsMember ? (
+                        <a
+                          href={`${WEB_URL}/uye-ol`}
+                          className="shrink-0 px-4 py-2 rounded-xl bg-[#26496b] hover:bg-[#1d3a57] text-white text-xs font-bold transition-colors shadow-sm"
+                        >
+                          Üye Ol →
+                        </a>
+                      ) : (
+                        <button
+                          onClick={() => { setLevelView(nextInterest!.id); setSelectedGroup(null); }}
+                          className="shrink-0 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors shadow-sm"
+                        >
+                          {nextInterest.label}'ı Keşfet →
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* ── Stepper bağlantı çizgisi ── */}
+                <div className="hidden lg:grid grid-cols-4 mb-6">
+                  {INTERESTS.map((interest, idx) => {
+                    const prev        = INTERESTS[idx - 1];
+                    const next        = INTERESTS[idx + 1];
+                    const prevDone    = prev ? doneIds.filter(id => (LEVEL_GROUPS[prev.id] ?? []).some(g => g.items.some(i => i.id === id))).length : 0;
+                    const isUnlocked  = idx === 0 || prevDone >= (prev?.actionCount ?? 0);
+                    const doneCurrent = doneIds.filter(id => (LEVEL_GROUPS[interest.id] ?? []).some(g => g.items.some(i => i.id === id))).length;
+                    const isComplete  = doneCurrent >= interest.actionCount;
+                    const prevComplete = prev ? doneIds.filter(id => (LEVEL_GROUPS[prev.id] ?? []).some(g => g.items.some(i => i.id === id))).length >= (prev.actionCount) : false;
+                    return (
+                      <div key={interest.id} className="flex items-center">
+                        {/* Sol çizgi */}
+                        <div className={`flex-1 h-px transition-all duration-500 ${idx === 0 ? 'invisible' : prevComplete ? (prev?.lineColor ?? 'bg-gray-200') : 'bg-gray-200 dark:bg-slate-700'}`} />
+                        {/* Daire */}
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 ${
+                          isComplete ? 'bg-emerald-500' :
+                          isUnlocked ? interest.iconBg :
+                          'bg-gray-100 dark:bg-slate-800'
+                        }`}>
+                          {isComplete
+                            ? <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                            : isUnlocked
+                              ? <span className={`${interest.iconColor} [&>svg]:w-5 [&>svg]:h-5`}>{interest.icon}</span>
+                              : <svg className="w-4 h-4 text-gray-300 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
+                          }
+                        </div>
+                        {/* Sağ çizgi */}
+                        <div className={`flex-1 h-px transition-all duration-500 ${next === undefined ? 'invisible' : isComplete ? interest.lineColor : 'bg-gray-200 dark:bg-slate-700'}`} />
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {INTERESTS.map((interest, idx) => {
+                    const prev        = INTERESTS[idx - 1];
+                    const prevDone    = prev ? doneIds.filter(id => (LEVEL_GROUPS[prev.id] ?? []).some(g => g.items.some(i => i.id === id))).length : 0;
+                    const isUnlocked  = idx === 0 || prevDone >= (prev?.actionCount ?? 0);
+                    const done        = doneIds.filter(id => (LEVEL_GROUPS[interest.id] ?? []).some(g => g.items.some(i => i.id === id))).length;
+                    const total       = interest.actionCount;
+                    const pct         = Math.min((done / total) * 100, 100);
+                    const next        = INTERESTS[idx + 1];
+                    const neededMore  = prev ? (prev.actionCount - prevDone) : 0;
+
+                    const isComplete = done >= total;
+
+                    const progressBar = (
+                      <div className="w-full mt-5 flex items-center gap-2">
+                        <span className="shrink-0 text-[10px] font-medium text-gray-400 dark:text-slate-500">
+                          {interest.label}
+                        </span>
+                        <div className="flex-1 h-px bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden min-w-0">
+                          <div className={`h-full rounded-full transition-all duration-500 ${interest.iconColor.replace('text-', 'bg-')}`} style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="shrink-0 text-[10px] font-medium">
+                          <span className="text-gray-400 dark:text-slate-500">({done}/{total}) </span>
+                          {next
+                            ? <span className={interest.iconColor}>{next.label}</span>
+                            : <span className="text-emerald-500">Zirve ⭐</span>
+                          }
+                        </span>
+                      </div>
+                    );
+
+                    if (!isUnlocked) {
+                      return (
+                        <div
+                          key={interest.id}
+                          className="relative flex flex-col items-center text-center px-4 pt-10 pb-6 rounded-2xl border-2 border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 opacity-50 cursor-default select-none"
+                        >
+                          <span className={`absolute top-3.5 left-4 text-[10px] font-semibold uppercase tracking-widest ${interest.levelColor}`}>
+                            {interest.level}
+                          </span>
+                          {(interest.id === 'katki_sunan' || interest.id === 'etki_yaratan') && (
+                            <span className="absolute top-3 right-3 text-[9px] font-semibold text-[#26496b] dark:text-[#66aca9] bg-[#26496b]/8 dark:bg-[#66aca9]/10 border border-[#26496b]/15 dark:border-[#66aca9]/20 px-2 py-0.5 rounded-full">
+                              Üyelere Özel
+                            </span>
+                          )}
+                          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5 bg-gray-100 dark:bg-slate-800">
+                            <svg className="w-6 h-6 text-gray-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                          </div>
+                          <p className="text-sm font-bold leading-snug mb-1.5 text-gray-900 dark:text-slate-100">
+                            {interest.label}
+                          </p>
+                          <p className="text-xs text-gray-400 dark:text-slate-500 leading-snug">{interest.desc}</p>
+                          {progressBar}
+                        </div>
+                      );
+                    }
+
+                    const needsMembership = (interest.id === 'katki_sunan' || interest.id === 'etki_yaratan')
+                      && !MEMBER_TIERS_SET.has(tier ?? '');
+
+                    const showMembershipPrompt = needsMembership && membershipCardId === interest.id;
+
+                    return (
+                      <button
+                        key={interest.id}
+                        onClick={() => {
+                          if (needsMembership) {
+                            setMembershipCardId(interest.id);
+                            return;
+                          }
+                          setLevelView(interest.id);
+                          setSelectedGroup(null);
+                        }}
+                        onMouseEnter={() => window.dispatchEvent(new CustomEvent('open-journey-assistant'))}
+                        className={`relative flex flex-col items-center text-center px-4 pt-10 pb-6 rounded-2xl border-2 ${
+                          isComplete
+                            ? 'border-emerald-200 dark:border-emerald-800/50 bg-emerald-50/40 dark:bg-emerald-950/20 hover:border-emerald-300 dark:hover:border-emerald-700/50'
+                            : showMembershipPrompt
+                            ? 'border-[#26496b]/30 dark:border-[#66aca9]/30 bg-[#26496b]/4 dark:bg-[#66aca9]/5'
+                            : 'border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-gray-200 dark:hover:border-slate-700'
+                        }`}
+                      >
+                        <span className={`absolute top-3.5 left-4 text-[10px] font-semibold uppercase tracking-widest ${interest.levelColor}`}>
+                          {interest.level}
+                        </span>
+                        {!showMembershipPrompt && (isComplete ? (
+                          <span className="absolute top-3 right-3 flex items-center gap-1 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 px-2 py-0.5 rounded-full">
+                            ✓ Tamamlandı
+                          </span>
+                        ) : (interest.id === 'katki_sunan' || interest.id === 'etki_yaratan') ? (
+                          <span className="absolute top-3 right-3 text-[9px] font-semibold text-[#26496b] dark:text-[#66aca9] bg-[#26496b]/8 dark:bg-[#66aca9]/10 border border-[#26496b]/15 dark:border-[#66aca9]/20 px-2 py-0.5 rounded-full">
+                            Üyelere Özel
+                          </span>
+                        ) : null)}
+                        {showMembershipPrompt ? (
+                          <div className="flex flex-col items-center justify-center text-center gap-2.5 flex-1">
+                            <p className="text-xs font-bold text-gray-800 dark:text-slate-200 leading-snug">
+                              3. ve 4. seviye yalnızca<br />Haritailesi üyelerine açıktır.
+                            </p>
+                            <p className="text-[11px] text-gray-500 dark:text-slate-400 leading-relaxed">
+                              Haritailesi&apos;nin üretim, etkileşim ve gelişim deneyimine erişmek için üyeliğinizi başlatın.
+                            </p>
+                            <a
+                              href={`${WEB_URL}/uye-ol`}
+                              onClick={e => e.stopPropagation()}
+                              className="mt-1 px-3.5 py-1.5 rounded-lg bg-[#26496b] hover:bg-[#1d3a57] text-white text-xs font-semibold shadow-sm"
+                            >
+                              Üye Ol →
+                            </a>
+                            <button
+                              onClick={e => { e.stopPropagation(); setMembershipCardId(null); }}
+                              className="text-[11px] text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300"
+                            >
+                              Geri Dön
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-5 ${isComplete ? 'bg-emerald-100 dark:bg-emerald-900/30' : interest.iconBg}`}>
+                              {isComplete
+                                ? <svg className="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                : <span className={`${interest.iconColor} [&>svg]:w-6 [&>svg]:h-6`}>{interest.icon}</span>
+                              }
+                            </div>
+                            <p className="text-sm font-bold leading-snug mb-1.5 text-gray-900 dark:text-slate-100">
+                              {interest.label}
+                            </p>
+                            <p className="text-xs text-gray-400 dark:text-slate-500 leading-snug">{interest.desc}</p>
+                            {progressBar}
+                          </>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex items-center justify-between mt-8">
+                  <button
+                    onClick={() => setMode('free')}
+                    className="px-4 py-2 rounded-xl border border-gray-200 dark:border-slate-700 text-sm font-medium text-gray-500 dark:text-slate-400 hover:border-gray-300 dark:hover:border-slate-600 hover:text-gray-700 dark:hover:text-slate-200 transition-all duration-150"
+                  >
+                    Özgür Keşif →
+                  </button>
+                  <p className="text-xs text-gray-400 dark:text-slate-500 whitespace-nowrap">
+                    Yolculuğuna istediğin zaman &quot;Özgür Keşif&quot; ile devam edebilirsin.
+                  </p>
+                  <button
+                    onClick={handleStartJourney}
+                    className="px-5 py-2 rounded-xl bg-[#26496b] hover:bg-[#1d3a57] text-white text-sm font-semibold transition-all duration-150 shadow-sm hover:shadow-md"
+                  >
+                    Yolculuğumu Başlat →
                   </button>
                 </div>
-              </div>
+              </>
             )}
+          </div>
+        )}
 
-            {/* All tasks grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {visibleTasks.map((task) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  done={doneTasks.has(task.id)}
-                  onDone={handleDone}
-                  isNext={nextTask?.id === task.id}
-                />
-              ))}
+        {/* ─── Journey Mode — kişiselleştirilmiş görev listesi ─── */}
+        {mode === 'journey' && (
+          <div className="max-w-2xl space-y-8">
+
+            {/* İlerleme + ilgi değiştir */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-gray-700 dark:text-slate-300">
+                  {journeyDone} / {visibleTasks.length} görev tamamlandı
+                </p>
+                <div className="mt-2 w-48 h-1.5 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-[#26496b] dark:bg-[#66aca9] rounded-full transition-all duration-700"
+                    style={{ width: `${journeyPct}%` }}
+                  />
+                </div>
+              </div>
+              <button
+                onClick={() => setMode('select')}
+                className="text-sm text-gray-400 dark:text-slate-500 hover:text-[#26496b] dark:hover:text-[#66aca9] transition-colors"
+              >
+                İlgilerimi değiştir →
+              </button>
             </div>
 
-            <p className="mt-5 text-xs text-gray-400 dark:text-slate-500 text-center">
-              Bunlar öneri. İstediğin alana dilediğin zaman girebilirsin.{' '}
-              <button onClick={() => setMode('free')} className="text-[#26496b] dark:text-[#66aca9] hover:underline font-medium">
-                Özgür keşif →
-              </button>
-            </p>
+            {/* Her ilgi için görev grubu */}
+            {selectedInterests.map(intId => {
+              const interest = INTERESTS.find(i => i.id === intId);
+              const taskIds  = INTEREST_TASKS[intId] ?? [];
+              const tasks    = taskIds.map(id => ALL_ACTIONS.find(a => a.id === id)).filter(Boolean) as RehberAction[];
+              const grpDone  = tasks.filter(a => doneIds.includes(a.id)).length;
+
+              return (
+                <div key={intId}>
+                  {/* Grup başlığı */}
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${interest?.iconBg ?? 'bg-gray-50'}`}>
+                      <span className={interest?.iconColor ?? 'text-gray-400'}>{interest?.icon}</span>
+                    </div>
+                    <p className="text-sm font-bold text-gray-900 dark:text-slate-100 flex-1">{interest?.label}</p>
+                    <span className="text-xs text-gray-400 dark:text-slate-500">{grpDone}/{tasks.length}</span>
+                  </div>
+
+                  {/* Görev satırları */}
+                  <div className="rounded-2xl border border-gray-100 dark:border-slate-800 overflow-hidden divide-y divide-gray-50 dark:divide-slate-800/50">
+                    {tasks.map(action => {
+                      const isDone       = doneIds.includes(action.id);
+                      const isAccessible = canAccess(action, tier);
+                      const isExt        = action.external || action.href.startsWith('http');
+
+                      if (!isAccessible) {
+                        return (
+                          <div key={action.id} className="flex items-center gap-3 px-4 py-3.5 bg-gray-50/50 dark:bg-slate-800/20">
+                            <span className="text-lg shrink-0 opacity-25">{action.icon}</span>
+                            <span className="text-sm text-gray-300 dark:text-slate-600 flex-1">{action.label}</span>
+                            <span className="text-[10px] border border-gray-200 dark:border-slate-700 text-gray-400 dark:text-slate-600 rounded-full px-2 py-0.5 shrink-0">
+                              {!tier ? 'Giriş' : 'Üye'}
+                            </span>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div key={action.id} className={`flex items-center gap-3 px-4 py-3.5 transition-colors ${
+                          isDone ? 'bg-emerald-50/50 dark:bg-emerald-950/10' : 'hover:bg-gray-50/70 dark:hover:bg-slate-800/30'
+                        }`}>
+                          <span className={`text-lg shrink-0 ${isDone ? 'opacity-40' : ''}`}>{action.icon}</span>
+                          <span className={`text-sm flex-1 font-medium leading-snug ${
+                            isDone ? 'line-through text-gray-300 dark:text-slate-600' : 'text-gray-800 dark:text-slate-200'
+                          }`}>{action.label}</span>
+                          {action.isAhaMoment && !isDone && <span className="text-amber-400 shrink-0 text-base">✨</span>}
+                          {!isDone && (isExt ? (
+                            <a href={action.href} target="_blank" rel="noopener noreferrer"
+                              className="text-xs font-semibold text-[#26496b] dark:text-[#66aca9] hover:underline shrink-0">
+                              Git →
+                            </a>
+                          ) : (
+                            <Link href={action.href}
+                              className="text-xs font-semibold text-[#26496b] dark:text-[#66aca9] hover:underline shrink-0">
+                              Git →
+                            </Link>
+                          ))}
+                          <button
+                            onClick={() => handleDone(action)}
+                            className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors ${
+                              isDone
+                                ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400'
+                                : 'border border-gray-200 dark:border-slate-700 text-gray-300 hover:border-emerald-300 hover:text-emerald-500'
+                            }`}
+                          >✓</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+
           </div>
         )}
 
@@ -658,6 +1410,8 @@ export function StartGuide() {
         {mode === 'free' && (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {FREE_CATEGORIES.map((cat) => {
+
+              // ── Standard card ──
               const inner = (
                 <>
                   <div className={`h-1 w-full bg-gradient-to-r ${cat.gradient}`} />
@@ -698,11 +1452,7 @@ export function StartGuide() {
 
       {/* Toast */}
       {toast && (
-        <Toast
-          msg={toast.msg}
-          isAha={toast.isAha}
-          onDone={() => setToast(null)}
-        />
+        <Toast msg={toast.msg} isAha={toast.isAha} onDone={() => setToast(null)} />
       )}
 
       {/* Confetti */}
@@ -710,7 +1460,8 @@ export function StartGuide() {
         <ConfettiBurst onDone={() => setShowConfetti(false)} />
       )}
 
-      {/* CSS for animations */}
+      {/* Level Assistant */}
+
       <style>{`
         @keyframes confetti-fall {
           0%   { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }

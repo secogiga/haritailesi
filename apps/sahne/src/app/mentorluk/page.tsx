@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import Navbar from '@/components/Navbar';
+import { PageActionTracker } from '@/components/PageActionTracker';
 import { MentorApplyForm } from '@/components/MentorApplyForm';
 
 export const metadata: Metadata = {
@@ -135,6 +136,7 @@ export default async function MentorlukPage() {
   return (
     <>
       <Navbar />
+      <PageActionTracker actionId="v-mentorluk" />
       <main className="min-h-screen dark:bg-[#070c1a]">
 
         {/* ── Hero ──────────────────────────────────────────────────────── */}

@@ -28,9 +28,10 @@ function getCountdown(target: Date) {
 
 export function UpcomingEventBanner({ title, slug, dateStart, location, typeLabel }: Props) {
   const target = new Date(dateStart);
-  const [countdown, setCountdown] = useState(getCountdown(target));
+  const [countdown, setCountdown] = useState<ReturnType<typeof getCountdown>>(null);
 
   useEffect(() => {
+    setCountdown(getCountdown(target));
     const interval = setInterval(() => {
       setCountdown(getCountdown(target));
     }, 1000);

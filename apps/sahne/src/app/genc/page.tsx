@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import Navbar from '@/components/Navbar';
+import { PageActionTracker } from '@/components/PageActionTracker';
 import { cms, type StudentClub, type CmsEvent } from '@/lib/api';
 
 export const metadata: Metadata = {
@@ -163,6 +164,7 @@ export default async function GencPage() {
   return (
     <>
       <Navbar />
+      <PageActionTracker actionId="v-hgenc" />
       <main className="min-h-screen dark:bg-[#070c1a]">
 
         {/* ── Hero ── */}

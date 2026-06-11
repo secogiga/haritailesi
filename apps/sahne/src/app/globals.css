@@ -24,6 +24,15 @@
   transition: none !important;
 }
 
+/* ── Utilities ── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fadeIn 0.25s ease both; }
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
 /* ── Hero parallax — scroll-driven (Chrome 115+, Safari 18+) ── */
 @supports (animation-timeline: scroll()) {
   .hero-parallax-bg {
@@ -53,6 +62,15 @@
 .hero-topo-in {
   animation: hero-topo-in 1.2s cubic-bezier(0.16, 1, 0.3, 1) both;
   animation-delay: 0.2s;
+}
+
+/* ── Suppress forms-plugin focus ring on specific inputs ── */
+.no-focus-ring,
+.no-focus-ring:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  padding: 0 !important;
 }
 
 /* ── prefers-reduced-motion ── */

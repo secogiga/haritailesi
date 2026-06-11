@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
+import { PageActionTracker } from '@/components/PageActionTracker';
 import { TalentVideoCard } from '@/components/TalentVideoCard';
 import { YetenekGonderButton } from '@/components/YetenekGonder';
 import { cms } from '@/lib/api';
@@ -11,6 +12,7 @@ export default async function YeteneklerPage() {
   return (
     <>
       <Navbar />
+      <PageActionTracker actionId="v-yetenekler" />
       <main className="min-h-screen dark:bg-[#070c1a]">
 
         {/* ── Hero ──────────────────────────────────────────────────────── */}
