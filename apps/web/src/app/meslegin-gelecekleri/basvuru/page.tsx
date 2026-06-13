@@ -19,6 +19,7 @@ function formatTelefon(raw: string): string {
 
 const schema = z.object({
   // 1. SİZİ TANIYALIM
+  tcKimlikNo: z.string().regex(/^\d{11}$/, 'TC kimlik no 11 haneli olmalıdır.'),
   adSoyad: z.string().min(2, 'Ad soyad zorunludur.'),
   eposta: z.string().email('Geçerli bir e-posta girin.'),
   telefon: z.string().min(10, 'Telefon zorunludur.'),
@@ -179,6 +180,8 @@ export default function BasvuruPage() {
   const [liseQuery, setLiseQuery] = useState('');
   const [liseOpen, setLiseOpen] = useState(false);
   const liseRef = useRef<HTMLDivElement>(null);
+  const [loadTime] = useState(() => Date.now());
+  const [honeypot, setHoneypot] = useState('');
 
   useEffect(() => {
     if (egitimDurumu === 'lise' && liseler.length === 0) {
@@ -216,6 +219,7 @@ export default function BasvuruPage() {
   }
 
   async function onSubmit(values: FormValues) {
+    if (honeypot || Date.now() - loadTime < 2000) return;
     try {
       const { kvkk, iletisimOnay, eposta, ...rest } = values;
       await submitApplication({
@@ -250,11 +254,18 @@ export default function BasvuruPage() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        {/* Honeypot — bot tuzağı */}
+        <input type="text" name="website" value={honeypot} onChange={e => setHoneypot(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: 'absolute', left: '-9999px', top: 0, width: '1px', height: '1px', opacity: 0 }} />
 
         {/* 1. SİZİ TANIYALIM */}
         <section>
           <h2 className={sectionTitle}>1. Sizi Tanıyalım</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
+              <label className={lbl}>TC Kimlik No *</label>
+              <input {...register('tcKimlikNo')} type="text" inputMode="numeric" maxLength={11} placeholder="___________" className={inp} />
+              {errors.tcKimlikNo && <p className={fieldErr}>{errors.tcKimlikNo.message}</p>}
+            </div>
             <div>
               <label className={lbl}>Ad Soyad *</label>
               <input {...register('adSoyad')} type="text" className={inp} />

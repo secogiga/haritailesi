@@ -51,6 +51,8 @@ export default function BagisPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [refCode, setRefCode] = useState('');
+  const [loadTime] = useState(() => Date.now());
+  const [honeypot, setHoneypot] = useState('');
 
   const bireyselAmount = isCustom ? (parseFloat(custom) || 0) : preset;
   const paket = PAKETLER.find((p) => p.tier === tier)!;
@@ -62,6 +64,7 @@ export default function BagisPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (honeypot || Date.now() - loadTime < 2000) return;
     setError('');
     if (!form.fullName.trim() || !form.email.trim()) { setError('Ad soyad ve e-posta zorunludur.'); return; }
     if (tab === 'bireysel' && finalAmount < 10) { setError('Minimum bağış 10 ₺.'); return; }
@@ -136,6 +139,8 @@ export default function BagisPage() {
                 </div>
 
                 <form onSubmit={(e) => void handleSubmit(e)} className="space-y-7">
+                  {/* Honeypot — bot tuzağı */}
+                  <input type="text" name="website" value={honeypot} onChange={e => setHoneypot(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: 'absolute', left: '-9999px', top: 0, width: '1px', height: '1px', opacity: 0 }} />
                   {/* Bireysel: tutar */}
                   {tab === 'bireysel' && (
                     <div>

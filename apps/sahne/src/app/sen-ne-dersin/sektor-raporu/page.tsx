@@ -22,17 +22,57 @@ const MONTH_COLORS = [
   '#0ea5e9','#38bdf8','#7dd3fc','#0284c7','#0369a1','#0c4a6e',
 ];
 
+const EXAMPLE_REPORT: SectorReport = {
+  year: 2026,
+  totalResponses: 1243,
+  avgScore: 68,
+  monthlyTrend: [
+    { month: 'Oca', count: 74 }, { month: 'Şub', count: 91 }, { month: 'Mar', count: 118 },
+    { month: 'Nis', count: 143 }, { month: 'May', count: 167 }, { month: 'Haz', count: 134 },
+    { month: 'Tem', count: 89 }, { month: 'Ağu', count: 72 }, { month: 'Eyl', count: 108 },
+    { month: 'Eki', count: 124 }, { month: 'Kas', count: 83 }, { month: 'Ara', count: 40 },
+  ],
+  profBreakdown: [
+    { profession: 'Harita Mühendisi', count: 412, avgScore: 71 },
+    { profession: 'Kadastro Teknikeri', count: 287, avgScore: 64 },
+    { profession: 'CBS Uzmanı', count: 198, avgScore: 76 },
+    { profession: 'Fotogrametri Uzmanı', count: 143, avgScore: 69 },
+    { profession: 'Uzaktan Algılama', count: 98, avgScore: 72 },
+    { profession: 'Öğrenci', count: 105, avgScore: 58 },
+  ],
+  cityBreakdown: [
+    { city: 'Ankara', count: 234 }, { city: 'İstanbul', count: 198 }, { city: 'İzmir', count: 112 },
+    { city: 'Konya', count: 87 }, { city: 'Trabzon', count: 74 }, { city: 'Bursa', count: 68 },
+    { city: 'Adana', count: 54 }, { city: 'Samsun', count: 49 }, { city: 'Eskişehir', count: 43 },
+    { city: 'Kayseri', count: 38 },
+  ],
+  topSurveys: [
+    { title: 'Mesleğin Geleceği Araştırması 2026', count: 387 },
+    { title: 'CBS Yeterlilik Testi 2026', count: 312 },
+    { title: 'Sektörde Uzaktan Çalışma Anketi', count: 278 },
+    { title: 'Drone ve Fotogrametri Testi', count: 189 },
+    { title: 'Sektör Teknoloji Benimseme Anketi', count: 77 },
+  ],
+};
+
 export default function SektorRaporuPage() {
   const [report, setReport] = useState<SectorReport | null>(null);
+  const [isExample, setIsExample] = useState(false);
   const [loading, setLoading] = useState(true);
   const [year, setYear] = useState(new Date().getFullYear());
 
   useEffect(() => {
     setLoading(true);
     fetch(`${API}/api/v1/surveys/sector-report?year=${year}`)
-      .then(r => r.json() as Promise<SectorReport>)
-      .then(setReport)
-      .catch(() => {})
+      .then(r => r.ok ? r.json() as Promise<SectorReport> : null)
+      .then(data => {
+        if (data && (data as SectorReport).totalResponses > 0) {
+          setReport(data as SectorReport); setIsExample(false);
+        } else {
+          setReport(EXAMPLE_REPORT); setIsExample(true);
+        }
+      })
+      .catch(() => { setReport(EXAMPLE_REPORT); setIsExample(true); })
       .finally(() => setLoading(false));
   }, [year]);
 
@@ -54,17 +94,31 @@ export default function SektorRaporuPage() {
             </div>
             <div className="flex items-end justify-between gap-4 flex-wrap">
               <div>
-                <h1 className="text-3xl sm:text-4xl font-black text-white mb-2">Harita &amp; Kadastro</h1>
+                <h1 className="text-3xl sm:text-4xl font-black text-white mb-2">Harita Sektörü</h1>
                 <p className="text-sky-400 font-semibold text-lg">Sektör Raporu {year}</p>
-                <p className="text-gray-400 text-sm mt-1.5 max-w-lg">Platform genelindeki test ve anket katılımlarından derlenen yıllık veri özeti.</p>
+                <p className="text-gray-400 text-sm mt-1.5 max-w-lg">
+                  Platform genelindeki test ve anket katılımlarından derlenen yıllık veri özeti.
+                </p>
+                {isExample && (
+                  <span className="inline-flex items-center gap-1.5 mt-3 text-[11px] font-semibold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-3 py-1 rounded-full">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Örnek veri — gerçek katılımlar arttıkça güncellenir
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={() => setYear(y => y - 1)} className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
                 </button>
                 <span className="text-white font-bold text-lg w-16 text-center">{year}</span>
                 <button onClick={() => setYear(y => Math.min(y + 1, new Date().getFullYear()))} className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
                 </button>
               </div>
             </div>
@@ -74,9 +128,11 @@ export default function SektorRaporuPage() {
         <section className="max-w-4xl mx-auto px-4 py-10">
           {loading ? (
             <div className="grid sm:grid-cols-3 gap-4 mb-8">
-              {[1,2,3].map(i => <div key={i} className="bg-white rounded-2xl border border-gray-100 h-28 animate-pulse" />)}
+              {[1, 2, 3].map(i => (
+                <div key={i} className="bg-white rounded-2xl border border-gray-100 h-28 animate-pulse" />
+              ))}
             </div>
-          ) : !report ? (
+          ) : report === null ? (
             <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center text-gray-400">Veri bulunamadı.</div>
           ) : (
             <div className="space-y-6">
@@ -101,14 +157,14 @@ export default function SektorRaporuPage() {
               {/* Monthly trend */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                 <h2 className="font-bold text-gray-900 text-sm mb-5">Aylık Katılım Trendi</h2>
-                <div className="flex items-end gap-1 h-28">
+                <div className="flex items-end gap-1.5" style={{ height: 96 }}>
                   {report.monthlyTrend.map((m, i) => {
-                    const h = maxMonthly > 0 ? Math.round((m.count / maxMonthly) * 100) : 0;
+                    const barH = maxMonthly > 0 ? Math.max(Math.round((m.count / maxMonthly) * 72), 4) : 4;
                     return (
                       <div key={m.month} className="flex-1 flex flex-col items-center gap-1 group">
-                        <span className="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">{m.count}</span>
-                        <div className="w-full rounded-t-md transition-all" style={{ height: `${Math.max(h, 4)}%`, backgroundColor: MONTH_COLORS[i] ?? '#0ea5e9' }} />
-                        <span className="text-[10px] text-gray-400">{m.month}</span>
+                        <span className="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity leading-none">{m.count}</span>
+                        <div className="w-full rounded-t-md transition-all duration-500" style={{ height: barH, backgroundColor: MONTH_COLORS[i] ?? '#0ea5e9' }} />
+                        <span className="text-[10px] text-gray-400 leading-none">{m.month}</span>
                       </div>
                     );
                   })}
@@ -127,7 +183,9 @@ export default function SektorRaporuPage() {
                           <div className="h-2.5 rounded-full transition-all duration-700" style={{ width: `${Math.round((row.count / maxProf) * 100)}%`, backgroundColor: '#26496b' }} />
                         </div>
                         <span className="text-xs text-gray-500 w-8 text-right shrink-0">{row.count}</span>
-                        {row.avgScore > 0 && <span className="text-xs text-emerald-600 font-semibold w-14 text-right shrink-0">~%{row.avgScore}</span>}
+                        {row.avgScore > 0 && (
+                          <span className="text-xs text-emerald-600 font-semibold w-14 text-right shrink-0">~%{row.avgScore}</span>
+                        )}
                       </div>
                     ))}
                   </div>

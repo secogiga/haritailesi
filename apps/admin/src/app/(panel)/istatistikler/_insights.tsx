@@ -256,7 +256,7 @@ function AnomalyRow({ anomaly }: { anomaly: OnboardingInsights['anomalies'][numb
 const EVENT_LABELS: Record<string, string> = {
   onboarding_started:       'Onboarding Başlatıldı',
   onboarding_step_completed:'Adım Tamamlandı',
-  aha_moment_triggered:     'Aha Anı',
+  aha_moment_triggered:     'Farkındalık Anı',
   mentor_request_sent:      'Mentör Talebi',
   first_post_created:       'İlk Gönderi',
   first_event_joined:       'İlk Etkinlik',
@@ -302,22 +302,22 @@ export default function InsightsPanel({
         <div className="bg-gradient-to-r from-[#26496b] to-[#1e3a56] rounded-2xl p-5 text-white ins-slide mb-4">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <div className="text-xs font-medium text-white/60 uppercase tracking-wider mb-1">Aha Anısı Etkisi</div>
+              <div className="text-xs font-medium text-white/60 uppercase tracking-wider mb-1">Farkındalık Anı Etkisi</div>
               <div className="text-4xl font-bold tabular-nums">
                 {meta.ahaRetentionMultiplier}×
               </div>
               <div className="text-sm text-white/80 mt-1">
-                Aha anı yaşayan kullanıcılar daha uzun kalıyor
+                Farkındalık Anı yaşayan kullanıcılar daha uzun kalıyor
               </div>
             </div>
             <div className="flex gap-6">
               <div className="text-center">
                 <div className="text-2xl font-bold text-emerald-300">{meta.ahaRetentionRate}%</div>
-                <div className="text-[11px] text-white/60">Aha anı → 30g aktif</div>
+                <div className="text-[11px] text-white/60">Farkındalık Anı → 30g aktif</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-white/50">{meta.nonAhaRetentionRate}%</div>
-                <div className="text-[11px] text-white/60">Aha yok → 30g aktif</div>
+                <div className="text-[11px] text-white/60">Farkındalık Anı yok → 30g aktif</div>
               </div>
             </div>
           </div>
@@ -382,7 +382,7 @@ export default function InsightsPanel({
                     <th className="text-left py-2 px-3 font-semibold text-gray-500">Segment</th>
                     <th className="text-right py-2 px-3 font-semibold text-gray-500">Üye</th>
                     <th className="text-right py-2 px-3 font-semibold text-gray-500">Profil</th>
-                    <th className="text-left py-2 px-3 font-semibold text-gray-500 w-36">Aha Anı</th>
+                    <th className="text-left py-2 px-3 font-semibold text-gray-500 w-36">Farkındalık Anı</th>
                     <th className="text-right py-2 px-3 font-semibold text-gray-500">30g Aktif</th>
                   </tr>
                 </thead>

@@ -7,6 +7,7 @@ import {
   timestamp,
   index,
   uniqueIndex,
+  jsonb,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './users';
@@ -30,6 +31,7 @@ export const posts = pgTable(
     status: postStatusEnum('status').notNull().default('published'),
     isPinned: boolean('is_pinned').notNull().default(false),
     isPublic: boolean('is_public').notNull().default(false),
+    libraryRefs: jsonb('library_refs').$type<{ type: 'term'|'guide'|'regulation'; slug: string; title: string }[]>().notNull().default([]),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

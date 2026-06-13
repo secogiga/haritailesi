@@ -41,6 +41,7 @@ export const examQuestions = pgTable(
     explanation: text('explanation'),           // çözüm açıklaması
     difficulty: text('difficulty').notNull().default('medium'), // easy|medium|hard
     source: text('source'),                     // kaynak kitap/yıl
+    relatedTermSlugs: text('related_term_slugs').array().notNull().default([]),
     isActive: boolean('is_active').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },

@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { useSahneAuth } from '@/contexts/SahneAuthContext';
+import { EmailOtpVerifier } from '@/components/EmailOtpVerifier';
 
 const API = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000';
 
@@ -76,6 +77,7 @@ interface SubmitResult {
   questionResults?: QuestionResult[];
   platformLinks?: PlatformLinks;
   companySlug?: string;
+  certCode?: string;
 }
 
 // ── Single-choice ─────────────────────────────────────────────────────────────
@@ -194,6 +196,10 @@ function Certificate({ survey, result, name, onClose }: {
   survey: Survey; result: SubmitResult; name: string; onClose: () => void;
 }) {
   const date = new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+  const verifyUrl = result.certCode && typeof window !== 'undefined'
+    ? `${window.location.origin}/sen-ne-dersin/sertifika/${result.certCode}`
+    : null;
+  const linkedInUrl = verifyUrl ? `https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=${encodeURIComponent(survey.title)}&organizationName=${encodeURIComponent('Haritailesi')}&issueYear=${new Date().getFullYear()}&issueMonth=${new Date().getMonth() + 1}&certUrl=${encodeURIComponent(verifyUrl)}&certId=${encodeURIComponent(result.certCode ?? '')}` : null;
   return (
     <>
       <style>{`@media print{body *{visibility:hidden}#cert-wrap,#cert-wrap *{visibility:visible}#cert-wrap{position:fixed;left:0;top:0;width:100%}.no-print{display:none!important}}`}</style>
@@ -215,27 +221,45 @@ function Certificate({ survey, result, name, onClose }: {
                 <span>Başarı: <strong className="text-green-600">{result.percent}%</strong></span>
               </div>
             </div>
-            <div className="flex items-center justify-center gap-4 text-xs text-gray-400 mb-8">
+            <div className="flex items-center justify-center gap-4 text-xs text-gray-400 mb-4">
               <span>Tarih: {date}</span>
               <span>·</span>
               <span className="text-green-600 font-bold">✓ GEÇTİ</span>
             </div>
+            {result.certCode && (
+              <div className="text-[10px] text-gray-300 font-mono mb-2">
+                Doğrulama: {result.certCode}
+              </div>
+            )}
             <div className="text-xs text-gray-300">haritailesi.org · Sen Ne Dersin?</div>
           </div>
           <div className="h-2 bg-gradient-to-r from-[#26496b] to-[#66aca9]" />
         </div>
-        <div className="no-print fixed bottom-8 left-0 right-0 flex justify-center gap-3">
-          <button onClick={() => window.print()} className="px-6 py-3 bg-[#26496b] text-white font-semibold text-sm rounded-xl hover:bg-[#1e3a56]">
-            Yazdır / PDF İndir
+        <div className="no-print fixed bottom-8 left-0 right-0 flex justify-center gap-3 flex-wrap px-4">
+          <button onClick={() => window.print()} className="px-5 py-2.5 bg-[#26496b] text-white font-semibold text-sm rounded-xl hover:bg-[#1e3a56]">
+            Yazdır / PDF
           </button>
-          <button onClick={onClose} className="px-6 py-3 bg-white text-gray-700 font-semibold text-sm rounded-xl border border-gray-200 hover:bg-gray-50">Kapat</button>
+          {linkedInUrl && (
+            <a href={linkedInUrl} target="_blank" rel="noopener noreferrer"
+              className="px-5 py-2.5 bg-[#0a66c2] text-white font-semibold text-sm rounded-xl hover:bg-[#004182] flex items-center gap-2">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+              LinkedIn'e Ekle
+            </a>
+          )}
+          {verifyUrl && (
+            <button onClick={() => void navigator.clipboard.writeText(verifyUrl)}
+              className="px-5 py-2.5 bg-white text-gray-700 font-semibold text-sm rounded-xl border border-gray-200 hover:bg-gray-50">
+              Doğrulama Linki Kopyala
+            </button>
+          )}
+          <button onClick={onClose} className="px-5 py-2.5 bg-white text-gray-700 font-semibold text-sm rounded-xl border border-gray-200 hover:bg-gray-50">Kapat</button>
         </div>
       </div>
     </>
   );
 }
 
-function TestResultView({ result, survey, onRetake, leaderboard, challengerName }: { result: SubmitResult; survey: Survey; onRetake: () => void; leaderboard: LeaderboardEntry[]; challengerName?: string | null }) {
+function TestResultView({ result, survey, onRetake, leaderboard, challengerName, wrongStats }: { result: SubmitResult; survey: Survey; onRetake: () => void; leaderboard: LeaderboardEntry[]; challengerName?: string | null; wrongStats?: Record<string, number> }) {
   const [showCert, setShowCert] = useState(false);
   const [certName, setCertName] = useState('');
   const [nameStep, setNameStep] = useState(false);
@@ -296,7 +320,7 @@ function TestResultView({ result, survey, onRetake, leaderboard, challengerName 
               }
             </div>
           )}
-          {communityAvg !== null && (
+          {communityAvg !== null ? (
             <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-white/80 rounded-2xl border border-gray-100 text-xs text-gray-500">
               <span>Topluluk: <strong className="text-gray-700">{communityAvg}%</strong></span>
               <span className="text-gray-300">·</span>
@@ -307,6 +331,16 @@ function TestResultView({ result, survey, onRetake, leaderboard, challengerName 
                   <span>Üst <strong className="text-emerald-600">%{100 - userPercentile}</strong></span>
                 </>
               )}
+            </div>
+          ) : survey.responseCount > 0 ? (
+            <div className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-white/80 rounded-2xl border border-gray-100 text-xs text-amber-600 font-medium">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+              İlk {survey.responseCount + 1} kişiden birisin!
+            </div>
+          ) : (
+            <div className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-white/80 rounded-2xl border border-gray-100 text-xs text-violet-600 font-medium">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+              Bu testi ilk tamamlayanlardan birisin!
             </div>
           )}
         </div>
@@ -330,6 +364,13 @@ function TestResultView({ result, survey, onRetake, leaderboard, challengerName 
                     )}
                     {qr.explanation && (
                       <p className="text-xs text-gray-500 mt-1 leading-relaxed">{qr.explanation}</p>
+                    )}
+                    {wrongStats?.[qr.questionId] !== undefined && (
+                      <p className="text-[11px] text-gray-400 mt-1">
+                        Topluluk: <strong className={wrongStats[qr.questionId]! >= 50 ? 'text-amber-600' : 'text-gray-500'}>
+                          %{wrongStats[qr.questionId]} yanlış yaptı
+                        </strong>
+                      </p>
                     )}
                   </div>
                   <span className={`text-xs font-bold shrink-0 ${qr.isCorrect ? 'text-green-600' : 'text-red-600'}`}>+{qr.earned}/{qr.points}</span>
@@ -596,11 +637,17 @@ export default function SurveyDetailPage() {
   const [error, setError] = useState('');
   const [result, setResult] = useState<SubmitResult | null>(null);
   const [email, setEmail] = useState('');
+  const [emailOtpStep, setEmailOtpStep] = useState<'none' | 'verifying'>('none');
+  const [emailToken, setEmailToken] = useState('');
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [prevCompletion, setPrevCompletion] = useState<PrevCompletion | null>(null);
   const [adaptiveExtra, setAdaptiveExtra] = useState<Question[]>([]);
+  const [xpToast, setXpToast] = useState<{ xp: number; label: string } | null>(null);
+  const [wrongStats, setWrongStats] = useState<Record<string, number>>({});
   const startTime = useRef<number>(0);
   const timerExpired = useRef(false);
+
+  useEffect(() => { window.scrollTo(0, 0); }, []);
 
   useEffect(() => {
     if (!slug) return;
@@ -642,6 +689,11 @@ export default function SurveyDetailPage() {
   }, [survey]);
 
   const startSurvey = () => {
+    if (survey?.allowAnonymous && !user && !email) {
+      setError('Devam etmek için e-posta adresinizi girin.');
+      return;
+    }
+    setError('');
     startTime.current = Date.now();
     timerExpired.current = false;
     setCurrentStep('questions');
@@ -662,7 +714,7 @@ export default function SurveyDetailPage() {
     void submit(true);
   }, [answers, survey]);
 
-  async function submit(forced = false) {
+  async function submit(forced = false, overrideToken?: string) {
     if (!survey) return;
     if (!forced) {
       const missing = visibleQuestions.filter(q => {
@@ -675,6 +727,12 @@ export default function SurveyDetailPage() {
         return;
       }
     }
+    // Anonymous with email → require OTP first
+    const resolvedToken = overrideToken ?? emailToken;
+    if (!user && email && !resolvedToken) {
+      setEmailOtpStep('verifying');
+      return;
+    }
     setBusy(true);
     setError('');
     const timeTaken = startTime.current ? Math.round((Date.now() - startTime.current) / 1000) : undefined;
@@ -683,7 +741,7 @@ export default function SurveyDetailPage() {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers, respondentEmail: email || undefined, source: 'sahne', timeTaken }),
+        body: JSON.stringify({ answers, respondentEmail: email || undefined, emailToken: resolvedToken || undefined, source: 'sahne', timeTaken }),
       });
       const data = await res.json() as SubmitResult & { message?: string };
       if (!res.ok) throw new Error(data.message ?? 'Hata oluştu.');
@@ -698,10 +756,22 @@ export default function SurveyDetailPage() {
       if (user) {
         void recordAction(survey.type === 'test' ? 'p-yarisma' : 'p-anket');
       }
+      const xp = survey.type === 'test' ? (data.passed ? 20 : 10) : 10;
+      const label = survey.type === 'test' ? (data.passed ? 'Test Geçildi!' : 'Test Tamamlandı') : 'Ankete Katıldın!';
+      setXpToast({ xp, label });
+      setTimeout(() => setXpToast(null), 3000);
       if (survey.type === 'test') {
         fetch(`${API}/api/v1/surveys/${survey.id}/leaderboard`)
           .then(r => r.ok ? r.json() as Promise<LeaderboardEntry[]> : [])
           .then(setLeaderboard)
+          .catch(() => {});
+        fetch(`${API}/api/v1/surveys/${survey.id}/wrong-stats`)
+          .then(r => r.ok ? r.json() as Promise<{ questionId: string; wrongRate: number; totalAnswered: number }[]> : [])
+          .then(stats => {
+            const map: Record<string, number> = {};
+            stats.forEach(s => { map[s.questionId] = s.wrongRate; });
+            setWrongStats(map);
+          })
           .catch(() => {});
       }
     } catch (err) {
@@ -757,6 +827,15 @@ export default function SurveyDetailPage() {
   return (
     <>
       <Navbar />
+      {xpToast && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-bounce">
+          <div className="flex items-center gap-3 px-6 py-3.5 bg-[#26496b] text-white rounded-2xl shadow-2xl shadow-[#26496b]/30">
+            <span className="text-2xl font-black text-yellow-300">+{xpToast.xp} XP</span>
+            <div className="w-px h-5 bg-white/30" />
+            <span className="text-sm font-semibold">{xpToast.label}</span>
+          </div>
+        </div>
+      )}
       <main className="min-h-screen bg-gray-50 py-10">
         <div className="max-w-2xl mx-auto px-4 sm:px-6">
 
@@ -866,12 +945,13 @@ export default function SurveyDetailPage() {
                   </div>
                 )}
 
-                {survey.allowAnonymous && !user && (
+                {survey.allowAnonymous && !user && survey.status === 'active' && (
                   <div className="mb-6">
-                    <label className="block text-xs font-semibold text-gray-500 mb-1.5">E-posta (isteğe bağlı)</label>
-                    <input type="email" placeholder="ornek@email.com"
+                    <label className="block text-xs font-semibold text-gray-500 mb-1.5">E-posta <span className="text-red-500">*</span></label>
+                    <input type="email" placeholder="ornek@email.com" required
                       className="w-full border-2 border-gray-100 rounded-xl px-4 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#26496b]/20 focus:border-[#26496b] transition-all"
                       value={email} onChange={e => setEmail(e.target.value)} />
+                    <p className="text-[11px] text-gray-400 mt-1.5">Katılım kaydı için e-postanız doğrulanacaktır.</p>
                   </div>
                 )}
                 {user && (
@@ -886,11 +966,24 @@ export default function SurveyDetailPage() {
                 )}
 
                 {survey.status !== 'active' ? (
-                  <div className="bg-gray-50 rounded-xl px-4 py-3 text-sm text-gray-500 text-center">Bu içerik artık yanıt almıyor.</div>
+                  <div className="space-y-2">
+                    <div className="bg-gray-50 rounded-xl px-4 py-3 text-sm text-gray-500 text-center">Bu içerik artık yanıt almıyor.</div>
+                    {survey.showResults && (
+                      <Link
+                        href={`/sen-ne-dersin/${survey.slug ?? survey.id}/sonuclar`}
+                        className={`flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl text-white font-bold text-sm transition-all hover:opacity-90 ${isTest ? 'bg-gradient-to-r from-violet-600 to-purple-600' : 'bg-gradient-to-r from-sky-600 to-blue-600'}`}
+                      >
+                        Sonuçları Gör →
+                      </Link>
+                    )}
+                  </div>
                 ) : (
-                  <button onClick={startSurvey} className={`w-full py-4 rounded-2xl text-white font-bold text-sm transition-all hover:opacity-90 ${isTest ? 'bg-gradient-to-r from-violet-600 to-purple-600' : 'bg-gradient-to-r from-sky-600 to-blue-600'}`}>
-                    {isTest ? 'Teste Başla →' : 'Ankete Katıl →'}
-                  </button>
+                  <>
+                    {error && <p className="mb-3 text-sm text-red-600 bg-red-50 rounded-xl px-4 py-3">{error}</p>}
+                    <button onClick={startSurvey} className={`w-full py-4 rounded-2xl text-white font-bold text-sm transition-all hover:opacity-90 ${isTest ? 'bg-gradient-to-r from-violet-600 to-purple-600' : 'bg-gradient-to-r from-sky-600 to-blue-600'}`}>
+                      {isTest ? 'Teste Başla →' : 'Ankete Katıl →'}
+                    </button>
+                  </>
                 )}
               </div>
             </div>
@@ -1022,21 +1115,35 @@ export default function SurveyDetailPage() {
 
               {error && <p className="mt-4 text-sm text-red-600 bg-red-50 rounded-xl px-4 py-3">{error}</p>}
 
-              <div className="mt-6 flex gap-3">
-                <button onClick={() => setCurrentStep('intro')} className="px-5 py-3 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:border-gray-300 transition-colors">
-                  ← Geri
-                </button>
-                <button disabled={busy} onClick={() => void submit()} className={`flex-1 py-3 rounded-xl text-white font-bold text-sm transition-all hover:opacity-90 disabled:opacity-50 ${isTest ? 'bg-gradient-to-r from-violet-600 to-purple-600' : 'bg-gradient-to-r from-sky-600 to-blue-600'}`}>
-                  {busy ? 'Gönderiliyor…' : isTest ? 'Testi Bitir' : 'Yanıtları Gönder'}
-                </button>
-              </div>
+              {emailOtpStep === 'verifying' ? (
+                <div className="mt-6 border-t border-gray-100 pt-6">
+                  <EmailOtpVerifier
+                    email={email}
+                    onVerified={(token) => {
+                      setEmailToken(token);
+                      setEmailOtpStep('none');
+                      void submit(false, token);
+                    }}
+                    onBack={() => setEmailOtpStep('none')}
+                  />
+                </div>
+              ) : (
+                <div className="mt-6 flex gap-3">
+                  <button onClick={() => setCurrentStep('intro')} className="px-5 py-3 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:border-gray-300 transition-colors">
+                    ← Geri
+                  </button>
+                  <button disabled={busy} onClick={() => void submit()} className={`flex-1 py-3 rounded-xl text-white font-bold text-sm transition-all hover:opacity-90 disabled:opacity-50 ${isTest ? 'bg-gradient-to-r from-violet-600 to-purple-600' : 'bg-gradient-to-r from-sky-600 to-blue-600'}`}>
+                    {busy ? 'Gönderiliyor…' : isTest ? 'Testi Bitir' : 'Yanıtları Gönder'}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
           {/* Done */}
           {currentStep === 'done' && result && (
             isTest
-              ? <TestResultView result={result} survey={survey} onRetake={retake} leaderboard={leaderboard} challengerName={challengeScore ? `Hedef: %${challengeScore}` : null} />
+              ? <TestResultView result={result} survey={survey} onRetake={retake} leaderboard={leaderboard} challengerName={challengeScore ? `Hedef: %${challengeScore}` : null} wrongStats={wrongStats} />
               : <SurveyThanks onGoBack={() => setCurrentStep('intro')} survey={survey} />
           )}
 

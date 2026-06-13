@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { adminApi, getCurrentUserRoles, type AdminUserDetail, type MemberSub } from '@/lib/api';
-import { getInitials } from '@/lib/ui';
+import { getInitials, normCity } from '@/lib/ui';
 
 type MemberNote = {
   id: string; body: string; noteType: string;
@@ -14,7 +14,7 @@ type MemberNote = {
 
 const TIER_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; gradient: string; dot: string }> = {
   visitor:             { label: 'Ziyaretçi',         color: 'text-gray-700',   bg: 'bg-gray-100',   border: 'border-gray-300', gradient: 'from-gray-400 to-gray-600', dot: 'bg-gray-400' },
-  registered_user:     { label: 'Sahne Üyesi',    color: 'text-slate-700',  bg: 'bg-slate-100',  border: 'border-slate-300', gradient: 'from-slate-400 to-slate-600', dot: 'bg-slate-400' },
+  registered_user:     { label: 'Kayıtlı',        color: 'text-slate-700',  bg: 'bg-slate-100',  border: 'border-slate-300', gradient: 'from-slate-400 to-slate-600', dot: 'bg-slate-400' },
   haritailesi_genc:    { label: 'Haritailesi Genç',    color: 'text-teal-800',   bg: 'bg-teal-50',    border: 'border-teal-300', gradient: 'from-teal-500 to-teal-700', dot: 'bg-teal-500' },
   new_graduate_member: { label: 'Mesleğin Geleceği',   color: 'text-orange-800', bg: 'bg-orange-50',  border: 'border-orange-300', gradient: 'from-orange-500 to-orange-700', dot: 'bg-orange-500' },
   individual_member:   { label: 'Mesleğin Değer Ortağı', color: 'text-blue-800', bg: 'bg-blue-50',   border: 'border-blue-300', gradient: 'from-blue-500 to-blue-700', dot: 'bg-blue-500' },
@@ -85,38 +85,80 @@ const FORM_LABELS: Record<string, string> = {
 };
 
 const COMMA_MAPS: Record<string, Record<string, string>> = {
-  meslekiYonelim: { fotogrametri: 'Fotogrametri', cbs: 'CBS', klasik_haritacilik: 'Klasik Haritacılık', uzaktan_algilama: 'Uzaktan Algılama', hidrografi: 'Hidrografi', kadastro: 'Kadastro', ins_olcme: 'İnşaat Ölçme' },
-  ilgiAlanlari:   { egitim: 'Eğitim', proje: 'Proje', etkinlik: 'Etkinlik', arastirma: 'Araştırma', mentorlik: 'Mentörlük' },
-  katkiAlanlari:  { egitim: 'Eğitim', proje: 'Proje', etkinlik: 'Etkinlik', arastirma: 'Araştırma', mentorlik: 'Mentörlük', tanitim: 'Tanıtım' },
-  tanismaKanali:  { youtube: 'YouTube', instagram: 'Instagram', twitter: 'Twitter/X', linkedin: 'LinkedIn', arkadas: 'Arkadaş', universite: 'Üniversite', diger: 'Diğer' },
+  meslekiYonelim: {
+    fotogrametri: 'Fotogrametri', cbs: 'CBS', klasik_haritacilik: 'Klasik Haritacılık',
+    uzaktan_algilama: 'Uzaktan Algılama', hidrografi: 'Hidrografi', kadastro: 'Kadastro',
+    ins_olcme: 'İnşaat Ölçme', insaat: 'İnşaat', gayrimenkul: 'Gayrimenkul',
+    yazilim: 'Yazılım', icerik_uretimi: 'İçerik Üretimi', girisimcilik: 'Girişimcilik',
+    bilmiyorum: 'Bilmiyorum', diger: 'Diğer',
+  },
+  ilgiAlanlari: {
+    topluluk: 'Topluluk', egitimler: 'Eğitimler', egitim: 'Eğitim',
+    mentorluk: 'Mentörlük', mentorlik: 'Mentörlük', proje: 'Proje',
+    kariyer: 'Kariyer', icerik: 'İçerik Üretimi', gorunurluk: 'Görünürlük',
+    gonullu: 'Gönüllü', girisimcilik: 'Girişimcilik', etkinlik: 'Etkinlik',
+    arastirma: 'Araştırma',
+  },
+  katkiAlanlari: {
+    icerik: 'İçerik Üretimi', egitim: 'Eğitim', mentorluk: 'Mentörlük',
+    mentorlik: 'Mentörlük', proje: 'Proje', etkinlik: 'Etkinlik',
+    atolye: 'Atölye', moderatorluk: 'Moderatörlük', arastirma: 'Araştırma',
+    tanitim: 'Tanıtım', sosyal_medya: 'Sosyal Medya', video: 'Video İçerik',
+    topluluk: 'Topluluk', tasarim: 'Tasarım', yazilim: 'Yazılım',
+    mentorluk_destek: 'Mentörlük Desteği',
+  },
+  tanismaKanali: {
+    youtube: 'YouTube', instagram: 'Instagram', twitter: 'Twitter/X',
+    linkedin: 'LinkedIn', arkadas: 'Arkadaş tavsiyesi', universite: 'Üniversite',
+    haberita: 'Haberita', etkinlik: 'Etkinlik', referans: 'Referans',
+    google: 'Google', diger: 'Diğer',
+  },
 };
 
 const VALUE_MAPS: Record<string, Record<string, string>> = {
-  cinsiyet:           { kadin: 'Kadın', erkek: 'Erkek', diger: 'Diğer', belirtmek_istemiyorum: 'Belirtmek İstemiyorum' },
-  enYuksekEgitim:     { lise: 'Lise', onlisans: 'Ön Lisans', lisans: 'Lisans', lisansustu: 'Lisansüstü', doktora: 'Doktora' },
-  egitimDurumu:       { mezun: 'Mezun', ogrenci: 'Öğrenci', lisansustu: 'Lisansüstü', doktora: 'Doktora' },
-  ogrencilikDurumu:   { lisans: 'Lisans', yuksek_lisans: 'Yüksek Lisans', doktora: 'Doktora', onlisans: 'Ön Lisans' },
-  calismaDurumu:  { calismiyor: 'Çalışmıyor', calisuyor: 'Çalışıyor', ogrenci: 'Öğrenci', serbest: 'Serbest Meslek' },
-  meslekiDeneyim: { '0': 'Yeni başlıyorum', '1-3': '1–3 yıl', '3-5': '3–5 yıl', '5+': '5+ yıl' },
-  zamanAyirma:    { ayda_birkac: 'Ayda birkaç kez', haftada_birkac: 'Haftada birkaç kez', her_gun: 'Her gün', haftada_bir: 'Haftada bir' },
+  cinsiyet: { kadin: 'Kadın', erkek: 'Erkek', diger: 'Diğer', belirtmek_istemiyorum: 'Belirtmek İstemiyorum' },
+  enYuksekEgitim: { lise: 'Lise', onlisans: 'Ön Lisans', lisans: 'Lisans', yuksek_lisans: 'Yüksek Lisans', lisansustu: 'Lisansüstü', doktora: 'Doktora' },
+  egitimDurumu:   { mezun: 'Mezun', ogrenci: 'Öğrenci', yeni_mezun: 'Yeni Mezun', lisans: 'Lisans', yuksek_lisans: 'Yüksek Lisans', lisansustu: 'Lisansüstü', doktora: 'Doktora' },
+  ogrencilikDurumu: { lise: 'Lise', onlisans: 'Ön Lisans', lisans: 'Lisans', yuksek_lisans: 'Yüksek Lisans', lisansustu: 'Lisansüstü', doktora: 'Doktora' },
+  calismaDurumu: {
+    'calismıyor': 'Çalışmıyor', calismiyor: 'Çalışmıyor', calisiyor: 'Çalışıyor',
+    calisuyor: 'Çalışıyor', kamu: 'Kamu', ozel: 'Özel Sektör',
+    serbest: 'Serbest Meslek', kendi_ofis: 'Kendi Ofisi / Şirketi', ogrenci: 'Öğrenci',
+  },
+  meslekiDeneyim: { '0': 'Yeni başlıyorum', '0-1': '0–1 yıl', '1-3': '1–3 yıl', '3-5': '3–5 yıl', '5-10': '5–10 yıl', '5+': '5+ yıl', '10+': '10+ yıl' },
+  zamanAyirma: {
+    ayda_bir: 'Ayda bir saat', ayda_birkac: 'Ayda birkaç saat',
+    haftada_bir: 'Haftada bir', haftada_birkac: 'Haftada birkaç kez',
+    haftada_1_2: 'Haftada 1–2 saat', haftada_3_5: 'Haftada 3–5 saat',
+    her_gun: 'Her gün', destek: 'Destek olmak isterim',
+    duzenli: 'Düzenli katkı', sorumluluk: 'Sorumluluk almaya hazırım',
+  },
   toplulukDeneyimi: { evet: 'Evet', hayir: 'Hayır' },
   arastirmaDeneyimi: { evet: 'Evet', hayir: 'Hayır' },
 };
 
 const HIDDEN_FIELDS = new Set(['kvkk', 'iletisimOnay', 'onay', 'Kvkk']);
 
+function humanize(s: string): string {
+  return s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toLocaleUpperCase('tr-TR'));
+}
+
 function fmtFdValue(key: string, val: unknown): string {
   const str = String(val ?? '').trim();
-  if (!str || str === 'null' || str === 'undefined' || str === 'false' || str === 'true' && !VALUE_MAPS[key]) return str === 'true' ? 'Evet' : str === 'false' ? 'Hayır' : str;
+  if (!str || str === 'null' || str === 'undefined') return '';
+  if (str === 'true') return 'Evet';
+  if (str === 'false') return 'Hayır';
   if (key === 'dogumTarihi') {
     const d = new Date(str);
     return isNaN(d.getTime()) ? str : d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
   }
-  if (str.includes(',') && COMMA_MAPS[key]) {
-    return str.split(',').map(s => COMMA_MAPS[key]?.[s.trim()] ?? s.trim()).filter(Boolean).join(' · ');
+  if (str.includes(',')) {
+    const map = COMMA_MAPS[key];
+    return str.split(',').map(s => { const t = s.trim(); return map?.[t] ?? humanize(t); }).filter(Boolean).join(' · ');
   }
   if (COMMA_MAPS[key]?.[str]) return COMMA_MAPS[key][str]!;
-  return VALUE_MAPS[key]?.[str] ?? str;
+  if (key === 'sehir' || key === 'il') return normCity(str);
+  return VALUE_MAPS[key]?.[str] ?? humanize(str);
 }
 
 function fmtFd(fd: Record<string, unknown>, ...keys: string[]): string | null {
@@ -236,6 +278,11 @@ export default function UyeDetailPage() {
   const [userDonations, setUserDonations] = useState<UserDonation[]>([]);
   const [donationsLoading, setDonationsLoading] = useState(false);
 
+  // Survey history state
+  type SurveyHistoryItem = { id: string; surveyId: string; surveyTitle: string; surveyType: string; score: number | null; maxScore: number | null; percent: number | null; passed: boolean | null; timeTaken: number | null; createdAt: string };
+  const [surveyHistory, setSurveyHistory] = useState<SurveyHistoryItem[]>([]);
+  const [surveyHistoryLoading, setSurveyHistoryLoading] = useState(false);
+
 
   const [isOnline, setIsOnline] = useState(false);
   useEffect(() => {
@@ -280,6 +327,15 @@ export default function UyeDetailPage() {
   useEffect(() => { loadNotes(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { loadSubs(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { loadDonations(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    setSurveyHistoryLoading(true);
+    fetch(`${process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000'}/api/v1/admin/users/${id}/surveys`, {
+      headers: { Authorization: `Bearer ${typeof window !== 'undefined' ? (localStorage.getItem('access_token') ?? '') : ''}` },
+    }).then(r => r.ok ? r.json() as Promise<SurveyHistoryItem[]> : [])
+      .then(setSurveyHistory)
+      .catch(() => setSurveyHistory([]))
+      .finally(() => setSurveyHistoryLoading(false));
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleAddNote() {
     if (!noteBody.trim()) return;
@@ -367,9 +423,9 @@ export default function UyeDetailPage() {
   const displayName = user.profile?.displayName ?? user.displayName ?? user.email;
   const activeRoles = new Set(user.functionalRoles);
   const tier = TIER_CONFIG[user.membershipTier] ?? TIER_CONFIG['registered_user']!;
-  const formData = (user.applications[0]?.formData ?? {}) as Record<string, unknown>;
-  const hasApp = user.applications.length > 0;
-  const appState = user.applications[0]?.state ?? '';
+  const formData = (user.applications?.[0]?.formData ?? {}) as Record<string, unknown>;
+  const hasApp = (user.applications?.length ?? 0) > 0;
+  const appState = user.applications?.[0]?.state ?? '';
   const appStateCfg = APP_STATE_CONFIG[appState];
 
   const activeSub = subs.find(s => s.status === 'active');
@@ -467,7 +523,7 @@ export default function UyeDetailPage() {
             {user.profile?.city && (
               <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-0.5">Şehir</p>
-                <p className="text-sm font-semibold text-gray-900">{user.profile.city}</p>
+                <p className="text-sm font-semibold text-gray-900">{normCity(user.profile.city)}</p>
               </div>
             )}
             {user.profile?.workStatus && (
@@ -492,7 +548,6 @@ export default function UyeDetailPage() {
               <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-0.5">Kayıt</p>
               <p className="text-sm font-semibold text-gray-900">{new Date(user.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
             </div>
-
           </div>
 
           {user.profile?.bio && (
@@ -567,9 +622,9 @@ export default function UyeDetailPage() {
                     </svg>
                   </div>
                   <div className="text-left">
-                    <p className="text-sm font-semibold text-gray-900">Başvuru Formu</p>
+                    <p className="text-sm font-semibold text-gray-900">Üye Bilgileri</p>
                     <p className="text-xs text-gray-500">
-                      {APP_TYPE_LABELS[user.applications[0]?.type ?? ''] ?? ''} · {new Date(user.applications[0]?.createdAt ?? '').toLocaleDateString('tr-TR')}
+                      {APP_TYPE_LABELS[user.applications?.[0]?.type ?? ''] ?? ''} · {new Date(user.applications?.[0]?.createdAt ?? '').toLocaleDateString('tr-TR')}
                     </p>
                   </div>
                 </div>
@@ -871,7 +926,7 @@ export default function UyeDetailPage() {
                   {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                 </span>
               </div>
-              {user.applications.length > 0 && (
+              {(user.applications?.length ?? 0) > 0 && (
                 <div className="flex justify-between">
                   <span className="text-gray-500">Başvuru</span>
                   <button onClick={() => router.push('/basvurular')} className="text-[#26496b] font-medium hover:underline text-xs">
@@ -1048,6 +1103,53 @@ export default function UyeDetailPage() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ─── Anket & Test Geçmişi ─────────────────────────────────────────────────── */}
+      {(surveyHistory.length > 0 || surveyHistoryLoading) && (
+        <div className="mt-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h3 className="text-base font-bold text-gray-900 mb-4">Anket & Test Geçmişi</h3>
+          {surveyHistoryLoading ? (
+            <p className="text-sm text-gray-400">Yükleniyor…</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    <th className="text-left text-xs font-medium text-gray-400 pb-2 pr-4">İçerik</th>
+                    <th className="text-left text-xs font-medium text-gray-400 pb-2 pr-4">Tür</th>
+                    <th className="text-left text-xs font-medium text-gray-400 pb-2 pr-4">Skor</th>
+                    <th className="text-left text-xs font-medium text-gray-400 pb-2 pr-4">Sonuç</th>
+                    <th className="text-left text-xs font-medium text-gray-400 pb-2">Tarih</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {surveyHistory.map(item => (
+                    <tr key={item.id} className="border-b border-gray-50 last:border-0">
+                      <td className="py-2.5 pr-4 font-medium text-gray-900 max-w-[220px] truncate">{item.surveyTitle}</td>
+                      <td className="py-2.5 pr-4">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${item.surveyType === 'test' ? 'bg-blue-100 text-blue-700' : 'bg-teal-100 text-teal-700'}`}>
+                          {item.surveyType === 'test' ? 'Test' : 'Anket'}
+                        </span>
+                      </td>
+                      <td className="py-2.5 pr-4 text-gray-600 text-xs">
+                        {item.score != null ? `${item.score}/${item.maxScore} (${item.percent}%)` : '—'}
+                      </td>
+                      <td className="py-2.5 pr-4">
+                        {item.passed === true && <span className="text-xs font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">Geçti</span>}
+                        {item.passed === false && <span className="text-xs font-semibold text-red-700 bg-red-50 px-2 py-0.5 rounded-full">Kaldı</span>}
+                        {item.passed === null && <span className="text-xs text-gray-400">—</span>}
+                      </td>
+                      <td className="py-2.5 text-xs text-gray-400">
+                        {new Date(item.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 

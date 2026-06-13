@@ -1,6 +1,6 @@
-import { pgTable, uuid, text, timestamp, jsonb, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, integer, timestamp, jsonb, index } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { applicationTypeEnum } from './enums';
+import { applicationTypeEnum, applicationPaymentStatusEnum } from './enums';
 import { users } from './users';
 
 // ─── Applications ─────────────────────────────────────────────────────────────
@@ -20,6 +20,17 @@ export const applications = pgTable(
     formData: jsonb('form_data').notNull().default({}),
     adminNotes: text('admin_notes'),
     reviewedBy: uuid('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
+    // Ödeme son tarihi — approved → waiting_payment geçişinde otomatik set edilir
+    paymentDueAt: timestamp('payment_due_at', { withTimezone: true }),
+    // Ödeme durumu — lifecycle state'ten bağımsız ödeme yaşam döngüsü
+    paymentStatus: applicationPaymentStatusEnum('payment_status'),
+    // Ödeme tutarı (kuruş) — waiting_payment → waiting_verification geçişinde set edilir
+    paymentAmountKurus: integer('payment_amount_kurus'),
+    // Ödeme açıklaması — serbest metin (kasa transferi referansı vb.)
+    paymentDescription: text('payment_description'),
+    // Hatırlatma sayacı ve son hatırlatma zamanı — cooldown + istatistik için
+    reminderCount: integer('reminder_count').notNull().default(0),
+    lastReminderAt: timestamp('last_reminder_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),

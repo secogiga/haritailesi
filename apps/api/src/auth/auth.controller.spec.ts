@@ -1,7 +1,6 @@
 import { AuthController } from './auth.controller';
 
 const mockAuthService = {
-  register: jest.fn().mockResolvedValue({ accessToken: 'at', refreshToken: 'rt' }),
   login: jest.fn().mockResolvedValue({ accessToken: 'at', refreshToken: 'rt' }),
   refresh: jest.fn().mockResolvedValue({ accessToken: 'at2', refreshToken: 'rt2' }),
   logout: jest.fn().mockResolvedValue(undefined),
@@ -27,17 +26,6 @@ const fakeUser = { id: 'u1', email: 'a@b.com', functionalRoles: [], permissions:
 const fakeReq  = { ip: '127.0.0.1', headers: { 'user-agent': 'jest' }, cookies: {} } as any;
 
 beforeEach(() => jest.clearAllMocks());
-
-describe('AuthController.register', () => {
-  it('delegates to authService.register and sets cookies', async () => {
-    const ctrl = makeController();
-    const res  = fakeRes();
-    const dto  = { email: 'a@b.com', password: 'pass123!', displayName: 'Test' } as any;
-    await ctrl.register(dto, res);
-    expect(mockAuthService.register).toHaveBeenCalledWith(dto);
-    expect(res.cookie).toHaveBeenCalledTimes(2);
-  });
-});
 
 describe('AuthController.login', () => {
   it('passes ip and user-agent to authService.login', async () => {

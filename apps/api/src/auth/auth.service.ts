@@ -1,7 +1,6 @@
 import {
   Injectable,
   UnauthorizedException,
-  ConflictException,
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
@@ -14,7 +13,7 @@ import { InjectDb } from '../database/inject-db.decorator';
 import type { Database } from '@haritailesi/database';
 import { users, userProfiles, userFunctionalRoles, refreshTokens, setupTokens, passwordResetTokens } from '@haritailesi/database';
 import type { JwtPayload, RequestUser, TokenPair } from './auth.types';
-import type { LoginDto, RegisterDto, SetupPasswordDto, ForgotPasswordDto, ResetPasswordDto, ChangePasswordDto } from './dto/auth.dto';
+import type { LoginDto, SetupPasswordDto, ForgotPasswordDto, ResetPasswordDto, ChangePasswordDto } from './dto/auth.dto';
 import { EmailService } from '../email/email.service';
 
 const BCRYPT_ROUNDS = 12;
@@ -27,40 +26,6 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly emailService: EmailService,
   ) {}
-
-  async register(dto: RegisterDto): Promise<TokenPair> {
-    const existing = await this.db.query.users.findFirst({
-      where: eq(users.email, dto.email.toLowerCase()),
-    });
-
-    if (existing) {
-      throw new ConflictException('Bu e-posta adresi zaten kayıtlı.');
-    }
-
-    const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
-
-    const [user] = await this.db
-      .insert(users)
-      .values({
-        email: dto.email.toLowerCase(),
-        passwordHash,
-      })
-      .returning({ id: users.id, email: users.email });
-
-    if (!user) throw new Error('User creation failed');
-
-    await this.db.insert(userProfiles).values({
-      userId: user.id,
-      displayName: dto.displayName,
-    });
-
-    return this.generateTokenPair({
-      id: user.id,
-      email: user.email,
-      membershipTier: 'registered_user',
-      functionalRoles: [],
-    });
-  }
 
   async login(dto: LoginDto, ipAddress?: string, userAgent?: string): Promise<TokenPair> {
     const user = await this.db.query.users.findFirst({

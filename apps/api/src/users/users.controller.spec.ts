@@ -12,6 +12,8 @@ const mockUsersService = {
   unfollow: jest.fn().mockResolvedValue({ ok: true }),
   getFollowers: jest.fn().mockResolvedValue([]),
   getFollowing: jest.fn().mockResolvedValue([]),
+  recordLevelAction: jest.fn().mockResolvedValue(['v-etkinlikler']),
+  syncLevelActions: jest.fn().mockResolvedValue(['v-etkinlikler', 'p-mentor']),
 };
 
 const mockStorageService = {
@@ -118,5 +120,73 @@ describe('UsersController.listMembers', () => {
     const ctrl = makeController();
     await ctrl.listMembers();
     expect(mockUsersService.listMembers).toHaveBeenCalledWith(undefined);
+  });
+});
+
+// ── recordAction ──────────────────────────────────────────────────────────────
+
+describe('UsersController.recordAction', () => {
+  it('calls recordLevelAction and returns completedActionIds', async () => {
+    const ctrl = makeController();
+    const result = await ctrl.recordAction(fakeUser, { actionId: 'v-etkinlikler' });
+
+    expect(mockUsersService.recordLevelAction).toHaveBeenCalledWith('u1', 'v-etkinlikler');
+    expect(result).toEqual({ completedActionIds: ['v-etkinlikler'] });
+  });
+
+  it('returns empty array when actionId is missing', async () => {
+    const ctrl = makeController();
+    const result = await ctrl.recordAction(fakeUser, { actionId: '' });
+
+    expect(mockUsersService.recordLevelAction).not.toHaveBeenCalled();
+    expect(result).toEqual({ completedActionIds: [] });
+  });
+
+  it('returns empty array when actionId is not a string', async () => {
+    const ctrl = makeController();
+    const result = await ctrl.recordAction(fakeUser, { actionId: 123 as any });
+
+    expect(mockUsersService.recordLevelAction).not.toHaveBeenCalled();
+    expect(result).toEqual({ completedActionIds: [] });
+  });
+});
+
+// ── syncActions ───────────────────────────────────────────────────────────────
+
+describe('UsersController.syncActions', () => {
+  it('calls syncLevelActions with filtered string ids', async () => {
+    const ctrl = makeController();
+    const result = await ctrl.syncActions(fakeUser, { actionIds: ['v-etkinlikler', 'p-mentor'] });
+
+    expect(mockUsersService.syncLevelActions).toHaveBeenCalledWith('u1', ['v-etkinlikler', 'p-mentor']);
+    expect(result).toEqual({ completedActionIds: ['v-etkinlikler', 'p-mentor'] });
+  });
+
+  it('passes empty array when actionIds is not an array', async () => {
+    const ctrl = makeController();
+    await ctrl.syncActions(fakeUser, { actionIds: 'not-an-array' as any });
+
+    expect(mockUsersService.syncLevelActions).toHaveBeenCalledWith('u1', []);
+  });
+
+  it('filters out non-string values from actionIds', async () => {
+    const ctrl = makeController();
+    await ctrl.syncActions(fakeUser, { actionIds: ['v-etkinlikler', 42, null, 'p-mentor'] as any });
+
+    expect(mockUsersService.syncLevelActions).toHaveBeenCalledWith('u1', ['v-etkinlikler', 'p-mentor']);
+  });
+
+  it('filters out invalid (not whitelisted) action IDs', async () => {
+    const ctrl = makeController();
+    await ctrl.syncActions(fakeUser, { actionIds: ['v-etkinlikler', 'x-fake', '__proto__', 'p-mentor'] });
+
+    expect(mockUsersService.syncLevelActions).toHaveBeenCalledWith('u1', ['v-etkinlikler', 'p-mentor']);
+  });
+
+  it('passes empty array when all IDs are invalid', async () => {
+    const ctrl = makeController();
+    await ctrl.syncActions(fakeUser, { actionIds: ['x-fake', 'y-bogus', ''] });
+
+    expect(mockUsersService.syncLevelActions).toHaveBeenCalledWith('u1', []);
   });
 });

@@ -16,7 +16,7 @@ export function EditableSection({ sectionKey, label, initialData, children, clas
   const { isAdmin } = useAdminMode();
   const [open, setOpen] = useState(false);
 
-  if (!isAdmin) return <>{children}</>;
+  if (!isAdmin) return className ? <div className={className}>{children}</div> : <>{children}</>;
 
   return (
     <>

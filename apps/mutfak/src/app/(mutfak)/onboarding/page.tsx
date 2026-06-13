@@ -8,6 +8,18 @@ import { useTracker } from '@/lib/tracking';
 
 const STEPS = ['Hedeflerim', 'Profilim', 'Uzmanlığım', 'Hazırım!'];
 
+const TURKEY_CITIES = [
+  'Adana','Adıyaman','Afyonkarahisar','Ağrı','Aksaray','Amasya','Ankara','Antalya','Ardahan','Artvin',
+  'Aydın','Balıkesir','Bartın','Batman','Bayburt','Bilecik','Bingöl','Bitlis','Bolu','Burdur',
+  'Bursa','Çanakkale','Çankırı','Çorum','Denizli','Diyarbakır','Düzce','Edirne','Elazığ','Erzincan',
+  'Erzurum','Eskişehir','Gaziantep','Giresun','Gümüşhane','Hakkari','Hatay','Iğdır','Isparta',
+  'İstanbul','İzmir','Kahramanmaraş','Karabük','Karaman','Kars','Kastamonu','Kayseri','Kırıkkale',
+  'Kırklareli','Kırşehir','Kilis','Kocaeli','Konya','Kütahya','Malatya','Manisa','Mardin',
+  'Mersin','Muğla','Muş','Nevşehir','Niğde','Ordu','Osmaniye','Rize','Sakarya','Samsun',
+  'Siirt','Sinop','Sivas','Şanlıurfa','Şırnak','Tekirdağ','Tokat','Trabzon','Tunceli','Uşak',
+  'Van','Yalova','Yozgat','Zonguldak',
+];
+
 const GOAL_OPTIONS = [
   {
     value: 'goal:etkinlik',
@@ -331,13 +343,14 @@ export default function OnboardingPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Şehir <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#26496b]/30 focus:border-[#26496b]"
-                    placeholder="Ankara"
-                  />
+                  >
+                    <option value="">Seçiniz…</option>
+                    {TURKEY_CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
                 </div>
                 {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
                 <div className="flex gap-3 pt-1">

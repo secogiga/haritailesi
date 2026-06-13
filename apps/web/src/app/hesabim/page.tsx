@@ -5,6 +5,36 @@ import { useRouter } from 'next/navigation';
 import type { Route } from 'next';
 import { useAuth } from '@/contexts/AuthContext';
 
+const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000';
+
+interface MyTicket {
+  id: string;
+  ticketNo: number;
+  subject: string;
+  type: string;
+  status: string;
+  urgency: string | null;
+  subCategory: string | null;
+  satisfactionScore: number | null;
+  adminReply: string | null;
+  createdAt: string;
+  resolvedAt: string | null;
+}
+
+const TICKET_STATUS_LABELS: Record<string, string> = {
+  open: 'Yeni', reviewing: 'İncelemede', awaiting_info: 'Bilgi Bekleniyor',
+  in_progress: 'İşlemde', mentoring: 'Mentör', expert_review: 'Uzman',
+  partner_referred: 'Partner', offer_pending: 'Teklif', education_suggested: 'Eğitim Önerildi',
+  gpt_responded: 'Ön Yanıt', suggested: 'Öneri', resolved: 'Çözüldü', archived: 'Arşiv',
+};
+
+const TICKET_STATUS_BADGE: Record<string, string> = {
+  open: 'bg-red-50 text-red-600 border-red-200', reviewing: 'bg-blue-50 text-blue-600 border-blue-200',
+  awaiting_info: 'bg-orange-50 text-orange-700 border-orange-200', in_progress: 'bg-amber-50 text-amber-700 border-amber-200',
+  mentoring: 'bg-purple-50 text-purple-700 border-purple-200', resolved: 'bg-green-50 text-green-700 border-green-200',
+  archived: 'bg-gray-50 text-gray-500 border-gray-200',
+};
+
 const TIER_LABELS: Record<string, string> = {
   visitor: 'Ziyaretçi',
   registered_user: 'Sahne Üyesi',
@@ -28,6 +58,8 @@ export default function HesabimPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tickets, setTickets] = useState<MyTicket[]>([]);
+  const [ticketsLoading, setTicketsLoading] = useState(false);
 
   const [form, setForm] = useState({
     displayName: '',
@@ -53,6 +85,20 @@ export default function HesabimPage() {
         linkedinUrl: user.profile.linkedinUrl ?? '',
       });
     }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const token = typeof window !== 'undefined' ? localStorage.getItem('ha_access_token') : null;
+    if (!token) return;
+    setTicketsLoading(true);
+    fetch(`${API_URL}/api/v1/community/my-tickets`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() as Promise<MyTicket[]> : Promise.resolve([]))
+      .then(setTickets)
+      .catch(() => {})
+      .finally(() => setTicketsLoading(false));
   }, [user]);
 
   if (isLoading) {
@@ -276,6 +322,70 @@ export default function HesabimPage() {
               </div>
             )}
           </dl>
+        </div>
+
+        {/* Taleplerim */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold text-[#26496b]">Destek Taleplerim</h2>
+            <a href="/destek" className="text-xs font-semibold text-[#26496b] border border-[#26496b] rounded-lg px-3 py-1.5 hover:bg-[#26496b]/5 transition-colors">
+              + Yeni Talep
+            </a>
+          </div>
+
+          {ticketsLoading && (
+            <div className="space-y-2">
+              {[1, 2, 3].map(i => <div key={i} className="h-16 bg-gray-50 rounded-xl animate-pulse" />)}
+            </div>
+          )}
+
+          {!ticketsLoading && tickets.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-2xl mb-2">📋</p>
+              <p className="text-sm text-gray-400">Henüz destek talebiniz bulunmuyor.</p>
+              <a href="/destek" className="mt-3 inline-block text-xs font-semibold text-[#26496b] hover:underline">
+                İlk talebinizi oluşturun →
+              </a>
+            </div>
+          )}
+
+          {!ticketsLoading && tickets.length > 0 && (
+            <div className="space-y-2">
+              {tickets.map(ticket => {
+                const year = new Date(ticket.createdAt).getFullYear();
+                const no = `HDM-${year}-${String(ticket.ticketNo).padStart(4, '0')}`;
+                const badgeClass = TICKET_STATUS_BADGE[ticket.status] ?? 'bg-gray-50 text-gray-500 border-gray-200';
+                return (
+                  <a
+                    key={ticket.id}
+                    href={`/destek/takip?no=${ticket.ticketNo}`}
+                    className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-gray-100 hover:border-[#26496b]/20 hover:bg-[#26496b]/2 transition-all group"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] font-mono text-gray-400">{no}</span>
+                        {ticket.satisfactionScore && (
+                          <span className="text-[10px] text-yellow-500">{'★'.repeat(ticket.satisfactionScore)}</span>
+                        )}
+                      </div>
+                      <p className="text-sm font-medium text-gray-800 truncate">{ticket.subject}</p>
+                      {ticket.subCategory && (
+                        <p className="text-xs text-gray-400">{ticket.subCategory}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className={`text-[10px] font-semibold px-2 py-1 rounded-full border ${badgeClass}`}>
+                        {TICKET_STATUS_LABELS[ticket.status] ?? ticket.status}
+                      </span>
+                      <svg className="w-4 h-4 text-gray-300 group-hover:text-[#26496b] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </main>

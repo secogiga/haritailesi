@@ -1,5 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { RequirePermission } from '../rbac/rbac.decorator';
+import { calculateLevel } from '../users/level.utils';
 import { InjectDb } from '../database/inject-db.decorator';
 import type { Database } from '@haritailesi/database';
 import {
@@ -27,6 +28,7 @@ import {
   communityQuestions,
   communityAnswers,
   userEvents,
+  userLevelActions,
 } from '@haritailesi/database';
 import { eq, isNull, isNotNull, and, ne, sql, count, gte, gt, lte, sum } from 'drizzle-orm';
 
@@ -1185,11 +1187,11 @@ export class AdminDashboardController {
         id: 'aha_retention',
         type: 'retention_correlation',
         severity: ahaMultiplier >= 2 ? 'critical' : 'warning',
-        title: `Aha anı yaşayanların tutunması ${ahaMultiplier}× daha yüksek`,
-        body: `Aha anı yaşayan kullanıcıların %${ahaRetRate}'i 30 gün sonra hâlâ aktif. Yaşamayanlar için bu oran %${nonAhaRetRate}.`,
+        title: `Farkındalık Anı yaşayanların tutunması ${ahaMultiplier}× daha yüksek`,
+        body: `Farkındalık Anı yaşayan kullanıcıların %${ahaRetRate}'i 30 gün sonra hâlâ aktif. Yaşamayanlar için bu oran %${nonAhaRetRate}.`,
         metric: ahaMultiplier,
         unit: '×',
-        recommendation: 'Profil tamamlama adımından sonra doğrudan etkinlik veya mentor öner. Aha anısına giden yolu kısalt.',
+        recommendation: 'Profil tamamlama adımından sonra doğrudan etkinlik veya mentor öner. Farkındalık Anına giden yolu kısalt.',
       });
     }
 
@@ -1205,7 +1207,7 @@ export class AdminDashboardController {
           type: 'segment_comparison',
           severity: gap >= 30 ? 'critical' : 'warning',
           title: `${best.segment} - ${worst.segment} arasında ${gap} puan fark`,
-          body: `${best.segment} üyelerinin %${best.ahaPct}'i aha anı yaşıyor. ${worst.segment} üyelerinde bu oran yalnızca %${worst.ahaPct}.`,
+          body: `${best.segment} üyelerinin %${best.ahaPct}'i farkındalık anı yaşıyor. ${worst.segment} üyelerinde bu oran yalnızca %${worst.ahaPct}.`,
           metric: gap,
           unit: '%',
           recommendation: `${worst.segment} segmentine özel onboarding içeriği hazırla. Başlangıç adımlarını segmente göre kişiselleştir.`,
@@ -1227,7 +1229,7 @@ export class AdminDashboardController {
           id: 'top_aha_action',
           type: 'aha_impact',
           severity: 'info',
-          title: `En güçlü aha anısı: ${topAction.action} (%${topAction.ret} retention)`,
+          title: `En güçlü farkındalık anı: ${topAction.action} (%${topAction.ret} retention)`,
           body: `Bu eylemi gerçekleştiren ${topAction.count} kullanıcının %${topAction.ret}'i 30 günde aktif kalıyor.`,
           metric: topAction.ret,
           unit: '%',
@@ -1440,8 +1442,8 @@ export class AdminDashboardController {
     if (ahaReachedPct < 30) {
       productInsights.push({
         id: 'low_aha_rate', type: 'warning',
-        title: `Kullanıcıların yalnizca %${ahaReachedPct}'i aha anina ulasti`,
-        body:  'Aha esigine ulasan kullanicilarin tutunma orani 2x+ daha yüksek. Onboarding akisini kisaltarak ilk etkinlik veya mentor onerisi öne alin.',
+        title: `Kullanıcıların yalnizca %${ahaReachedPct}'i farkındalık anına ulaştı`,
+        body:  'Farkındalık anına ulaşan kullanıcıların tutunma oranı 2x+ daha yüksek. Onboarding akışını kısaltarak ilk etkinlik veya mentor önerisi öne alın.',
       });
     }
 
@@ -1481,6 +1483,164 @@ export class AdminDashboardController {
       },
       trends,
       productInsights,
+    };
+  }
+
+  // ── Sen Ne Dersin? İstatistikleri ────────────────────────────────────────────
+
+  @Get('sen-ne-dersin-stats')
+  @RequirePermission('admin.dashboard.read')
+  async getSenNeDersinStats() {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const [
+      countByType,
+      countByStatus,
+      totalResponses,
+      responsesThisMonth,
+      topContent,
+      testPassStats,
+    ] = await Promise.all([
+      this.db
+        .select({ type: surveys.type, count: count() })
+        .from(surveys)
+        .groupBy(surveys.type),
+
+      this.db
+        .select({ status: surveys.status, count: count() })
+        .from(surveys)
+        .groupBy(surveys.status),
+
+      this.db.select({ count: count() }).from(surveyResponses),
+
+      this.db
+        .select({ count: count() })
+        .from(surveyResponses)
+        .where(gte(surveyResponses.createdAt, startOfMonth)),
+
+      this.db
+        .select({
+          id: surveys.id,
+          title: surveys.title,
+          type: surveys.type,
+          slug: surveys.slug,
+          responseCount: surveys.responseCount,
+          viewCount: surveys.viewCount,
+        })
+        .from(surveys)
+        .where(ne(surveys.status, 'draft'))
+        .orderBy(sql`${surveys.responseCount} DESC`)
+        .limit(5),
+
+      this.db.execute<{ total: number; passed: number }>(sql`
+        SELECT
+          COUNT(*)::int AS total,
+          COUNT(*) FILTER (
+            WHERE sr.score IS NOT NULL
+              AND sr.max_score IS NOT NULL
+              AND sr.max_score > 0
+              AND s.passing_score IS NOT NULL
+              AND ROUND(sr.score * 100.0 / sr.max_score) >= s.passing_score
+          )::int AS passed
+        FROM survey_responses sr
+        JOIN surveys s ON s.id = sr.survey_id
+        WHERE s.type = 'test'
+      `),
+    ]);
+
+    const dailyRows = await this.db.execute<{ day: string; count: number }>(sql`
+      SELECT
+        TO_CHAR(created_at, 'YYYY-MM-DD') AS day,
+        COUNT(*)::int AS count
+      FROM survey_responses
+      WHERE created_at >= ${thirtyDaysAgo}
+      GROUP BY day
+      ORDER BY day
+    `);
+
+    const byType = Object.fromEntries(countByType.map((r) => [r.type, Number(r.count)]));
+    const byStatus = Object.fromEntries(countByStatus.map((r) => [r.status, Number(r.count)]));
+    const passStats = testPassStats[0];
+    const testPassRate =
+      passStats && Number(passStats.total) > 0
+        ? Math.round((Number(passStats.passed) / Number(passStats.total)) * 100)
+        : null;
+
+    return {
+      summary: {
+        totalSurveys: byType['anket'] ?? 0,
+        totalTests: byType['test'] ?? 0,
+        totalResponses: Number(totalResponses[0]?.count ?? 0),
+        responsesThisMonth: Number(responsesThisMonth[0]?.count ?? 0),
+        testPassRate,
+        testAttempts: passStats ? Number(passStats.total) : 0,
+      },
+      byType,
+      byStatus,
+      topContent: topContent.map((r) => ({
+        id: r.id,
+        title: r.title,
+        type: r.type,
+        slug: r.slug,
+        responseCount: r.responseCount,
+        viewCount: r.viewCount,
+      })),
+      dailyResponses: dailyRows.map((r) => ({ day: String(r.day), count: Number(r.count) })),
+    };
+  }
+
+  // ── Kademe Dağılımı ──────────────────────────────────────────────────────────
+
+  @Get('level-stats')
+  @RequirePermission('admin.dashboard.read')
+  async getLevelStats() {
+    const actionRows = await this.db.execute<{ user_id: string; action_id: string }>(sql`
+      SELECT user_id, action_id FROM user_level_actions
+    `);
+
+    const byUser = new Map<string, string[]>();
+    for (const row of actionRows) {
+      const list = byUser.get(row.user_id) ?? [];
+      list.push(row.action_id);
+      byUser.set(row.user_id, list);
+    }
+
+    const dist = { izleyici: 0, katilimci: 0, katki_sunan: 0, etki_yaratan: 0 };
+    const actionPopularity = new Map<string, number>();
+
+    for (const [, ids] of byUser) {
+      for (const id of ids) {
+        actionPopularity.set(id, (actionPopularity.get(id) ?? 0) + 1);
+      }
+      dist[calculateLevel(ids)]++;
+    }
+
+    const totalTracked = byUser.size;
+
+    const topActions = [...actionPopularity.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([actionId, cnt]) => ({ actionId, count: cnt }));
+
+    const [totalRow] = await this.db
+      .select({ count: count() })
+      .from(users)
+      .where(and(isNull(users.deletedAt), ne(users.status, 'deleted')));
+    const totalUsers = Number(totalRow?.count ?? 0);
+    const untrackedCount = Math.max(0, totalUsers - totalTracked);
+
+    return {
+      distribution: {
+        izleyici:     dist.izleyici + untrackedCount,
+        katilimci:    dist.katilimci,
+        katki_sunan:  dist.katki_sunan,
+        etki_yaratan: dist.etki_yaratan,
+        total:        totalUsers,
+      },
+      topActions,
+      trackedUsers: totalTracked,
     };
   }
 }

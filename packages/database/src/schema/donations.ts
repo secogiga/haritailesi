@@ -7,6 +7,7 @@ import {
   paymentAccountEnum,
 } from './enums';
 import { users } from './users';
+import { applications } from './applications';
 
 // ─── Donations ────────────────────────────────────────────────────────────────
 
@@ -15,6 +16,8 @@ export const donations = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+    // Başvuruya bağlı üyelik ödemeleri için FK — duplicate donation'ı önler
+    applicationId: uuid('application_id').references(() => applications.id, { onDelete: 'set null' }),
     email: text('email').notNull(),
     fullName: text('full_name').notNull(),
     // Kuruş cinsinden (TL için: 1 TL = 100 kuruş)
@@ -51,4 +54,5 @@ export const donations = pgTable(
 
 export const donationsRelations = relations(donations, ({ one }) => ({
   user: one(users, { fields: [donations.userId], references: [users.id] }),
+  application: one(applications, { fields: [donations.applicationId], references: [applications.id] }),
 }));

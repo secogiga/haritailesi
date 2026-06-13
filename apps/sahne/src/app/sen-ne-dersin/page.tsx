@@ -6,7 +6,7 @@ const SenNeDersinHub = dynamic(() => import('./_hub'), { ssr: true });
 
 export const metadata: Metadata = {
   title: 'Sen Ne Dersin? — Haritailesi',
-  description: 'Anketlere katıl, testlerle kendini değerlendir, yarışmalarda yer al ve topluluğun sesine katkı sun.',
+  description: 'Anketlere katıl, testlerle kendini değerlendir, yarışmalarda yer al ve mesleğin geleceğine yön ver.',
 };
 
 const VALID_FILTERS = FILTER_ITEMS.map(f => f.key);

@@ -15,8 +15,9 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
+
   {
-    href: '/etkinlikler',
+    href: '/site-etkinlikler',
     label: 'Etkinlikler',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

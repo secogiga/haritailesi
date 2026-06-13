@@ -247,7 +247,7 @@ export default function OnboardingIstatistikleri({
           {...(funnel.approved ? { sub: `%${Math.round(funnel.activated / funnel.approved * 100)} dönüşüm` } : {})} />
         <StatCard label="Profil Tam" value={funnel.profileComplete} accent="bg-violet-50 text-violet-700"
           {...(funnel.activated ? { sub: `%${Math.round(funnel.profileComplete / funnel.activated * 100)} dönüşüm` } : {})} />
-        <StatCard label="Aha Anı" value={funnel.ahaMoment} accent="bg-amber-50 text-amber-700"
+        <StatCard label="Farkındalık Anı" value={funnel.ahaMoment} accent="bg-amber-50 text-amber-700"
           {...(funnel.profileComplete ? { sub: `%${Math.round(funnel.ahaMoment / funnel.profileComplete * 100)} dönüşüm` } : {})} />
       </div>
 
@@ -269,7 +269,7 @@ export default function OnboardingIstatistikleri({
               { label: 'Onaylanan',     value: funnel.approved,       color: 'bg-blue-400' },
               { label: 'Aktive Eden',   value: funnel.activated,      color: 'bg-indigo-500' },
               { label: 'Profil Tamamlayan', value: funnel.profileComplete, color: 'bg-violet-500' },
-              { label: 'Aha Anı Yaşayan', value: funnel.ahaMoment,   color: 'bg-amber-500' },
+              { label: 'Farkındalık Anı Yaşayan', value: funnel.ahaMoment,   color: 'bg-amber-500' },
             ].map((step, i, arr) => (
               <FunnelStep
                 key={step.label}
@@ -285,9 +285,9 @@ export default function OnboardingIstatistikleri({
           </div>
         </Card>
 
-        {/* ── Aha Anı Dağılımı ── */}
+        {/* ── Farkındalık Anı Dağılımı ── */}
         <Card
-          title="Aha Anı Dağılımı"
+          title="Farkındalık Anı Dağılımı"
           icon={
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -353,7 +353,7 @@ export default function OnboardingIstatistikleri({
 
           {/* Avg days to aha */}
           <div className="mt-5 pt-4 border-t border-gray-50 flex items-center justify-between">
-            <span className="text-xs text-gray-500">Ort. Aha Anı Süresi</span>
+            <span className="text-xs text-gray-500">Ort. Farkındalık Anı Süresi</span>
             <span className="text-sm font-bold text-amber-600">
               {avgDaysToAha > 0 ? `${avgDaysToAha} gün` : '— gün'}
             </span>
@@ -386,7 +386,7 @@ export default function OnboardingIstatistikleri({
               severity={dropoffSeverity(dropoffByStep.afterActivation, funnel.activated)}
             />
             <DropoffRow
-              label="Profili tam ama aha yaşamadı"
+              label="Profili tam ama öne çıkmadı"
               value={dropoffByStep.afterProfile}
               severity={dropoffSeverity(dropoffByStep.afterProfile, funnel.profileComplete)}
             />
@@ -395,7 +395,7 @@ export default function OnboardingIstatistikleri({
           {/* Conversion context */}
           <div className="mt-5 pt-4 border-t border-gray-50">
             <div className="text-[11px] text-gray-400 leading-relaxed">
-              <strong className="text-gray-600">Başvuru → Aha Anı</strong> dönüşümü:{' '}
+              <strong className="text-gray-600">Başvuru → Farkındalık Anı</strong> dönüşümü:{' '}
               <strong className="text-[#26496b]">
                 {funnel.applied > 0
                   ? `%${Math.round(funnel.ahaMoment / funnel.applied * 100)}`

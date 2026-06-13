@@ -2,7 +2,8 @@
 
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { FloatingMessenger } from '../../components/FloatingMessenger';
 
 type NavItem = { href: string; label: string; icon: React.ReactNode; section?: string };
 
@@ -21,12 +22,23 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     href: '/uyeler',
-    label: 'Üyeler',
+    label: 'Üye Paneli',
     section: 'Üyelik CRM',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
           d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
+    ),
+  },
+  {
+    href: '/takvim',
+    label: 'Görüşme Takvimi',
+    section: 'Üyelik CRM',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
       </svg>
     ),
   },
@@ -38,6 +50,17 @@ const NAV_ITEMS: NavItem[] = [
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
           d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+      </svg>
+    ),
+  },
+  {
+    href: '/odemeler',
+    label: 'Ödemeler',
+    section: 'Üyelik CRM',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
       </svg>
     ),
   },
@@ -88,12 +111,34 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     href: '/gorusler',
-    label: 'Görüşler',
+    label: 'Pusula',
     section: 'Platform',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
           d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+      </svg>
+    ),
+  },
+  {
+    href: '/raporlar',
+    label: 'Raporlar',
+    section: 'Platform',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      </svg>
+    ),
+  },
+  {
+    href: '/mesajlar',
+    label: 'Mesajlaşma',
+    section: 'Platform',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
       </svg>
     ),
   },
@@ -142,6 +187,17 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
+    href: '/kayit-masasi',
+    label: 'Kayıt Masası',
+    section: 'Sahne',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+      </svg>
+    ),
+  },
+  {
     href: '/yetenekler',
     label: 'Yetenekler',
     section: 'Sahne',
@@ -186,9 +242,32 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
+    href: '/kutuphane',
+    label: 'Meslek Kütüphanesi',
+    section: 'Sahne',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+      </svg>
+    ),
+  },
+  {
+    href: '/kutuphane-oneriler',
+    label: 'Kütüphane Önerileri',
+    section: 'Sahne',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+      </svg>
+    ),
+  },
+  // ── Sen Ne Dersin? ────────────────────────────────────────────────────────────
+  {
     href: '/yarismalar',
     label: 'Yarışmalar',
-    section: 'Sahne',
+    section: 'Sen Ne Dersin?',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -199,11 +278,22 @@ const NAV_ITEMS: NavItem[] = [
   {
     href: '/anketler',
     label: 'Anketler',
-    section: 'Sahne',
+    section: 'Sen Ne Dersin?',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
           d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+    ),
+  },
+  {
+    href: '/testler',
+    label: 'Testler',
+    section: 'Sen Ne Dersin?',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
       </svg>
     ),
   },
@@ -240,12 +330,36 @@ const NAV_ITEMS: NavItem[] = [
       </svg>
     ),
   },
+  {
+    href: '/bulten',
+    label: 'Aylık Bülten',
+    section: 'Market',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+    ),
+  },
 ];
 
-const SITE_ADMIN_URL = process.env['NEXT_PUBLIC_ADMIN_URL'] ?? 'http://localhost:3004';
+const SITE_ADMIN_URL = '/ana-sayfa';
 
 // Static — derived once from the constant NAV_ITEMS array
 const NAV_SECTIONS = Array.from(new Set(NAV_ITEMS.map((i) => i.section ?? '')));
+
+function isItemActive(itemHref: string, pathname: string, searchParams: ReturnType<typeof useSearchParams>): boolean {
+  const parts = itemHref.split('?');
+  const basePath = parts[0] ?? itemHref;
+  const queryStr = parts[1];
+  if (!pathname.startsWith(basePath)) return false;
+  if (!queryStr) return true;
+  const itemSearch = new URLSearchParams(queryStr);
+  for (const [k, v] of itemSearch) {
+    if (searchParams.get(k) !== v) return false;
+  }
+  return true;
+}
 
 const SidebarContent = memo(function SidebarContent({
   pathname,
@@ -256,10 +370,11 @@ const SidebarContent = memo(function SidebarContent({
   onLogout: () => void;
   onClose?: () => void;
 }) {
+  const searchParams = useSearchParams();
   const sections = NAV_SECTIONS;
 
   // Auto-open the section containing the active route; open all by default
-  const activeSection = NAV_ITEMS.find((i) => pathname.startsWith(i.href))?.section ?? '';
+  const activeSection = NAV_ITEMS.find((i) => isItemActive(i.href, pathname, searchParams))?.section ?? '';
   const [openSections, setOpenSections] = useState<Set<string>>(
     () => new Set(sections),
   );
@@ -291,7 +406,7 @@ const SidebarContent = memo(function SidebarContent({
         {sections.map((section) => {
           const items = NAV_ITEMS.filter((i) => (i.section ?? '') === section);
           const isOpen = openSections.has(section);
-          const hasActive = items.some((i) => pathname.startsWith(i.href));
+          const hasActive = items.some((i) => isItemActive(i.href, pathname, searchParams));
 
           return (
             <div key={section} className="mb-1">
@@ -315,7 +430,7 @@ const SidebarContent = memo(function SidebarContent({
               {isOpen && (
                 <div className="space-y-0.5 mb-2">
                   {items.map((item) => {
-                    const active = pathname.startsWith(item.href);
+                    const active = isItemActive(item.href, pathname, searchParams);
                     return (
                       <Link
                         key={item.href}
@@ -342,15 +457,13 @@ const SidebarContent = memo(function SidebarContent({
       <div className="px-3 py-4 border-t border-white/10 space-y-1">
         <a
           href={SITE_ADMIN_URL}
-          target="_blank"
-          rel="noopener noreferrer"
           className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-white/50 hover:bg-white/10 hover:text-white/80 transition-colors"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
           </svg>
-          Vakıf Site Admin ↗
+          Vakıf Site Admin
         </a>
         <button
           onClick={onLogout}
@@ -435,6 +548,8 @@ export default function PanelLayout({ children }: { children: React.ReactNode })
           </div>
         </main>
       </div>
+
+      <FloatingMessenger />
     </div>
   );
 }

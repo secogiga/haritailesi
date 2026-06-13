@@ -5,7 +5,7 @@ import { Throttle } from '@nestjs/throttler';
 import type { Request, Response, CookieOptions } from 'express';
 import { AuthService } from './auth.service';
 import {
-  LoginDto, RegisterDto, RefreshTokenDto, SetupPasswordDto,
+  LoginDto, RefreshTokenDto, SetupPasswordDto,
   ForgotPasswordDto, ResetPasswordDto, ChangePasswordDto,
 } from './dto/auth.dto';
 import { Public } from './decorators/public.decorator';
@@ -54,18 +54,6 @@ export class AuthController {
   }
 
   // ─── Endpoints ────────────────────────────────────────────────────────────
-
-  @Public()
-  @Throttle({ short: { ttl: 60_000, limit: 5 } })
-  @Post('register')
-  async register(
-    @Body() dto: RegisterDto,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const tokens = await this.authService.register(dto);
-    this.setCookies(res, tokens);
-    return tokens;
-  }
 
   @Public()
   @Throttle({ short: { ttl: 60_000, limit: 10 }, medium: { ttl: 600_000, limit: 30 } })

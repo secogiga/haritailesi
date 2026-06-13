@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HaritailesiGPT — Sistem Mimarisi & Dokümantasyon</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #1e293b;
+    background: #fff;
+  }
+
+  /* ── Print ── */
+  @media print {
+    .no-print { display: none; }
+    .page-break { page-break-before: always; }
+    body { font-size: 12px; }
+    .cover { min-height: 100vh; }
+  }
+
+  /* ── Cover ── */
+  .cover {
+    min-height: 100vh;
+    background: linear-gradient(160deg, #0f2740 0%, #1a3d5c 50%, #26496b 100%);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 80px 72px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: '';
+    position: absolute;
+    top: -120px; right: -120px;
+    width: 500px; height: 500px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+  }
+  .cover::after {
+    content: '';
+    position: absolute;
+    bottom: -80px; left: -80px;
+    width: 350px; height: 350px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.03);
+  }
+  .cover-tag {
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 100px;
+    padding: 6px 16px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+    width: fit-content;
+  }
+  .cover h1 {
+    font-size: 52px;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 8px;
+    letter-spacing: -1px;
+  }
+  .cover h1 span { color: #7dd3fc; }
+  .cover-sub {
+    font-size: 20px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.65);
+    margin-bottom: 48px;
+  }
+  .cover-meta {
+    display: flex;
+    gap: 48px;
+    margin-top: 64px;
+    padding-top: 32px;
+    border-top: 1px solid rgba(255,255,255,0.15);
+  }
+  .cover-meta-item label {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: 4px;
+  }
+  .cover-meta-item span {
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.9);
+  }
+
+  /* ── Layout ── */
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 64px 72px;
+  }
+
+  /* ── Section headers ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+    margin-top: 56px;
+  }
+  .section-num {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: #0f2740;
+    color: #7dd3fc;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .section-header h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #0f2740;
+    letter-spacing: -0.3px;
+  }
+  .section-header:first-child { margin-top: 0; }
+
+  h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 28px 0 12px;
+  }
+
+  h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    margin: 20px 0 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 11px;
+  }
+
+  p { margin-bottom: 12px; color: #334155; }
+
+  /* ── Cards ── */
+  .card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f2740;
+    margin-bottom: 6px;
+  }
+  .card p { margin-bottom: 0; font-size: 12px; }
+
+  /* ── Tables ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0 24px;
+    font-size: 12px;
+  }
+  th {
+    background: #0f2740;
+    color: #fff;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+  }
+  th:first-child { border-radius: 8px 0 0 0; }
+  th:last-child { border-radius: 0 8px 0 0; }
+  td {
+    padding: 9px 14px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: #f8fafc; }
+
+  /* ── Code / Architecture boxes ── */
+  .arch-box {
+    background: #0f2740;
+    color: #e2e8f0;
+    border-radius: 12px;
+    padding: 24px 28px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    margin: 20px 0;
+    overflow-x: auto;
+  }
+  .arch-box .comment { color: #7dd3fc; }
+  .arch-box .arrow { color: #34d399; }
+  .arch-box .label { color: #fbbf24; font-weight: 600; }
+  .arch-box .dim { color: #64748b; }
+
+  /* ── Badges ── */
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+    margin: 2px;
+  }
+  .badge-blue { background: #dbeafe; color: #1e40af; }
+  .badge-green { background: #dcfce7; color: #166534; }
+  .badge-amber { background: #fef3c7; color: #92400e; }
+  .badge-purple { background: #f3e8ff; color: #6b21a8; }
+  .badge-red { background: #fee2e2; color: #991b1b; }
+  .badge-gray { background: #f1f5f9; color: #475569; }
+
+  /* ── Flow diagram ── */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 16px 0;
+  }
+  .flow-step {
+    background: #fff;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #334155;
+    text-align: center;
+    min-width: 100px;
+  }
+  .flow-step.active {
+    border-color: #26496b;
+    background: #eff6ff;
+    color: #0f2740;
+  }
+  .flow-arrow {
+    color: #94a3b8;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  /* ── Phase timeline ── */
+  .phase {
+    border-left: 3px solid #e2e8f0;
+    padding-left: 20px;
+    margin: 20px 0;
+    position: relative;
+  }
+  .phase::before {
+    content: '';
+    position: absolute;
+    left: -7px; top: 4px;
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: #26496b;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #26496b;
+  }
+  .phase-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #26496b;
+    margin-bottom: 4px;
+  }
+  .phase h3 { margin-top: 0; }
+
+  /* ── Grid ── */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 16px 0;
+  }
+
+  /* ── Divider ── */
+  hr {
+    border: none;
+    border-top: 1px solid #e2e8f0;
+    margin: 40px 0;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    padding: 24px 72px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 64px;
+  }
+  .footer strong { color: #64748b; }
+
+  /* ── Highlight box ── */
+  .highlight {
+    background: linear-gradient(135deg, #eff6ff, #f0fdf4);
+    border: 1px solid #bfdbfe;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 20px 0;
+  }
+  .highlight p { color: #1e3a5f; margin-bottom: 0; }
+
+  .warn {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    font-size: 12px;
+    color: #78350f;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════
+     KAPAK
+════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-tag">Stratejik Teknik Doküman</div>
+  <h1>Haritailesi<span>GPT</span></h1>
+  <div class="cover-sub">AI Native Mesleki Ekosistem — Sistem Mimarisi &amp; Dokümantasyon</div>
+
+  <p style="color:rgba(255,255,255,0.6); max-width:560px; font-size:14px; line-height:1.8;">
+    Bu doküman; Sahne/Mutfak uygulamalarındaki <strong style="color:#7dd3fc">Çözüm Arıyorum</strong> modülü ile
+    <strong style="color:#7dd3fc">HaritailesiGPT</strong> mobil uygulamasının sistem mimarisini,
+    entegrasyon noktalarını ve geliştirme yol haritasını kapsar.
+  </p>
+
+  <div class="cover-meta">
+    <div class="cover-meta-item">
+      <label>Proje</label>
+      <span>Haritailesi Vakfı</span>
+    </div>
+    <div class="cover-meta-item">
+      <label>Kapsam</label>
+      <span>AI Core + Çözüm Arıyorum + Mobil</span>
+    </div>
+    <div class="cover-meta-item">
+      <label>Versiyon</label>
+      <span>Vision Draft v1.0</span>
+    </div>
+    <div class="cover-meta-item">
+      <label>Tarih</label>
+      <span>Haziran 2026</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SAYFA 1 — BAĞLAM & MEVCUT DURUM
+════════════════════════════════════════════════ -->
+<div class="container page-break">
+
+  <div class="section-header">
+    <div class="section-num">01</div>
+    <h2>Bağlam: Ekosistem İçindeki Konum</h2>
+  </div>
+
+  <p>
+    HaritailesiGPT; Haritailesi Vakfı'nın dijital ekosisteminin AI katmanını oluşturur.
+    Mevcut uygulamalar içerik ve topluluk katmanını sağlarken, HaritailesiGPT tüm bu verinin
+    üzerinde çalışan zekayı temsil eder.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Katman</th>
+        <th>Uygulama</th>
+        <th>Görev</th>
+        <th>Durum</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Vizyon &amp; Topluluk</strong></td>
+        <td>Haritailesi Vakfı</td>
+        <td>Kurumsal kimlik, başvurular</td>
+        <td><span class="badge badge-green">Aktif</span></td>
+      </tr>
+      <tr>
+        <td><strong>Üretim &amp; Etkileşim</strong></td>
+        <td>Sahne (3002)</td>
+        <td>Etkinlik, eğitim, yarışma vitrin</td>
+        <td><span class="badge badge-amber">Geliştiriliyor</span></td>
+      </tr>
+      <tr>
+        <td><strong>Yönetim &amp; Organizasyon</strong></td>
+        <td>Mutfak (3003)</td>
+        <td>Kapalı topluluk feed</td>
+        <td><span class="badge badge-amber">Geliştiriliyor</span></td>
+      </tr>
+      <tr>
+        <td><strong>Operasyon</strong></td>
+        <td>Admin (3004)</td>
+        <td>Üye, bülten, istatistik yönetimi</td>
+        <td><span class="badge badge-green">Aktif</span></td>
+      </tr>
+      <tr>
+        <td><strong>Backend</strong></td>
+        <td>API (3000)</td>
+        <td>NestJS REST API</td>
+        <td><span class="badge badge-green">Aktif</span></td>
+      </tr>
+      <tr>
+        <td><strong>AI &amp; Destek</strong></td>
+        <td>HaritailesiGPT</td>
+        <td>AI danışmanlık, destek, intelligence</td>
+        <td><span class="badge badge-purple">Planlama</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="section-header">
+    <div class="section-num">02</div>
+    <h2>Çözüm Arıyorum Modülü</h2>
+  </div>
+
+  <p>
+    Sahne ve Mutfak uygulamalarında yer alan <strong>Çözüm Arıyorum</strong> modülü,
+    HaritailesiGPT'nin web tarafındaki ilk temas noktasıdır. Kullanıcı web uygulamasından
+    soru sorar; aynı AI Core Engine yanıt verir.
+  </p>
+
+  <h3>Kullanıcı Akışı</h3>
+
+  <div class="flow">
+    <div class="flow-step active">Kullanıcı soru yazar</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step active">Sahne / Mutfak widget</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step active">POST /api/ai/chat</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step active">Claude API + Tools</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">Yanıt</div>
+  </div>
+
+  <div class="flow" style="margin-top:8px">
+    <div class="flow-step" style="opacity:0.3; min-width:100px"></div>
+    <div class="flow-arrow" style="opacity:0">→</div>
+    <div class="flow-step" style="opacity:0.3; min-width:180px"></div>
+    <div class="flow-arrow" style="opacity:0">→</div>
+    <div class="flow-step" style="opacity:0.3; min-width:140px"></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">AI çözemezse</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step active">Otomatik ticket (görüşler)</div>
+  </div>
+
+  <h3>API Endpoint Tasarımı</h3>
+  <div class="arch-box">
+<span class="comment">// apps/api/src/ai/ai.controller.ts</span>
+
+<span class="label">POST</span>  /api/v1/ai/chat
+  Body: &#123; message: string, conversationId?: string &#125;
+  Auth: JWT (zorunlu)
+  <span class="arrow">→</span> AiService.chat(userId, message, conversationId)
+  <span class="arrow">→</span> Claude API (tool_use destekli)
+  <span class="arrow">→</span> &#123; reply: string, conversationId: string, escalated?: boolean &#125;
+
+<span class="label">GET</span>   /api/v1/ai/conversations
+  <span class="arrow">→</span> Kullanıcının geçmiş konuşmaları
+
+<span class="label">GET</span>   /api/v1/ai/conversations/:id/messages
+  <span class="arrow">→</span> Konuşma mesajları
+  </div>
+
+  <h3>Veritabanı Şeması</h3>
+  <div class="arch-box">
+<span class="comment">-- ai_conversations tablosu</span>
+id          uuid  PK
+userId      uuid  FK → users
+source      enum  ('sahne' | 'mutfak' | 'mobile' | 'web')
+createdAt   timestamp
+lastMessageAt timestamp
+
+<span class="comment">-- ai_messages tablosu</span>
+id             uuid  PK
+conversationId uuid  FK → ai_conversations
+role           enum  ('user' | 'assistant' | 'tool')
+content        text
+toolName       varchar  <span class="dim">-- hangi tool çağrıldıysa</span>
+createdAt      timestamp
+
+<span class="comment">-- feedbacks tablosuna eklenti</span>
+source  += 'gpt_escalation'  <span class="dim">-- AI'ın açtığı ticketlar</span>
+  </div>
+
+  <h3>Claude Tool Calling — Erişim Kapsamı</h3>
+  <table>
+    <thead>
+      <tr><th>Tool Adı</th><th>Ne Yapar?</th><th>Eriştiği Tablo</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>get_user_membership</code></td>
+        <td>Kullanıcının üyelik durumu, tipi ve tarihi</td>
+        <td>users, memberships</td>
+      </tr>
+      <tr>
+        <td><code>get_application_status</code></td>
+        <td>Başvuru durumu ve aşama bilgisi</td>
+        <td>applications</td>
+      </tr>
+      <tr>
+        <td><code>search_events</code></td>
+        <td>Yaklaşan etkinlik ve eğitimler</td>
+        <td>events, trainings</td>
+      </tr>
+      <tr>
+        <td><code>search_knowledge_base</code></td>
+        <td>Mevzuat, SSS, rehber dokümanlar (RAG)</td>
+        <td>Qdrant vector DB</td>
+      </tr>
+      <tr>
+        <td><code>find_mentor</code></td>
+        <td>Uzmanlık alanına göre mentor öner</td>
+        <td>mentors, users</td>
+      </tr>
+      <tr>
+        <td><code>create_support_ticket</code></td>
+        <td>Çözülemeyen sorunu ticket'a çevirir</td>
+        <td>feedbacks</td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SAYFA 2 — HARİTAİLESİGPT MİMARİSİ
+════════════════════════════════════════════════ -->
+<div class="container page-break">
+
+  <div class="section-header">
+    <div class="section-num">03</div>
+    <h2>HaritailesiGPT — Genel Mimari</h2>
+  </div>
+
+  <div class="highlight">
+    <p>
+      <strong>Temel ilke:</strong> HaritailesiGPT ayrı bir backend değildir.
+      Mevcut NestJS API'ye eklenen bir <strong>AI katmanıdır</strong>.
+      Mobil uygulama, Sahne ve Mutfak widget'ı — üçü de aynı <code>/api/ai/*</code> endpoint'lerini kullanır.
+    </p>
+  </div>
+
+  <div class="arch-box">
+┌─────────────────────────────────────────────────────────┐
+│                   <span class="label">İSTEMCİLER</span>                              │
+│                                                         │
+│  📱 HaritailesiGPT    🌐 Sahne        🌐 Mutfak         │
+│     (React Native)       Çözüm Arıyorum  Çözüm Arıyorum │
+└──────────────────────┬──────────────────────────────────┘
+                       │  JWT + HTTPS
+                       ▼
+┌─────────────────────────────────────────────────────────┐
+│              <span class="label">NestJS API  —  apps/api</span>                    │
+│                                                         │
+│  <span class="comment">src/ai/</span>                                              │
+│  ├── ai.module.ts          <span class="dim">← tüm AI bağımlılıkları</span>        │
+│  ├── ai.controller.ts      <span class="dim">← /ai/chat, /ai/conversations</span>  │
+│  ├── ai.service.ts         <span class="dim">← Claude API yönetimi</span>          │
+│  ├── ai.tools.ts           <span class="dim">← tool calling tanımları</span>       │
+│  └── ai.router.ts          <span class="dim">← model seçim mantığı</span>          │
+└──────────┬────────────────────────┬────────────────────┘
+           │                        │
+           ▼                        ▼
+  <span class="label">Claude API</span>              <span class="label">OpenAI API</span>
+  (ana model)             (routing / hız gereken durumlar)
+           │
+           ▼
+  <span class="label">Tool Execution</span>
+  ├── PostgreSQL  (üyelik, başvuru, etkinlik)
+  ├── Qdrant      (knowledge graph, RAG)
+  └── Redis       (konuşma cache)
+  </div>
+
+  <div class="section-header">
+    <div class="section-num">04</div>
+    <h2>AI Core Engine — Detay</h2>
+  </div>
+
+  <h3>Multi-LLM Routing Mantığı</h3>
+  <p>
+    Her soru aynı modele gönderilmez. Görev tipine göre en uygun modele yönlendirilir.
+  </p>
+
+  <table>
+    <thead>
+      <tr><th>Görev Tipi</th><th>Model</th><th>Neden?</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Genel soru, platform yönlendirme</td>
+        <td>Claude Haiku</td>
+        <td>Hızlı, düşük maliyet</td>
+      </tr>
+      <tr>
+        <td>Mevzuat analizi, SHKM süreçleri</td>
+        <td>Claude Sonnet</td>
+        <td>Güçlü reasoning</td>
+      </tr>
+      <tr>
+        <td>Karmaşık danışmanlık, raporlama</td>
+        <td>Claude Opus</td>
+        <td>En yüksek kalite</td>
+      </tr>
+      <tr>
+        <td>Hızlı yanıt, kısa soru</td>
+        <td>GPT-4o mini</td>
+        <td>Latency kritik durumlarda</td>
+      </tr>
+      <tr>
+        <td>Görsel / harita analizi</td>
+        <td>GPT-4o Vision</td>
+        <td>Görsel reasoning</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Knowledge Graph (Qdrant)</h3>
+  <p>
+    Sistemin sektör hafızası. Her bilgi parçası vektör olarak saklanır; sorgu geldiğinde
+    en alakalı içerikler Claude'a context olarak eklenir (RAG).
+  </p>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">İndekslenen İçerikler</div>
+      <p>SHKM mevzuatı, LİHKAB süreçleri, sık sorulan sorular, eğitim materyalleri, etkinlik açıklamaları, çözüme kavuşmuş ticket geçmişleri</p>
+    </div>
+    <div class="card">
+      <div class="card-title">Güncelleme Sıklığı</div>
+      <p>Yeni mevzuat eklendiğinde otomatik; ticket çözüldüğünde öğrenme döngüsüyle; admin manuel içerik ekleyebilir</p>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <div class="section-num">05</div>
+    <h2>AI Agent Sistemi</h2>
+  </div>
+
+  <p>
+    Her agent, belirli bir uzmanlık alanına odaklanan özel system prompt + tool seti ile çalışır.
+    Kullanıcının sorusu otomatik olarak ilgili agent'a yönlendirilir.
+  </p>
+
+  <table>
+    <thead>
+      <tr><th>Agent</th><th>Uzmanlık Alanı</th><th>Temel Araçlar</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>SHKM Agent</strong></td>
+        <td>Harita ofisi operasyon, belge süreçleri</td>
+        <td>mevzuat_ara, adım_anlat</td>
+      </tr>
+      <tr>
+        <td><strong>Career Agent</strong></td>
+        <td>Kariyer yönlendirme, iş ilanları</td>
+        <td>ilan_ara, mentor_bul, profil_analiz</td>
+      </tr>
+      <tr>
+        <td><strong>Education Agent</strong></td>
+        <td>Eğitim önerileri, sertifika yolları</td>
+        <td>egitim_ara, seviye_belirle</td>
+      </tr>
+      <tr>
+        <td><strong>Regulation Agent</strong></td>
+        <td>Yasal mevzuat, standartlar</td>
+        <td>mevzuat_ara, rag_sorgula</td>
+      </tr>
+      <tr>
+        <td><strong>AI Transformation Agent</strong></td>
+        <td>Firma dijitalleşme danışmanlığı</td>
+        <td>firma_analiz, oneri_uret</td>
+      </tr>
+      <tr>
+        <td><strong>Mentor Agent</strong></td>
+        <td>Mentor eşleştirme</td>
+        <td>mentor_bul, takvim_uyustur</td>
+      </tr>
+      <tr>
+        <td><strong>Device Agent</strong></td>
+        <td>Cihaz ve donanım tavsiyesi</td>
+        <td>cihaz_karsilastir, rag_sorgula</td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SAYFA 3 — MOBİL APP & ENTEGRASYON
+════════════════════════════════════════════════ -->
+<div class="container page-break">
+
+  <div class="section-header">
+    <div class="section-num">06</div>
+    <h2>Mobil Uygulama Mimarisi</h2>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Katman</th><th>Teknoloji</th><th>Notlar</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Mobile Framework</strong></td>
+        <td>React Native</td>
+        <td>iOS + Android tek codebase</td>
+      </tr>
+      <tr>
+        <td><strong>Navigation</strong></td>
+        <td>Expo Router</td>
+        <td>File-based routing</td>
+      </tr>
+      <tr>
+        <td><strong>State</strong></td>
+        <td>Zustand + React Query</td>
+        <td>Server state + local state ayrımı</td>
+      </tr>
+      <tr>
+        <td><strong>Real-time</strong></td>
+        <td>WebSocket (Socket.io)</td>
+        <td>Streaming AI yanıtları için</td>
+      </tr>
+      <tr>
+        <td><strong>Auth</strong></td>
+        <td>Mevcut JWT sistemi</td>
+        <td>Sahne/Mutfak ile aynı token</td>
+      </tr>
+      <tr>
+        <td><strong>Sesli Giriş</strong></td>
+        <td>Whisper API (OpenAI)</td>
+        <td>Soru sormak için mikrofon</td>
+      </tr>
+      <tr>
+        <td><strong>Görsel Yükleme</strong></td>
+        <td>S3-compatible storage</td>
+        <td>Harita/plan görüntü analizi</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Ana Ekranlar</h3>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">💬 AI Destek Merkezi</div>
+      <p>Sohbet arayüzü, geçmiş konuşmalar, sesli soru sorma, görsel yükleme ve paylaşma</p>
+    </div>
+    <div class="card">
+      <div class="card-title">📋 Ticketlarım</div>
+      <p>Açık destek talepleri, durum takibi, admin yanıtları, bildirimler</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🎓 Gelişim Yolum</div>
+      <p>AI'ın önerdiği kişiselleştirilmiş eğitim, etkinlik ve mentorluk yolu</p>
+    </div>
+    <div class="card">
+      <div class="card-title">👤 Mesleki Kimliğim</div>
+      <p>Uzmanlık alanı, katkılar, AI skoru, sektör etkisi, network</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🏢 Firma Ekosistemi</div>
+      <p>Partner firmalar, teklifler, webinarlar, fırsatlar</p>
+    </div>
+    <div class="card">
+      <div class="card-title">📊 Sektör Intelligence</div>
+      <p>Bölgesel trendler, cihaz analizleri, kariyer fırsatları, sektör raporları</p>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <div class="section-num">07</div>
+    <h2>Çözüm Arıyorum ↔ HaritailesiGPT Entegrasyonu</h2>
+  </div>
+
+  <p>
+    İki sistem özerk görünür ama tek altyapıya bağlıdır.
+    Kullanıcı Sahne/Mutfak'ta bir konuşma başlatır, telefonda devam edebilir.
+    Konuşma geçmişi <code>ai_conversations</code> tablosunda kayıtlıdır.
+  </p>
+
+  <div class="arch-box">
+<span class="comment">// Konuşma kaynak takibi</span>
+ai_conversations.source = 'sahne' | 'mutfak' | 'mobile' | 'web'
+
+<span class="comment">// Escalation kaynağı — admin bu farkı görmeli</span>
+feedbacks.source = 'gpt_escalation'
+feedbacks.metadata = &#123;
+  conversationId: "uuid",
+  lastMessages: [...],  <span class="dim">// son 3 mesaj</span>
+  agentUsed: "regulation_agent",
+  confidence: 0.32  <span class="dim">// AI'ın çözüm güveni düşük → ticket</span>
+&#125;
+  </div>
+
+  <h3>Escalation Kuralları</h3>
+  <table>
+    <thead>
+      <tr><th>Durum</th><th>Eylem</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>AI confidence skoru &lt; 0.4</td>
+        <td>Otomatik ticket aç, uzman yönlendir</td>
+      </tr>
+      <tr>
+        <td>Kullanıcı "insan ile konuşmak istiyorum" der</td>
+        <td>Anında ticket aç</td>
+      </tr>
+      <tr>
+        <td>Aynı soru 3 kez tekrar edilir</td>
+        <td>Ticket aç + admin bildir</td>
+      </tr>
+      <tr>
+        <td>Hukuki/mevzuat sorusu (yüksek risk)</td>
+        <td>Yanıt ver + "uzman onaylasın" ticket aç</td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SAYFA 4 — YOL HARİTASI
+════════════════════════════════════════════════ -->
+<div class="container page-break">
+
+  <div class="section-header">
+    <div class="section-num">08</div>
+    <h2>Geliştirme Yol Haritası</h2>
+  </div>
+
+  <div class="warn">
+    ⚠️ Öneri: HaritailesiGPT mobil uygulama geliştirmesine başlamadan önce Sahne, Mutfak ve
+    vakıf web sitesi tamamlanmalıdır. AI Engine ise her iki süreçle paralel ilerleyebilir.
+  </div>
+
+  <div class="phase">
+    <div class="phase-label">Şimdi — Paralel</div>
+    <h3>AI Core Engine (API Katmanı)</h3>
+    <p>
+      <span class="badge badge-blue">apps/api/src/ai/</span>
+      <span class="badge badge-blue">Claude API entegrasyonu</span>
+      <span class="badge badge-blue">Tool calling</span>
+      <span class="badge badge-blue">ai_conversations tablosu</span>
+    </p>
+    <p>Sahne/Mutfak "Çözüm Arıyorum" hemen bu endpoint'i kullanabilir. Sahne/Mutfak bitişini beklemez.</p>
+  </div>
+
+  <div class="phase">
+    <div class="phase-label">Faz 1 — Sahne/Mutfak/Web Bitince</div>
+    <h3>Çözüm Arıyorum Widget Aktivasyonu</h3>
+    <p>
+      <span class="badge badge-green">Sahne embed</span>
+      <span class="badge badge-green">Mutfak embed</span>
+      <span class="badge badge-green">Escalation → görüşler</span>
+      <span class="badge badge-green">Kullanıcı bildirimleri</span>
+    </p>
+    <p>Gerçek kullanıcı soruları gelmeye başlar. Knowledge base gerçek verilerle beslenmeye başlar.</p>
+  </div>
+
+  <div class="phase">
+    <div class="phase-label">Faz 2 — 3-4 Ay Sonra</div>
+    <h3>Qdrant + Knowledge Graph</h3>
+    <p>
+      <span class="badge badge-purple">Qdrant kurulumu</span>
+      <span class="badge badge-purple">Mevzuat indexleme</span>
+      <span class="badge badge-purple">RAG entegrasyonu</span>
+      <span class="badge badge-purple">Ticket öğrenme döngüsü</span>
+    </p>
+    <p>AI yanıt kalitesi dramatik şekilde artar. Sektör hafızası oluşmaya başlar.</p>
+  </div>
+
+  <div class="phase">
+    <div class="phase-label">Faz 3 — 6+ Ay</div>
+    <h3>HaritailesiGPT Mobil App</h3>
+    <p>
+      <span class="badge badge-amber">React Native</span>
+      <span class="badge badge-amber">Expo Router</span>
+      <span class="badge badge-amber">WebSocket streaming</span>
+      <span class="badge badge-amber">Professional Digital Identity</span>
+    </p>
+    <p>Gerçek verilerle eğitilmiş AI, gerçek kullanıcı soruları geçmişiyle mobil'e taşınır.</p>
+  </div>
+
+  <div class="phase">
+    <div class="phase-label">Faz 4 — 12+ Ay</div>
+    <h3>Sector Intelligence + Corporate Engine</h3>
+    <p>
+      <span class="badge badge-red">AI danışmanlık raporları</span>
+      <span class="badge badge-red">Firma ekosistemi</span>
+      <span class="badge badge-red">Sektör analitiği</span>
+      <span class="badge badge-red">Monetization aktif</span>
+    </p>
+  </div>
+
+  <div class="section-header">
+    <div class="section-num">09</div>
+    <h2>Teknik Stack Özeti</h2>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Katman</th><th>Teknoloji</th><th>Durum</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Web Frontend</td><td>Next.js 15 (App Router)</td><td><span class="badge badge-green">Mevcut</span></td></tr>
+      <tr><td>Mobile Frontend</td><td>React Native + Expo</td><td><span class="badge badge-purple">Planlandı</span></td></tr>
+      <tr><td>Backend</td><td>NestJS</td><td><span class="badge badge-green">Mevcut</span></td></tr>
+      <tr><td>Database</td><td>PostgreSQL + Drizzle ORM</td><td><span class="badge badge-green">Mevcut</span></td></tr>
+      <tr><td>Vector DB</td><td>Qdrant</td><td><span class="badge badge-purple">Planlandı</span></td></tr>
+      <tr><td>Cache</td><td>Redis</td><td><span class="badge badge-amber">Gerekli</span></td></tr>
+      <tr><td>Real-time</td><td>WebSocket (Socket.io)</td><td><span class="badge badge-amber">Gerekli</span></td></tr>
+      <tr><td>AI — Ana</td><td>Anthropic Claude API</td><td><span class="badge badge-purple">Planlandı</span></td></tr>
+      <tr><td>AI — Routing</td><td>OpenAI API (opsiyonel)</td><td><span class="badge badge-purple">Planlandı</span></td></tr>
+      <tr><td>Search</td><td>ElasticSearch (ileri faz)</td><td><span class="badge badge-gray">İleriki faz</span></td></tr>
+      <tr><td>Storage</td><td>S3-compatible</td><td><span class="badge badge-amber">Gerekli</span></td></tr>
+      <tr><td>Email</td><td>Brevo (mevcut)</td><td><span class="badge badge-green">Mevcut</span></td></tr>
+      <tr><td>Infra</td><td>Kubernetes / Docker</td><td><span class="badge badge-gray">İleriki faz</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="section-header">
+    <div class="section-num">10</div>
+    <h2>Rekabet Avantajı</h2>
+  </div>
+
+  <div class="highlight">
+    <p>
+      Rakipler <em>ya portal, ya eğitim, ya topluluk, ya AI chatbot, ya danışmanlık</em> yapıyor.
+      HaritailesiGPT bunları <strong>tek yapıda, AI-native şekilde birleştiriyor</strong> ve
+      bunu harita/geomatik sektörüne özel <strong>sektör hafızası</strong> ile destekliyor.
+      Türkiye'de bu segmentte gerçek bir boşluk var.
+    </p>
+  </div>
+
+</div>
+
+<!-- Footer -->
+<div class="footer no-print" style="display:none"></div>
+<div class="footer">
+  <span><strong>Haritailesi Vakfı</strong> — HaritailesiGPT Strateji Dokümanı</span>
+  <span>Vision Draft v1.0 · Haziran 2026 · Gizlidir</span>
+</div>
+
+<div class="container no-print" style="padding-top:0; padding-bottom:16px;">
+  <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:16px 20px; display:flex; align-items:center; justify-content:space-between;">
+    <span style="font-size:12px; color:#64748b;">PDF olarak kaydetmek için: <strong>Ctrl+P → Hedef: PDF olarak kaydet</strong></span>
+    <button onclick="window.print()" style="background:#0f2740; color:#fff; border:none; border-radius:8px; padding:8px 20px; font-size:12px; font-weight:600; cursor:pointer;">🖨 PDF Olarak Kaydet</button>
+  </div>
+</div>
+
+</body>
+</html>

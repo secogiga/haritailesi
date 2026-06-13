@@ -3,7 +3,7 @@
  * Çalıştır: node scripts/seed-analytics.mjs  (monorepo kökünden)
  *
  * Senaryolar:
- *   - Aha anına ulaşmış aktif üyeler (yüksek skor)
+ *   - Farkındalık Anı yaşamış aktif üyeler (yüksek skor)
  *   - Onboarding'de takılı kalmış risk grubu
  *   - 7 / 30 gün geri dönen retention grubu
  *   - Mentör eşleşmesi yaşayan üyeler
@@ -208,7 +208,7 @@ async function main() {
   console.log('\n── Özet ──────────────────────────────');
   console.log(`Toplam event  : ${eventCount}`);
   console.log(`Skor kaydı    : ${scoreCount}`);
-  console.log(`Aha anına ulaşan: ${ahaCount}`);
+  console.log(`Farkındalık Anına ulaşan: ${ahaCount}`);
 
   const dist = { aha_reached: 0, active_engaged: 0, onboarding_stuck: 0, returning: 0, passive: 0, content_creator: 0 };
   users.forEach((_, i) => {

@@ -104,6 +104,78 @@ export default function SirketTestiPage() {
             ))}
           </div>
 
+          {/* Sample test preview */}
+          {step === 'landing' && (
+            <div className="mb-12">
+              <div className="flex items-center gap-3 mb-5">
+                <h2 className="text-lg font-bold text-gray-900">Örnek Test</h2>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-sky-600 bg-sky-50 border border-sky-200 px-2.5 py-1 rounded-full">Önizleme</span>
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                {/* Test header */}
+                <div className="bg-gradient-to-r from-[#0c1a2e] to-[#1e3a5f] px-6 py-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-white font-bold text-base">CBS Yeterlilik Testi 2026</h3>
+                      <p className="text-gray-300 text-xs mt-1">Coğrafi Bilgi Sistemleri temel yetkinlik değerlendirmesi</p>
+                    </div>
+                    <div className="shrink-0 flex gap-3 text-xs text-gray-400">
+                      <span className="flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>20 dk</span>
+                      <span className="flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4"/></svg>Geçme: %70</span>
+                    </div>
+                  </div>
+                </div>
+                {/* Sample questions */}
+                <div className="divide-y divide-gray-50">
+                  {[
+                    {
+                      no: 1,
+                      q: 'Vektör veri modelinde bir "poligon" geometrisi aşağıdakilerden hangisini temsil eder?',
+                      opts: ['Tek bir koordinat noktası', 'İki nokta arasındaki düz çizgi', 'Kapalı alan sınırı ile çevrili yüzey', 'Z değerine sahip nokta bulutu'],
+                      correct: 2,
+                    },
+                    {
+                      no: 2,
+                      q: 'WGS84 koordinat sistemi hangi tür bir sistemdir?',
+                      opts: ['Yerel düzlem koordinat sistemi', 'Küresel coğrafi koordinat sistemi', 'UTM izdüşüm sistemi', 'Gauss-Krüger sistemi'],
+                      correct: 1,
+                    },
+                  ].map(item => (
+                    <div key={item.no} className="px-6 py-5">
+                      <p className="text-sm font-medium text-gray-800 mb-3">
+                        <span className="text-sky-500 font-bold mr-2">{item.no}.</span>{item.q}
+                      </p>
+                      <div className="grid sm:grid-cols-2 gap-2">
+                        {item.opts.map((opt, i) => (
+                          <div key={i} className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border text-xs font-medium transition-colors ${
+                            i === item.correct
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                              : 'border-gray-100 bg-gray-50 text-gray-500'
+                          }`}>
+                            <span className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold ${
+                              i === item.correct ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-500'
+                            }`}>{String.fromCharCode(65 + i)}</span>
+                            {opt}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* Footer */}
+                <div className="px-6 py-4 bg-gray-50 flex items-center justify-between border-t border-gray-100">
+                  <p className="text-xs text-gray-400">5 soru · Çoktan seçmeli · Otomatik değerlendirme</p>
+                  <button
+                    onClick={() => void loadTests()}
+                    className="text-xs font-semibold text-sky-600 hover:text-sky-700 transition-colors"
+                  >
+                    Tüm testleri gör →
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Browse tests */}
           {step === 'browse' && (
             <div>

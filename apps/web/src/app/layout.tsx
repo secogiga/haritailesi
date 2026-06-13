@@ -3,7 +3,10 @@ import type { ReactNode } from 'react';
 import Navbar from '@/components/Navbar';
 import type { NavItem } from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { SiteShell } from '@/components/SiteShell';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { AdminModeProvider } from '@/contexts/AdminMode';
+import { AdminToolbar } from '@/components/AdminToolbar';
 import { cms } from '@/lib/api';
 import './globals.css';
 import 'leaflet/dist/leaflet.css';
@@ -30,9 +33,15 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html lang="tr">
       <body className="flex flex-col min-h-screen">
         <AuthProvider>
-          <Navbar {...(navItems ? { navItems } : {})} />
-          <div className="flex-1">{children}</div>
-          <Footer />
+          <AdminModeProvider>
+            <AdminToolbar />
+            <SiteShell
+              navbar={<Navbar {...(navItems ? { navItems } : {})} />}
+              footer={<Footer />}
+            >
+              {children}
+            </SiteShell>
+          </AdminModeProvider>
         </AuthProvider>
       </body>
     </html>

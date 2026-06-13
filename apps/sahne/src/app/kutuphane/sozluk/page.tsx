@@ -22,7 +22,7 @@ const EXAMPLE_TERMS: Term[] = [
 async function getTerms(): Promise<Term[]> {
   try {
     const res = await fetch(`${API}/api/v1/library/terms?limit=500`, {
-      next: { revalidate: 300 },
+      next: { revalidate: 60 },
     });
     if (!res.ok) return EXAMPLE_TERMS;
     const data = await res.json() as Term[];

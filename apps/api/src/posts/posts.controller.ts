@@ -74,6 +74,10 @@ class CreatePostDto {
   @IsOptional()
   @IsBoolean()
   isPublic?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  libraryRefs?: { type: string; slug: string; title: string }[];
 }
 
 class PollVoteDto {

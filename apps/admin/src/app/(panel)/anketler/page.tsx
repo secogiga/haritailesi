@@ -29,13 +29,20 @@ async function api<T>(path: string, opts?: RequestInit): Promise<T> {
 
 interface Survey {
   id: string; title: string; description: string | null;
-  status: string; endsAt: string | null;
-  responseCount: number; createdAt: string; updatedAt: string;
+  type: string; slug: string | null; status: string; endsAt: string | null;
+  responseCount: number; timeLimit: number | null; passingScore: number | null;
+  allowAnonymous: boolean; showResults: boolean; createdAt: string; updatedAt: string;
 }
 
 interface SurveyQuestion {
   id: string; surveyId: string; questionText: string;
-  type: 'single' | 'multiple' | 'text'; options: string[] | null; sortOrder: number;
+  type: 'single' | 'multiple' | 'text' | 'rating' | 'truefalse';
+  options: string[] | null; correctOptions: string[] | null;
+  points: number; explanation: string | null; required: boolean; sortOrder: number;
+  imageUrl: string | null;
+  scenarioText: string | null;
+  difficulty: string;
+  topicTags: string[];
 }
 
 interface SurveyWithQuestions extends Survey { questions: SurveyQuestion[]; }
@@ -61,22 +68,51 @@ interface ResponsesData {
   questions: SurveyQuestion[]; responses: RawResponse[]; total: number;
 }
 
+interface SegmentRow { profession?: string; city?: string; range?: string; status?: string; count: number; avgScore?: number; passRate?: number; }
+interface SegmentedData {
+  total: number;
+  byProfession: (SegmentRow & { profession: string })[];
+  byCity: (SegmentRow & { city: string })[];
+  byExperience: (SegmentRow & { range: string; avgScore: number })[];
+  byWorkStatus: (SegmentRow & { status: string })[];
+}
+
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const STATUS_LABELS: Record<string, string> = { draft: 'Taslak', active: 'Aktif', ended: 'Kapalı' };
+const STATUS_LABELS: Record<string, string> = { draft: 'Taslak', active: 'Aktif', ended: 'Kapalı', archived: 'Arşiv' };
 const STATUS_COLORS: Record<string, string> = {
   draft: 'bg-gray-100 text-gray-600',
   active: 'bg-emerald-100 text-emerald-700',
   ended: 'bg-amber-100 text-amber-700',
+  archived: 'bg-gray-100 text-gray-400',
 };
-const Q_TYPE_LABELS: Record<string, string> = { single: 'Tek Seçim', multiple: 'Çok Seçim', text: 'Açık Uçlu' };
+const TYPE_LABELS: Record<string, { label: string; color: string }> = {
+  anket: { label: 'Anket', color: 'bg-sky-100 text-sky-700' },
+  test:  { label: 'Test',  color: 'bg-violet-100 text-violet-700' },
+};
+const Q_TYPE_LABELS: Record<string, string> = { single: 'Tek Seçim', multiple: 'Çok Seçim', text: 'Açık Uçlu', rating: 'Puanlama', truefalse: 'D/Y' };
 const Q_TYPE_COLORS: Record<string, string> = {
   single: 'bg-blue-50 text-blue-700',
   multiple: 'bg-purple-50 text-purple-700',
   text: 'bg-orange-50 text-orange-700',
+  rating: 'bg-yellow-50 text-yellow-700',
+  truefalse: 'bg-teal-50 text-teal-700',
 };
 
 const inp = 'w-full border border-gray-200 rounded-lg pl-3 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#26496b]/30 focus:border-[#26496b] transition-colors';
+
+const DIFFICULTY_OPTIONS = [
+  { value: 'easy',   label: 'Kolay',  color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  { value: 'medium', label: 'Orta',   color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  { value: 'hard',   label: 'Zor',    color: 'bg-red-100 text-red-700 border-red-200' },
+];
+
+const HARITA_TOPICS = [
+  'CBS / GIS', 'Kadastro', 'Fotogrametri', 'Uzaktan Algılama',
+  'Arazi Ölçmeleri', 'Jeodezi', 'Harita Üretimi', 'İHA / Drone',
+  'GNSS / GPS', 'Navigasyon', 'Mesleki Mevzuat', 'Yersel Ölçme',
+  'Konumsal Analiz', '3D Modelleme', 'Veri Tabanı', 'Genel',
+];
 
 // ── CSV Export ───────────────────────────────────────────────────────────────
 
@@ -112,16 +148,22 @@ function exportCsv(data: ResponsesData, surveyTitle: string) {
 // ── Sub-components ───────────────────────────────────────────────────────────
 
 function SurveyModal({
-  survey, onClose, onSaved,
+  survey, onClose, onSaved, defaultType = 'anket',
 }: {
-  survey: Survey | null; onClose: () => void; onSaved: () => void;
+  survey: Survey | null; onClose: () => void; onSaved: () => void; defaultType?: 'anket' | 'test';
 }) {
   const isEdit = !!survey;
   const [form, setForm] = useState({
     title: survey?.title ?? '',
+    type: survey?.type ?? defaultType,
     description: survey?.description ?? '',
-    status: survey?.status ?? 'draft',
+    slug: survey?.slug ?? '',
+    status: survey?.status ?? 'active',
     endsAt: survey?.endsAt ? survey.endsAt.slice(0, 16) : '',
+    timeLimit: survey?.timeLimit ? String(Math.round(survey.timeLimit / 60)) : '',
+    passingScore: survey?.passingScore ? String(survey.passingScore) : '',
+    allowAnonymous: survey?.allowAnonymous ?? true,
+    showResults: survey?.showResults ?? true,
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -132,9 +174,15 @@ function SurveyModal({
     try {
       const payload = {
         title: form.title,
-        description: form.description || null,
+        type: form.type,
+        description: form.description || undefined,
+        slug: form.slug || undefined,
         status: form.status,
-        endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : null,
+        endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : undefined,
+        timeLimit: form.timeLimit ? parseInt(form.timeLimit) * 60 : undefined,
+        passingScore: form.passingScore ? parseInt(form.passingScore) : undefined,
+        allowAnonymous: form.allowAnonymous,
+        showResults: form.showResults,
       };
       if (isEdit) {
         await api(`/surveys/admin/${survey!.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
@@ -163,15 +211,16 @@ function SurveyModal({
             <label className="block text-xs font-semibold text-gray-500 mb-1">Başlık *</label>
             <input required className={inp} value={form.title}
               onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-              placeholder="Anket başlığı…" />
+              placeholder="Anket / Test başlığı…" />
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Açıklama</label>
-            <textarea rows={2} className={inp} value={form.description}
-              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-              placeholder="Katılımcılara gösterilecek açıklama (opsiyonel)" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1">Tür</label>
+              <select className={inp} value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
+                <option value="anket">Anket</option>
+                <option value="test">Test</option>
+              </select>
+            </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1">Durum</label>
               <select className={inp} value={form.status}
@@ -179,11 +228,45 @@ function SurveyModal({
                 {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1">Açıklama</label>
+            <textarea rows={2} className={inp} value={form.description}
+              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+              placeholder="Katılımcılara gösterilecek açıklama (opsiyonel)" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1">Slug (URL)</label>
+              <input className={inp} value={form.slug} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} placeholder="ornek-anket" />
+            </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1">Bitiş Tarihi</label>
               <input type="datetime-local" className={inp} value={form.endsAt}
                 onChange={e => setForm(f => ({ ...f, endsAt: e.target.value }))} />
             </div>
+          </div>
+          {form.type === 'test' && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Süre Limiti (dk)</label>
+                <input type="number" min="1" className={inp} value={form.timeLimit} onChange={e => setForm(f => ({ ...f, timeLimit: e.target.value }))} placeholder="Boş = süresiz" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Geçme Notu (%)</label>
+                <input type="number" min="0" max="100" className={inp} value={form.passingScore} onChange={e => setForm(f => ({ ...f, passingScore: e.target.value }))} placeholder="Örn: 70" />
+              </div>
+            </div>
+          )}
+          <div className="flex gap-4 text-xs">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={form.allowAnonymous} onChange={e => setForm(f => ({ ...f, allowAnonymous: e.target.checked }))} className="rounded" />
+              <span className="font-medium text-gray-600">Anonim katılım</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={form.showResults} onChange={e => setForm(f => ({ ...f, showResults: e.target.checked }))} className="rounded" />
+              <span className="font-medium text-gray-600">Sonuçları göster</span>
+            </label>
           </div>
           {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
           <div className="flex justify-end gap-3 pt-2">
@@ -211,26 +294,82 @@ function QuestionForm({
 }) {
   const isEdit = !!question;
   const [text, setText] = useState(question?.questionText ?? '');
-  const [type, setType] = useState<'single' | 'multiple' | 'text'>(question?.type ?? 'single');
-  const [options, setOptions] = useState<string[]>(question?.options ?? ['', '']);
+  const [scenario, setScenario] = useState(question?.scenarioText ?? '');
+  const [type, setType] = useState<'single' | 'multiple' | 'text' | 'rating' | 'truefalse'>(question?.type ?? 'single');
+  const [options, setOptions] = useState<string[]>(question?.options ?? ['', '', '']);
+  const [correctSet, setCorrectSet] = useState<Set<string>>(new Set(question?.correctOptions ?? []));
+  const [points, setPoints] = useState(String(question?.points ?? 1));
+  const [explanation, setExplanation] = useState(question?.explanation ?? '');
+  const [required, setRequired] = useState(question?.required ?? true);
+  const [imageUrl, setImageUrl] = useState(question?.imageUrl ?? '');
+  const [difficulty, setDifficulty] = useState(question?.difficulty ?? 'medium');
+  const [topicTags, setTopicTags] = useState<string[]>(question?.topicTags ?? []);
+  const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
   function addOption() { setOptions(o => [...o, '']); }
-  function removeOption(i: number) { setOptions(o => o.filter((_, idx) => idx !== i)); }
-  function setOption(i: number, v: string) { setOptions(o => o.map((x, idx) => idx === i ? v : x)); }
+  function removeOption(i: number) {
+    const removed = options[i];
+    setOptions(o => o.filter((_, idx) => idx !== i));
+    if (removed) setCorrectSet(s => { const n = new Set(s); n.delete(removed); return n; });
+  }
+  function setOption(i: number, v: string) {
+    const prev = options[i];
+    setOptions(o => o.map((x, idx) => idx === i ? v : x));
+    if (prev && correctSet.has(prev)) {
+      setCorrectSet(s => { const n = new Set(s); n.delete(prev); if (v) n.add(v); return n; });
+    }
+  }
+  function toggleCorrect(opt: string) {
+    if (type === 'single') {
+      setCorrectSet(new Set(opt ? [opt] : []));
+    } else {
+      setCorrectSet(s => { const n = new Set(s); n.has(opt) ? n.delete(opt) : n.add(opt); return n; });
+    }
+  }
+  function toggleTopic(t: string) {
+    setTopicTags(tags => tags.includes(t) ? tags.filter(x => x !== t) : [...tags, t]);
+  }
+
+  async function uploadImage(file: File) {
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(`${API}/api/v1/upload/image`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${getToken()}` },
+        body: fd,
+      });
+      if (!res.ok) throw new Error('Yükleme başarısız');
+      const data = await res.json() as { url: string };
+      setImageUrl(data.url);
+    } catch (e) { setError((e as Error).message); }
+    finally { setUploading(false); }
+  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true); setError('');
     try {
-      const filteredOptions = type !== 'text' ? options.filter(o => o.trim()) : null;
-      if (type !== 'text' && (!filteredOptions || filteredOptions.length < 2)) {
+      const needsOptions = type !== 'text' && type !== 'truefalse';
+      const filteredOptions = needsOptions ? options.filter(o => o.trim()) : null;
+      if (needsOptions && (!filteredOptions || filteredOptions.length < 2)) {
         throw new Error('En az 2 seçenek giriniz.');
       }
       const payload = {
         surveyId, questionText: text.trim(), type,
-        options: filteredOptions, sortOrder: question?.sortOrder ?? nextOrder,
+        options: filteredOptions,
+        correctOptions: correctSet.size > 0 ? Array.from(correctSet) : undefined,
+        points: parseInt(points) || 1,
+        explanation: explanation || undefined,
+        required,
+        sortOrder: question?.sortOrder ?? nextOrder,
+        imageUrl: imageUrl || undefined,
+        scenarioText: scenario || undefined,
+        difficulty,
+        topicTags,
       };
       if (isEdit) {
         await api(`/surveys/admin/questions/${question!.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
@@ -242,26 +381,73 @@ function QuestionForm({
     finally { setBusy(false); }
   }
 
+  const tfOpts = ['Doğru', 'Yanlış'];
+  const displayOptions = type === 'truefalse' ? tfOpts : options;
+  const showOptions = type !== 'text';
+
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-      <h3 className="font-bold text-gray-900 mb-4 text-sm">{isEdit ? 'Soruyu Düzenle' : 'Yeni Soru Ekle'}</h3>
-      <form onSubmit={(e) => void save(e)} className="space-y-4">
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+        <h3 className="font-bold text-gray-900 text-sm">{isEdit ? 'Soruyu Düzenle' : 'Yeni Soru Ekle'}</h3>
+        <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <form onSubmit={(e) => void save(e)} className="p-5 space-y-5">
+
+        {/* Senaryo / Bağlam */}
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 mb-1">
+            Senaryo / Bağlam
+            <span className="font-normal text-gray-400 ml-1">(opsiyonel — sorudan önce gösterilir)</span>
+          </label>
+          <textarea rows={2} className={`${inp} resize-none`} value={scenario}
+            onChange={e => setScenario(e.target.value)}
+            placeholder="Örn: Aşağıdaki koordinat tablosunu inceleyerek soruyu cevaplayın…" />
+        </div>
+
+        {/* Görsel */}
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 mb-2">Görsel (opsiyonel)</label>
+          {imageUrl && (
+            <div className="relative mb-2 rounded-xl overflow-hidden border border-gray-100 bg-gray-50">
+              <img src={imageUrl} alt="Soru görseli" className="max-h-48 w-full object-contain" />
+              <button type="button" onClick={() => setImageUrl('')}
+                className="absolute top-2 right-2 bg-white/90 rounded-lg p-1 text-gray-500 hover:text-red-500 shadow-sm">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <input
+              className={`${inp} flex-1`}
+              value={imageUrl} onChange={e => setImageUrl(e.target.value)}
+              placeholder="https://… veya aşağıdan dosya yükle"
+            />
+            <label className={`shrink-0 px-3 py-2 text-xs font-medium border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+              {uploading ? '…' : 'Yükle'}
+              <input type="file" accept="image/*" className="sr-only"
+                onChange={e => { const f = e.target.files?.[0]; if (f) void uploadImage(f); }} />
+            </label>
+          </div>
+        </div>
+
+        {/* Soru metni */}
         <div>
           <label className="block text-xs font-semibold text-gray-500 mb-1">Soru *</label>
-          <textarea required rows={2} className={inp} value={text}
+          <textarea required rows={2} className={`${inp} resize-none`} value={text}
             onChange={e => setText(e.target.value)} placeholder="Soru metnini yazın…" />
         </div>
 
+        {/* Soru tipi */}
         <div>
           <label className="block text-xs font-semibold text-gray-500 mb-2">Soru Tipi</label>
-          <div className="flex gap-2">
-            {(['single', 'multiple', 'text'] as const).map(t => (
-              <button key={t} type="button"
-                onClick={() => setType(t)}
-                className={`flex-1 py-2 text-xs font-medium rounded-lg border transition-colors ${
-                  type === t
-                    ? 'border-[#26496b] bg-[#26496b] text-white'
-                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
+          <div className="flex flex-wrap gap-2">
+            {(['single', 'multiple', 'truefalse', 'text', 'rating'] as const).map(t => (
+              <button key={t} type="button" onClick={() => { setType(t); setCorrectSet(new Set()); }}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                  type === t ? 'border-[#26496b] bg-[#26496b] text-white' : 'border-gray-200 text-gray-600 hover:border-gray-300'
                 }`}>
                 {Q_TYPE_LABELS[t]}
               </button>
@@ -269,39 +455,112 @@ function QuestionForm({
           </div>
         </div>
 
-        {type !== 'text' && (
+        {/* Seçenekler + doğru işaretleme */}
+        {showOptions && (
           <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-2">Seçenekler</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-semibold text-gray-500">
+                Seçenekler
+                {(type === 'single' || type === 'multiple' || type === 'truefalse') && (
+                  <span className="font-normal text-gray-400 ml-1">— doğru cevabı tıklayarak işaretle</span>
+                )}
+              </label>
+            </div>
             <div className="space-y-2">
-              {options.map((opt, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <span className="text-xs text-gray-400 w-5 shrink-0">{i + 1}.</span>
-                  <input className={inp} value={opt}
-                    onChange={e => setOption(i, e.target.value)}
-                    placeholder={`Seçenek ${i + 1}`} />
-                  {options.length > 2 && (
-                    <button type="button" onClick={() => removeOption(i)}
-                      className="text-gray-300 hover:text-red-400 shrink-0 transition-colors">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button type="button" onClick={addOption}
-                className="flex items-center gap-1.5 text-xs text-[#26496b] hover:text-[#1e3a56] font-medium mt-1">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Seçenek Ekle
-              </button>
+              {(type === 'truefalse' ? tfOpts : options).map((opt, i) => {
+                const isCorrect = correctSet.has(opt);
+                return (
+                  <div key={i} className={`flex items-center gap-2 p-2 rounded-xl border transition-colors ${isCorrect ? 'border-emerald-200 bg-emerald-50' : 'border-gray-100 bg-gray-50'}`}>
+                    {(type === 'single' || type === 'multiple' || type === 'truefalse') && (
+                      <button type="button" onClick={() => opt && toggleCorrect(opt)}
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isCorrect ? 'border-emerald-500 bg-emerald-500' : 'border-gray-300 hover:border-emerald-400'}`}>
+                        {isCorrect && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg>}
+                      </button>
+                    )}
+                    {type !== 'truefalse' && type !== 'rating' ? (
+                      <input className="flex-1 bg-transparent text-sm text-gray-800 focus:outline-none"
+                        value={opt} onChange={e => setOption(i, e.target.value)}
+                        placeholder={`Seçenek ${i + 1}`} />
+                    ) : (
+                      <span className="flex-1 text-sm text-gray-700">{opt}</span>
+                    )}
+                    {type !== 'truefalse' && options.length > 2 && (
+                      <button type="button" onClick={() => removeOption(i)} className="text-gray-300 hover:text-red-400 transition-colors shrink-0">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+              {type !== 'truefalse' && type !== 'rating' && (
+                <button type="button" onClick={addOption}
+                  className="flex items-center gap-1.5 text-xs text-[#26496b] font-medium hover:text-[#1e3a56] mt-1">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
+                  Seçenek Ekle
+                </button>
+              )}
             </div>
           </div>
         )}
 
+        {/* Açıklama */}
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 mb-1">
+            Açıklama
+            <span className="font-normal text-gray-400 ml-1">(test sonucunda gösterilir)</span>
+          </label>
+          <textarea rows={2} className={`${inp} resize-none`} value={explanation}
+            onChange={e => setExplanation(e.target.value)}
+            placeholder="Doğru cevabın açıklaması, kaynak veya ipucu…" />
+        </div>
+
+        {/* Zorluk + Puan */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-2">Zorluk</label>
+            <div className="flex gap-1.5">
+              {DIFFICULTY_OPTIONS.map(d => (
+                <button key={d.value} type="button" onClick={() => setDifficulty(d.value)}
+                  className={`flex-1 px-2 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
+                    difficulty === d.value ? d.color : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                  }`}>
+                  {d.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1">Puan</label>
+            <input type="number" min="1" className={inp} value={points} onChange={e => setPoints(e.target.value)} />
+          </div>
+        </div>
+
+        {/* Konu etiketleri */}
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 mb-2">Konu Etiketleri</label>
+          <div className="flex flex-wrap gap-1.5">
+            {HARITA_TOPICS.map(t => {
+              const active = topicTags.includes(t);
+              return (
+                <button key={t} type="button" onClick={() => toggleTopic(t)}
+                  className={`px-2.5 py-1 text-xs rounded-lg border transition-colors ${
+                    active ? 'bg-[#26496b] text-white border-[#26496b]' : 'border-gray-200 text-gray-600 hover:border-gray-400'
+                  }`}>
+                  {t}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Zorunlu */}
+        <div className="flex items-center gap-2">
+          <input type="checkbox" id="req" checked={required} onChange={e => setRequired(e.target.checked)} className="rounded" />
+          <label htmlFor="req" className="text-xs font-medium text-gray-600 cursor-pointer">Yanıt zorunlu</label>
+        </div>
+
         {error && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-2 pt-1">
           <button type="button" onClick={onClose}
             className="px-3 py-1.5 text-xs text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">
             İptal
@@ -341,9 +600,9 @@ function BarChart({ breakdown }: { breakdown: { option: string; count: number; p
 // ── Main Page ────────────────────────────────────────────────────────────────
 
 type View = 'list' | 'manage' | 'results';
-type ResultsTab = 'summary' | 'raw';
+type ResultsTab = 'summary' | 'raw' | 'segmented';
 
-export default function AnketlerPage() {
+export function SurveyAdminPage({ fixedType }: { fixedType: 'anket' | 'test' }) {
   const [view, setView] = useState<View>('list');
   const [resultsTab, setResultsTab] = useState<ResultsTab>('summary');
   const [surveys, setSurveys] = useState<Survey[]>([]);
@@ -358,6 +617,7 @@ export default function AnketlerPage() {
   const [deletingQ, setDeletingQ] = useState<string | null>(null);
   const [results, setResults] = useState<ResultsData | null>(null);
   const [responses, setResponses] = useState<ResponsesData | null>(null);
+  const [segmented, setSegmented] = useState<SegmentedData | null>(null);
   const [resultsLoading, setResultsLoading] = useState(false);
   const [exportBusy, setExportBusy] = useState(false);
 
@@ -388,14 +648,17 @@ export default function AnketlerPage() {
     setResultsTab('summary');
     setResults(null);
     setResponses(null);
+    setSegmented(null);
     setActiveSurvey({ ...survey, questions: [] });
     try {
-      const [res, raw] = await Promise.all([
+      const [res, raw, seg] = await Promise.all([
         api<ResultsData>(`/surveys/${survey.id}/results`),
         api<ResponsesData>(`/surveys/admin/${survey.id}/responses`),
+        api<SegmentedData>(`/surveys/${survey.id}/results/segmented`),
       ]);
       setResults(res);
       setResponses(raw);
+      setSegmented(seg);
     } finally { setResultsLoading(false); }
   }
 
@@ -429,9 +692,11 @@ export default function AnketlerPage() {
     finally { setExportBusy(false); }
   }
 
-  const filtered = statusFilter ? surveys.filter(s => s.status === statusFilter) : surveys;
-  const activeCount = surveys.filter(s => s.status === 'active').length;
-  const totalResponses = surveys.reduce((sum, s) => sum + (s.responseCount ?? 0), 0);
+  const filtered = surveys
+    .filter(s => !statusFilter || s.status === statusFilter)
+    .filter(s => s.type === fixedType);
+  const activeCount = surveys.filter(s => s.status === 'active' && s.type === fixedType).length;
+  const totalResponses = surveys.filter(s => s.type === fixedType).reduce((sum, s) => sum + (s.responseCount ?? 0), 0);
 
   // ── Results view ───────────────────────────────────────────────────────────
   if (view === 'results') {
@@ -491,12 +756,12 @@ export default function AnketlerPage() {
 
             {/* Tabs */}
             <div className="flex gap-1 mb-5 bg-gray-100 rounded-xl p-1 w-fit">
-              {(['summary', 'raw'] as const).map(tab => (
+              {(['summary', 'segmented', 'raw'] as const).map(tab => (
                 <button key={tab} onClick={() => setResultsTab(tab)}
                   className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${
                     resultsTab === tab ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'
                   }`}>
-                  {tab === 'summary' ? 'Soru Özeti' : `Yanıtlar (${responses?.total ?? 0})`}
+                  {tab === 'summary' ? 'Soru Özeti' : tab === 'segmented' ? 'Segmentasyon' : `Yanıtlar (${responses?.total ?? 0})`}
                 </button>
               ))}
             </div>
@@ -541,6 +806,99 @@ export default function AnketlerPage() {
                       )}
                     </div>
                   ))
+                )}
+              </div>
+            )}
+
+            {/* Segmented tab */}
+            {resultsTab === 'segmented' && (
+              <div className="space-y-6">
+                {!segmented || segmented.total === 0 ? (
+                  <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center text-gray-400">
+                    Segmentasyon için yeterli veri yok. (Katılımcıların profil bilgisi gerekli)
+                  </div>
+                ) : (
+                  <>
+                    {/* By Profession */}
+                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                      <h3 className="font-bold text-gray-900 text-sm mb-4">Mesleğe Göre</h3>
+                      <div className="space-y-2.5">
+                        {segmented.byProfession.map(row => {
+                          const pct = segmented.total > 0 ? Math.round((row.count / segmented.total) * 100) : 0;
+                          return (
+                            <div key={row.profession} className="flex items-center gap-3">
+                              <span className="text-xs text-gray-600 w-36 shrink-0 truncate">{row.profession}</span>
+                              <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                                <div className="h-2 rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: NAVY }} />
+                              </div>
+                              <span className="text-xs text-gray-500 w-8 text-right shrink-0">{row.count}</span>
+                              {row.avgScore > 0 && <span className="text-xs text-emerald-600 font-semibold w-12 text-right shrink-0">~%{row.avgScore}</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-5">
+                      {/* By Experience */}
+                      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                        <h3 className="font-bold text-gray-900 text-sm mb-4">Deneyime Göre</h3>
+                        <div className="space-y-2.5">
+                          {segmented.byExperience.map(row => {
+                            const pct = segmented.total > 0 ? Math.round((row.count / segmented.total) * 100) : 0;
+                            return (
+                              <div key={row.range} className="flex items-center gap-3">
+                                <span className="text-xs text-gray-600 w-24 shrink-0">{row.range}</span>
+                                <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                                  <div className="h-2 rounded-full" style={{ width: `${pct}%`, backgroundColor: '#7c3aed' }} />
+                                </div>
+                                <span className="text-xs text-gray-500 w-8 text-right">{row.count}</span>
+                                {row.avgScore > 0 && <span className="text-xs text-violet-600 font-semibold w-12 text-right">~%{row.avgScore}</span>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* By Work Status */}
+                      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                        <h3 className="font-bold text-gray-900 text-sm mb-4">Çalışma Durumuna Göre</h3>
+                        <div className="space-y-2.5">
+                          {segmented.byWorkStatus.map(row => {
+                            const pct = segmented.total > 0 ? Math.round((row.count / segmented.total) * 100) : 0;
+                            return (
+                              <div key={row.status} className="flex items-center gap-3">
+                                <span className="text-xs text-gray-600 w-28 shrink-0 truncate">{row.status}</span>
+                                <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                                  <div className="h-2 rounded-full" style={{ width: `${pct}%`, backgroundColor: '#0284c7' }} />
+                                </div>
+                                <span className="text-xs text-gray-500 w-8 text-right">{row.count}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Top Cities */}
+                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                      <h3 className="font-bold text-gray-900 text-sm mb-4">Şehre Göre (ilk 10)</h3>
+                      <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+                        {segmented.byCity.slice(0, 10).map(row => {
+                          const pct = segmented.total > 0 ? Math.round((row.count / segmented.total) * 100) : 0;
+                          return (
+                            <div key={row.city} className="flex items-center gap-2">
+                              <span className="text-xs text-gray-600 w-20 shrink-0 truncate">{row.city}</span>
+                              <div className="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                                <div className="h-1.5 rounded-full" style={{ width: `${pct}%`, backgroundColor: '#059669' }} />
+                              </div>
+                              <span className="text-xs text-gray-500 w-6 text-right">{row.count}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             )}
@@ -606,6 +964,7 @@ export default function AnketlerPage() {
         {showSurveyModal && activeSurvey && (
           <SurveyModal
             survey={activeSurvey}
+            defaultType={fixedType}
             onClose={() => setShowSurveyModal(false)}
             onSaved={() => { loadSurveys(); void reloadManage(); }}
           />
@@ -701,14 +1060,32 @@ export default function AnketlerPage() {
                         {qi + 1}
                       </div>
                       <div className="flex-1 min-w-0">
+                        {q.scenarioText && (
+                          <p className="text-xs text-gray-400 italic mb-1 line-clamp-1">"{q.scenarioText}"</p>
+                        )}
                         <p className="text-sm font-medium text-gray-900 mb-2 leading-snug">{q.questionText}</p>
-                        <div className="flex items-center gap-2 flex-wrap">
+                        {q.imageUrl && (
+                          <div className="mb-2 rounded-lg overflow-hidden border border-gray-100 w-24 h-16">
+                            <img src={q.imageUrl} alt="görsel" className="w-full h-full object-cover" />
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${Q_TYPE_COLORS[q.type]}`}>
                             {Q_TYPE_LABELS[q.type]}
                           </span>
-                          {q.options?.map(opt => (
-                            <span key={opt} className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{opt}</span>
+                          {q.difficulty && (
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
+                              DIFFICULTY_OPTIONS.find(d => d.value === q.difficulty)?.color ?? 'bg-gray-100 text-gray-500 border-gray-200'
+                            }`}>
+                              {DIFFICULTY_OPTIONS.find(d => d.value === q.difficulty)?.label ?? q.difficulty}
+                            </span>
+                          )}
+                          {q.topicTags?.map(tag => (
+                            <span key={tag} className="text-[10px] bg-[#26496b]/10 text-[#26496b] px-2 py-0.5 rounded-full">{tag}</span>
                           ))}
+                          {q.correctOptions && q.correctOptions.length > 0 && (
+                            <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">✓ {q.correctOptions.join(', ')}</span>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
@@ -774,6 +1151,7 @@ export default function AnketlerPage() {
       {showSurveyModal && (
         <SurveyModal
           survey={editingSurvey}
+          defaultType={fixedType}
           onClose={() => { setShowSurveyModal(false); setEditingSurvey(null); }}
           onSaved={loadSurveys}
         />
@@ -782,8 +1160,12 @@ export default function AnketlerPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Anketler</h1>
-          <p className="text-sm text-gray-500 mt-1">Topluluk anketlerini oluşturun ve sonuçları inceleyin</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {fixedType === 'test' ? 'Testler' : 'Anketler'}
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            {fixedType === 'test' ? 'Sen Ne Dersin? — bilgi testleri ve sınavlar' : 'Sen Ne Dersin? — topluluk anketleri'}
+          </p>
         </div>
         <button
           onClick={() => { setEditingSurvey(null); setShowSurveyModal(true); }}
@@ -793,19 +1175,19 @@ export default function AnketlerPage() {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          Yeni Anket
+          {fixedType === 'test' ? 'Yeni Test' : 'Yeni Anket'}
         </button>
       </div>
 
       {/* Summary stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-2xl border border-gray-200 px-5 py-4">
-          <p className="text-2xl font-bold text-gray-900">{surveys.length}</p>
-          <p className="text-xs text-gray-500 mt-0.5">Toplam Anket</p>
+          <p className="text-2xl font-bold text-gray-900">{surveys.filter(s => s.type === fixedType).length}</p>
+          <p className="text-xs text-gray-500 mt-0.5">{fixedType === 'test' ? 'Toplam Test' : 'Toplam Anket'}</p>
         </div>
         <div className="bg-white rounded-2xl border border-gray-200 px-5 py-4">
           <p className="text-2xl font-bold text-emerald-600">{activeCount}</p>
-          <p className="text-xs text-gray-500 mt-0.5">Aktif Anket</p>
+          <p className="text-xs text-gray-500 mt-0.5">{fixedType === 'test' ? 'Aktif Test' : 'Aktif Anket'}</p>
         </div>
         <div className="bg-white rounded-2xl border border-gray-200 px-5 py-4">
           <p className="text-2xl font-bold text-gray-900">{totalResponses}</p>
@@ -813,21 +1195,23 @@ export default function AnketlerPage() {
         </div>
       </div>
 
-      {/* Status filter tabs */}
-      <div className="flex gap-1 mb-5 bg-gray-100 rounded-xl p-1 w-fit">
-        {[
-          { value: '', label: 'Tümü' },
-          { value: 'active', label: 'Aktif' },
-          { value: 'draft', label: 'Taslak' },
-          { value: 'ended', label: 'Kapalı' },
-        ].map(({ value, label }) => (
-          <button key={value} onClick={() => setStatusFilter(value)}
-            className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-              statusFilter === value ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'
-            }`}>
-            {label}
-          </button>
-        ))}
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 mb-5">
+        <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit">
+          {[
+            { value: '', label: 'Tüm Durumlar' },
+            { value: 'active', label: 'Aktif' },
+            { value: 'draft', label: 'Taslak' },
+            { value: 'ended', label: 'Kapalı' },
+          ].map(({ value, label }) => (
+            <button key={value} onClick={() => setStatusFilter(value)}
+              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                statusFilter === value ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'
+              }`}>
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Survey list */}
@@ -861,6 +1245,9 @@ export default function AnketlerPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <h3 className="font-semibold text-gray-900 truncate">{survey.title}</h3>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${TYPE_LABELS[survey.type]?.color ?? 'bg-gray-100 text-gray-600'}`}>
+                    {TYPE_LABELS[survey.type]?.label ?? survey.type}
+                  </span>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_COLORS[survey.status] ?? 'bg-gray-100 text-gray-600'}`}>
                     {STATUS_LABELS[survey.status] ?? survey.status}
                   </span>
@@ -879,6 +1266,12 @@ export default function AnketlerPage() {
 
               {/* Actions */}
               <div className="flex items-center gap-2 shrink-0">
+                {survey.status === 'draft' && (
+                  <button onClick={() => void quickStatusChange(survey, 'active')}
+                    className="px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors">
+                    Yayınla
+                  </button>
+                )}
                 <button onClick={() => void openResults(survey)}
                   className="px-3 py-1.5 text-xs font-medium border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors">
                   Sonuçlar
@@ -895,4 +1288,8 @@ export default function AnketlerPage() {
       )}
     </div>
   );
+}
+
+export default function AnketlerPage() {
+  return <SurveyAdminPage fixedType="anket" />;
 }

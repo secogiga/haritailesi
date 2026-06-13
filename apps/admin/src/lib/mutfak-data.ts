@@ -4,7 +4,7 @@ export type TierCfg = { label: string; short: string; color: string; bg: string;
 export type ActionCfgItem = { key: keyof MutfakTierActions; label: string; icon: string; color: string; solid: string; group: string };
 
 export const TIER_CFG: Record<string, TierCfg> = {
-  registered_user:     { label: 'Sahne Üyesi',               short: 'Sahne',  color: '#64748b', bg: 'bg-slate-50',  ring: 'ring-slate-300',  accent: 'text-slate-600'  },
+  registered_user:     { label: 'Kayıtlı',                   short: 'Kayıt',  color: '#64748b', bg: 'bg-slate-50',  ring: 'ring-slate-300',  accent: 'text-slate-600'  },
   haritailesi_genc:    { label: 'Haritailesi Genç',           short: 'H.Genç', color: '#0d9488', bg: 'bg-teal-50',   ring: 'ring-teal-300',   accent: 'text-teal-700'   },
   new_graduate_member: { label: 'Mesleğin Geleceği',          short: 'M.Gel.', color: '#f97316', bg: 'bg-orange-50', ring: 'ring-orange-300', accent: 'text-orange-700' },
   individual_member:   { label: 'Mesleğin Değer Ortağı',      short: 'M.D.O.', color: '#3b82f6', bg: 'bg-blue-50',   ring: 'ring-blue-300',   accent: 'text-blue-700'   },

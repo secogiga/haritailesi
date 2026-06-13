@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -27,11 +28,18 @@ import { CommunityModule } from './community/community.module';
 import { DonationsModule } from './donations/donations.module';
 import { MembershipModule } from './membership/membership.module';
 import { MarketplaceModule } from './marketplace/marketplace.module';
+import { StoreModule } from './store/store.module';
 import { CompetitionsModule } from './competitions/competitions.module';
 import { ExamsModule } from './exams/exams.module';
 import { SurveysModule } from './surveys/surveys.module';
 import { StudentClubsModule } from './student-clubs/student-clubs.module';
 import { QaModule } from './qa/qa.module';
+import { LibraryModule } from './library/library.module';
+import { AiModule } from './ai/ai.module';
+import { SchedulingModule } from './scheduling/scheduling.module';
+import { HealthModule } from './health/health.module';
+import { AutomationModule } from './automation/automation.module';
+import { OtpModule } from './otp/otp.module';
 import { UserThrottlerGuard } from './throttler/user-throttler.guard';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
@@ -48,6 +56,8 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     ]),
 
     ScheduleModule.forRoot(),
+
+    EventEmitterModule.forRoot({ wildcard: false, delimiter: '.', maxListeners: 20 }),
 
     // Faz 0 — Zemin modülleri
     DatabaseModule,   // PostgreSQL + Drizzle (global)
@@ -100,6 +110,12 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     // Pazaryeri — içerik talepleri, ilan panosu
     MarketplaceModule,
 
+    // Mağaza — ürünler, satıcılar, siparişler
+    StoreModule,
+
+    // OTP e-posta doğrulama
+    OtpModule,
+
     // Yarışmalar, Sınavlar, Anketler
     CompetitionsModule,
     ExamsModule,
@@ -110,6 +126,20 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
     // Topluluk Soru-Cevap
     QaModule,
+    // Meslek Kütüphanesi
+    LibraryModule,
+
+    // AI Asistan
+    AiModule,
+
+    // Görüşme & seans planlama (üyelik + mentorluk)
+    SchedulingModule,
+
+    // Observability
+    HealthModule,
+
+    // Event-driven automation rules
+    AutomationModule,
   ],
   controllers: [AppController],
   providers: [

@@ -69,6 +69,13 @@ export const userProfiles = pgTable(
     portfolioUrl: text('portfolio_url'),
     corporateName: text('corporate_name'),
     corporateRole: text('corporate_role'),
+    // İletişim kanalı — SMS ve WhatsApp için
+    phone: text('phone'),
+    whatsappConsent: boolean('whatsapp_consent').notNull().default(false),
+    smsConsent: boolean('sms_consent').notNull().default(false),
+    // Admin'in üye hakkındaki dahili notları — uygulamadan taşınır, kullanıcıya gösterilmez
+    internalNotes: text('internal_notes'),
+    sndSubscribed: boolean('snd_subscribed').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

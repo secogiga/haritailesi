@@ -171,20 +171,34 @@ function QuestionCard({ item, token, userName }: { item: QaItem; token: string |
           {/* Answers */}
           {item.answers.map(ans => (
             <div key={ans.id} className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-[#66aca9] text-white rounded-lg flex items-center justify-center text-xs font-bold shrink-0">C</div>
+              <div className={`w-8 h-8 text-white rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${ans.source === 'admin' ? 'bg-[#26496b]' : 'bg-[#66aca9]'}`}>
+                {ans.source === 'admin' ? '★' : 'C'}
+              </div>
               <div className="flex-1">
-                <div className="bg-gradient-to-br from-[#f4f9f9] to-[var(--card)] dark:from-[#1a3a3a]/20 rounded-xl border border-[#66aca9]/20 px-4 py-3">
+                <div className={`bg-gradient-to-br rounded-xl border px-4 py-3 ${ans.source === 'admin' ? 'from-[#26496b]/5 to-[var(--card)] border-[#26496b]/20 dark:from-[#26496b]/20' : 'from-[#f4f9f9] to-[var(--card)] border-[#66aca9]/20 dark:from-[#1a3a3a]/20'}`}>
                   <p className="text-sm text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap">{ans.body}</p>
                 </div>
-                <p className="text-xs text-[var(--text-muted)] mt-1.5 pl-1">
-                  {ans.source === 'admin'
-                    ? 'Haritailesi Uzman Ekibi'
-                    : ans.submitterName
-                      ? `${ans.submitterName} · ${ans.tierLabel ?? 'Haritailesi Üyesi'}`
-                      : (ans.tierLabel ?? 'Haritailesi Üyesi')
-                  } •{' '}
-                  {new Date(ans.updatedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}
-                </p>
+                <div className="flex items-center gap-2 mt-1.5 pl-1 flex-wrap">
+                  {ans.source === 'admin' ? (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#26496b] text-white">
+                      Uzman Ekibi
+                    </span>
+                  ) : (
+                    <>
+                      <span className="text-xs text-[var(--text-muted)]">
+                        {ans.submitterName ?? 'Haritailesi Üyesi'}
+                      </span>
+                      {ans.tierLabel && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#66aca9]/15 text-[#66aca9]">
+                          {ans.tierLabel}
+                        </span>
+                      )}
+                    </>
+                  )}
+                  <span className="text-[10px] text-[var(--text-muted)]">
+                    • {new Date(ans.updatedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}
+                  </span>
+                </div>
               </div>
             </div>
           ))}

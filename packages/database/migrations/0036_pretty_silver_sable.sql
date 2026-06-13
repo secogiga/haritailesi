@@ -1,0 +1,1 @@
+ALTER TABLE "projects" ADD COLUMN "linkedin_view_count" integer DEFAULT 0 NOT NULL;

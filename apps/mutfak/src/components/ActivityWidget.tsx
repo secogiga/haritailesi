@@ -26,7 +26,7 @@ export function ActivityWidget() {
   if (items.length === 0) return null;
 
   return (
-    <div className="mb-5 bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+    <div className="mb-3 bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
       <div className="px-4 py-2.5 border-b border-gray-50">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Bu Hafta Siz</p>
       </div>

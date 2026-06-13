@@ -1,10 +1,9 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Req, Sse } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query, Req, Sse } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { IsString, MaxLength } from 'class-validator';
 import { Observable } from 'rxjs';
 import { MessagesService } from './messages.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { RequirePermission } from '../rbac/rbac.decorator';
 import type { RequestUser } from '../auth/auth.types';
 import type { Request as ExpressRequest } from 'express';
 
@@ -36,8 +35,13 @@ export class MessagesController {
   getMessages(
     @CurrentUser() user: RequestUser,
     @Param('userId', ParseUUIDPipe) userId: string,
+    @Query('limit') limit?: string,
+    @Query('before') before?: string,
   ) {
-    return this.messagesService.getMessages(user.id, userId);
+    return this.messagesService.getMessages(user.id, userId, {
+      ...(limit ? { limit: parseInt(limit, 10) } : {}),
+      ...(before ? { before } : {}),
+    });
   }
 
   @Post(':userId')
@@ -46,7 +50,10 @@ export class MessagesController {
     @Param('userId', ParseUUIDPipe) userId: string,
     @Body() dto: SendMessageDto,
   ) {
-    return this.messagesService.sendMessage(user.id, userId, dto.body);
+    // Member→member: recipient must be active
+    return this.messagesService.sendMessage(user.id, userId, dto.body, {
+      requireRecipientActive: true,
+    });
   }
 
   @Patch(':userId/read')
@@ -56,5 +63,14 @@ export class MessagesController {
     @Param('userId', ParseUUIDPipe) userId: string,
   ) {
     return this.messagesService.markThreadRead(user.id, userId);
+  }
+
+  @Delete(':userId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteThread(
+    @CurrentUser() user: RequestUser,
+    @Param('userId', ParseUUIDPipe) userId: string,
+  ) {
+    await this.messagesService.deleteThread(user.id, userId);
   }
 }

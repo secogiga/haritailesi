@@ -108,7 +108,7 @@ export const ALL_ACTIONS: RehberAction[] = [
   { id: 'v-etkinlikler', category: 1, icon: '📅', label: 'Etkinliklere Bak',                   href: '/etkinlikler' },
   { id: 'v-mentorluk',   category: 1, icon: '🤝', label: 'Mentorluk Alanını Keşfet',           href: '/mentorluk' },
   { id: 'v-forum',       category: 1, icon: '💬', label: 'Forumu İncele',                       href: '/forum' },
-  { id: 'v-sc',          category: 1, icon: '❓', label: 'Soru & Cevap\'ı Keşfet',               href: '/soru-cevap' },
+  { id: 'v-sc',          category: 1, icon: '❓', label: 'Soru & Cevap\'ı Keşfet',               href: '/kutuphane/soru-cevap' },
   { id: 'v-projeler',    category: 1, icon: '🗺️', label: 'Projeleri Gör',                      href: '/projeler' },
   { id: 'v-egitim',      category: 1, icon: '📚', label: 'Eğitimlere Bak',                     href: '/egitim' },
   { id: 'v-hgenc',       category: 1, icon: '🎯', label: 'Haritailesi Genç Alanı',             href: '/genc' },
@@ -144,10 +144,10 @@ export const ALL_ACTIONS: RehberAction[] = [
 
   // ── 3: Oluşturmak ─────────────────────────────────────────────────────
   { id: 'c-gonderi',     category: 3, icon: '✍️', label: 'Mutfak\'ta Gönderi Paylaş',          href: MUTFAK, external: true, requiredTiers: MEMBER_TIERS, isAhaMoment: true },
-  { id: 'c-forum-soru',  category: 3, icon: '❓', label: 'Forum Sorusu Aç',                    href: '/soru-cevap', requiredTiers: MEMBER_TIERS },
+  { id: 'c-forum-soru',  category: 3, icon: '❓', label: 'Forum Sorusu Aç',                    href: '/kutuphane/soru-cevap', requiredTiers: MEMBER_TIERS },
   { id: 'c-forum-cevap', category: 3, icon: '📚', label: 'Mutfak Kütüphanesi',                  href: '/forum', requiredTiers: MEMBER_TIERS },
-  { id: 'c-sc-soru',     category: 3, icon: '🤔', label: 'S&C Sorusu Sor',                     href: '/soru-cevap', requiredTiers: MEMBER_TIERS },
-  { id: 'c-sc-cevap',    category: 3, icon: '✅', label: 'S&C Cevabı Ver',                     href: '/soru-cevap', requiredTiers: MEMBER_TIERS },
+  { id: 'c-sc-soru',     category: 3, icon: '🤔', label: 'S&C Sorusu Sor',                     href: '/kutuphane/soru-cevap', requiredTiers: MEMBER_TIERS },
+  { id: 'c-sc-cevap',    category: 3, icon: '✅', label: 'S&C Cevabı Ver',                     href: '/kutuphane/soru-cevap', requiredTiers: MEMBER_TIERS },
   { id: 'c-haberita',    category: 3, icon: '📰', label: 'Haberita\'ya İçerik Gönder',         href: 'https://haberita.com', external: true, requiredTiers: MEMBER_TIERS },
   { id: 'c-ilan',        category: 3, icon: '📌', label: 'İlan Oluştur',                        href: '/ilanlar', requiredTiers: MEMBER_TIERS },
   { id: 'c-urun',        category: 3, icon: '🛍️', label: 'Mağazada Ürün Oluştur',             href: '/magaza', requiredTiers: ['corporate_member'] },

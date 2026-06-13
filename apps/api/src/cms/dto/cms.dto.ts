@@ -365,6 +365,22 @@ export class CreateProjectDto {
   @IsOptional()
   @IsArray()
   editorialStrengths?: string[];
+
+  @IsOptional()
+  @IsString()
+  university?: string;
+
+  @IsOptional()
+  @IsString()
+  graduationType?: string;
+
+  @IsOptional()
+  @IsInt()
+  graduationYear?: number;
+
+  @IsOptional()
+  @IsString()
+  projectCategory?: string;
 }
 
 export class UpdateProjectDto {

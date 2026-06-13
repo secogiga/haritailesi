@@ -1386,6 +1386,10 @@ export class CmsService {
         ...(dto.editorialNote !== undefined ? { editorialNote: dto.editorialNote } : {}),
         ...(dto.editorialScore !== undefined ? { editorialScore: dto.editorialScore } : {}),
         ...(dto.editorialStrengths !== undefined ? { editorialStrengths: dto.editorialStrengths } : {}),
+        ...(dto.university !== undefined ? { university: dto.university } : {}),
+        ...(dto.graduationType !== undefined ? { graduationType: dto.graduationType } : {}),
+        ...(dto.graduationYear !== undefined ? { graduationYear: dto.graduationYear } : {}),
+        ...(dto.projectCategory !== undefined ? { projectCategory: dto.projectCategory } : {}),
         createdBy: createdById,
       })
       .returning();

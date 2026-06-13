@@ -39,8 +39,12 @@ export const competitionApplications = pgTable(
     email: text('email').notNull(),
     displayName: text('display_name').notNull(),
     notes: text('notes'),
+    fileKey: text('file_key'),   // MinIO key for uploaded submission file
+    fileName: text('file_name'), // original filename shown in admin
     source: text('source').notNull().default('sahne'), // sahne|mutfak
     status: text('status').notNull().default('received'), // received|shortlisted|winner|rejected
+    juryScore: integer('jury_score'),
+    juryNotes: text('jury_notes'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

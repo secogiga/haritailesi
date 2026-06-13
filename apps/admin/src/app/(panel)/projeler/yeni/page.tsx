@@ -5,39 +5,22 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { adminApi } from '@/lib/api';
 
+const CATEGORIES = [
+  'Mesleki Uygulama',
+  'Mesleki Proje',
+  'Eğitim',
+  'Bilgi Paylaşımı',
+  'Analiz Çalışması',
+  'Mesleki Yayın',
+  'Blog Yazısı',
+  'Saha Ölçümü',
+];
+
+const GRADUATION_TYPES = ['Lisans', 'Yüksek Lisans', 'Doktora', 'Ön Lisans', 'Lise'];
+
 const AVATAR_COLORS = [
-  { label: 'Lacivert', value: '#26496b' },
-  { label: 'Teal', value: '#66aca9' },
-  { label: 'Yeşil', value: '#059669' },
-  { label: 'Sarı', value: '#d97706' },
-  { label: 'Turuncu', value: '#f97316' },
-  { label: 'Mavi', value: '#2563eb' },
-  { label: 'Mor', value: '#9333ea' },
-  { label: 'Kırmızı', value: '#dc2626' },
-  { label: 'Pembe', value: '#db2777' },
-  { label: 'Gri', value: '#4b5563' },
-];
-
-const TAG_COLORS = [
-  { label: 'Yeşil', value: 'bg-emerald-100 text-emerald-700' },
-  { label: 'Sarı', value: 'bg-amber-100 text-amber-700' },
-  { label: 'Turuncu', value: 'bg-orange-100 text-orange-700' },
-  { label: 'Mavi', value: 'bg-blue-100 text-blue-700' },
-  { label: 'Mor', value: 'bg-purple-100 text-purple-700' },
-  { label: 'Kırmızı', value: 'bg-red-100 text-red-700' },
-  { label: 'Pembe', value: 'bg-pink-100 text-pink-700' },
-  { label: 'Gri', value: 'bg-gray-100 text-gray-700' },
-];
-
-const GRADIENTS = [
-  { label: 'Lacivert', value: 'from-[#26496b] to-[#1a3350]' },
-  { label: 'Yeşil', value: 'from-emerald-400 to-emerald-600' },
-  { label: 'Sarı', value: 'from-amber-400 to-amber-600' },
-  { label: 'Turuncu', value: 'from-orange-400 to-orange-600' },
-  { label: 'Mavi', value: 'from-blue-400 to-blue-600' },
-  { label: 'Mor', value: 'from-purple-400 to-purple-600' },
-  { label: 'Pembe', value: 'from-pink-400 to-pink-600' },
-  { label: 'Teal', value: 'from-teal-400 to-teal-600' },
+  '#26496b', '#66aca9', '#059669', '#d97706', '#f97316',
+  '#2563eb', '#9333ea', '#dc2626', '#db2777', '#4b5563',
 ];
 
 function toSlug(s: string) {
@@ -49,100 +32,66 @@ function toSlug(s: string) {
     .replace(/^-+|-+$/g, '');
 }
 
-interface ExternalLink { label: string; href: string }
+function toInitials(name: string) {
+  return name.trim().split(/\s+/).map((w) => w[0]).join('').toUpperCase().slice(0, 3);
+}
+
+function pickAvatarColor(initials: string) {
+  const i = (initials.charCodeAt(0) || 0) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[i]!;
+}
 
 export default function YeniProjePage() {
   const router = useRouter();
-  const [type, setType] = useState<'sahne' | 'linkedin'>('sahne');
-  const [title, setTitle] = useState('');
-  const [slug, setSlug] = useState('');
-  const [slugManual, setSlugManual] = useState(false);
-  const [summary, setSummary] = useState('');
-  const [body, setBody] = useState('');
-  const [status, setStatus] = useState<'active' | 'completed' | 'archived'>('active');
-  const [isPublished, setIsPublished] = useState(false);
-  const [authorName, setAuthorName] = useState('');
-  const [authorInitials, setAuthorInitials] = useState('');
-  const [authorAvatarColor, setAuthorAvatarColor] = useState(AVATAR_COLORS[0]!.value);
-  const [authorTag, setAuthorTag] = useState('');
-  const [authorTagColor, setAuthorTagColor] = useState(TAG_COLORS[0]!.value);
-  const [accentGradient, setAccentGradient] = useState(GRADIENTS[0]!.value);
+
   const [linkedinUrl, setLinkedinUrl] = useState('');
-  const [hashtagInput, setHashtagInput] = useState('');
-  const [externalLinks, setExternalLinks] = useState<ExternalLink[]>([]);
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [uploading, setUploading] = useState(false);
+  const [authorName, setAuthorName] = useState('');
+  const [graduationType, setGraduationType] = useState('');
+  const [university, setUniversity] = useState('');
+  const [graduationYear, setGraduationYear] = useState('');
+  const [title, setTitle] = useState('');
+  const [projectCategory, setProjectCategory] = useState('');
+  const [customCategory, setCustomCategory] = useState(false);
+  const [body, setBody] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-
-  function handleTitleChange(val: string) {
-    setTitle(val);
-    if (!slugManual) setSlug(toSlug(val));
-  }
-
-  function addExternalLink() {
-    setExternalLinks((l) => [...l, { label: '', href: '' }]);
-  }
-
-  function updateExternalLink(i: number, field: 'label' | 'href', val: string) {
-    setExternalLinks((l) => l.map((x, idx) => idx === i ? { ...x, [field]: val } : x));
-  }
-
-  function removeExternalLink(i: number) {
-    setExternalLinks((l) => l.filter((_, idx) => idx !== i));
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
 
-    if (!title.trim()) { setError('Başlık zorunludur.'); return; }
-    if (!slug.trim()) { setError('Slug zorunludur.'); return; }
+    if (!title.trim()) { setError('Proje adı zorunludur.'); return; }
+    if (!linkedinUrl.trim()) { setError('LinkedIn URL zorunludur.'); return; }
+    if (!authorName.trim()) { setError('Ad Soyad zorunludur.'); return; }
+
+    const slug = toSlug(title);
+    const initials = toInitials(authorName);
 
     try {
       setSaving(true);
-      setUploading(true);
-
-      const imageKeys: string[] = [];
-      for (const file of imageFiles) {
-        const { key } = await adminApi.uploadFile(file);
-        imageKeys.push(key);
-      }
-      setUploading(false);
-
-      const hashtags = hashtagInput
-        .split(/[,\s]+/)
-        .map((t) => t.replace(/^#/, '').trim())
-        .filter(Boolean);
-
-      const validLinks = externalLinks.filter((l) => l.label.trim() && l.href.trim());
-
-      await adminApi.createProject({
-        slug: slug.trim(),
+      const created = await adminApi.createProject({
+        slug,
         title: title.trim(),
-        summary: summary.trim() || null,
         body: body.trim() || null,
-        status,
-        isPublished,
-        type,
-        authorName: authorName.trim() || null,
-        authorInitials: authorInitials.trim() || null,
-        authorAvatarColor: authorAvatarColor || null,
-        authorTag: authorTag.trim() || null,
-        authorTagColor: authorTagColor || null,
-        accentGradient: accentGradient || null,
-        linkedinUrl: type === 'linkedin' ? linkedinUrl.trim() : null,
-        hashtags: hashtags.length ? hashtags : null,
-        externalLinks: validLinks.length ? validLinks : null,
-        imageKeys: imageKeys.length ? imageKeys : null,
+        status: 'active',
+        isPublished: true,
+        type: 'linkedin',
+        authorName: authorName.trim(),
+        authorInitials: initials,
+        authorAvatarColor: pickAvatarColor(initials),
+        accentGradient: 'from-[#26496b] to-[#1a3350]',
+        linkedinUrl: linkedinUrl.trim(),
+        university: university.trim() || null,
+        graduationType: graduationType || null,
+        graduationYear: graduationYear ? parseInt(graduationYear) : null,
+        projectCategory: projectCategory || null,
       });
 
-      router.push('/projeler');
+      router.push(`/projeler/${created.id}`);
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setSaving(false);
-      setUploading(false);
     }
   }
 
@@ -153,8 +102,8 @@ export default function YeniProjePage() {
     <form onSubmit={handleSubmit}>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Yeni Proje</h1>
-          <p className="text-sm text-gray-500 mt-1">Vakıf projesi ekle</p>
+          <h1 className="text-2xl font-bold text-gray-900">Haritakademi Projesi Ekle</h1>
+          <p className="text-sm text-gray-500 mt-1">Haritakademi veritabanından LinkedIn projesi aktar</p>
         </div>
         <div className="flex gap-2">
           <Link href="/projeler" className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">
@@ -165,7 +114,7 @@ export default function YeniProjePage() {
             disabled={saving}
             className="px-4 py-2 bg-[var(--color-mavi)] text-white text-sm font-medium rounded-lg hover:bg-[var(--color-mavi-acik)] disabled:opacity-50 transition-colors"
           >
-            {uploading ? 'Yükleniyor…' : saving ? 'Kaydediliyor…' : 'Kaydet'}
+            {saving ? 'Kaydediliyor…' : 'Kaydet'}
           </button>
         </div>
       </div>
@@ -176,249 +125,161 @@ export default function YeniProjePage() {
         </div>
       )}
 
-      {/* Type Tabs */}
-      <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-lg w-fit">
-        {(['sahne', 'linkedin'] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setType(t)}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-              type === t ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            {t === 'sahne' ? 'Sahne' : 'LinkedIn'}
-          </button>
-        ))}
-      </div>
+      <div className="max-w-2xl space-y-4">
 
-      <div className="grid grid-cols-3 gap-6">
-        {/* Left: Main content */}
-        <div className="col-span-2 space-y-4">
-          {/* Basic Info */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-700">Temel Bilgiler</h2>
-
-            <div>
-              <label className={labelCls}>Başlık *</label>
-              <input type="text" className={inputCls} value={title} onChange={(e) => handleTitleChange(e.target.value)} placeholder="Proje başlığı" />
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className={labelCls} style={{marginBottom: 0}}>URL Adresi *</label>
-                {slugManual && title && (
-                  <button
-                    type="button"
-                    onClick={() => { setSlug(toSlug(title)); setSlugManual(false); }}
-                    className="text-[11px] text-[var(--color-mavi)] hover:underline"
-                  >
-                    ↺ Başlıktan sıfırla
-                  </button>
-                )}
-              </div>
-              <input
-                type="text"
-                className={inputCls}
-                value={slug}
-                onChange={(e) => { setSlug(e.target.value); setSlugManual(true); }}
-                placeholder="ornek-proje-adi"
-              />
-              {slug ? (
-                <p className="mt-1 text-[11px] text-gray-400 font-mono">
-                  sahne.haritailesi.org/projeler/<span className="text-gray-600">{slug}</span>
-                </p>
-              ) : (
-                <p className="mt-1 text-[11px] text-gray-400">Başlık yazıldıkça otomatik doldurulur</p>
-              )}
-            </div>
-
-            <div>
-              <label className={labelCls}>Özet</label>
-              <textarea className={inputCls} rows={2} value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="Kısa açıklama" />
-            </div>
-
-            {type === 'sahne' && (
-              <div>
-                <label className={labelCls}>İçerik (body)</label>
-                <textarea className={inputCls} rows={8} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Proje detayları…" />
-              </div>
-            )}
-
-            {type === 'linkedin' && (
-              <div>
-                <label className={labelCls}>LinkedIn URL *</label>
-                <input type="url" className={inputCls} value={linkedinUrl} onChange={(e) => setLinkedinUrl(e.target.value)} placeholder="https://www.linkedin.com/feed/update/…" />
-              </div>
-            )}
+        {/* LinkedIn URL */}
+        <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+          <h2 className="text-sm font-semibold text-gray-700">LinkedIn Paylaşımı</h2>
+          <div>
+            <label className={labelCls}>Proje LinkedIn URL *</label>
+            <input
+              type="url"
+              className={inputCls}
+              value={linkedinUrl}
+              onChange={(e) => setLinkedinUrl(e.target.value)}
+              placeholder="https://www.linkedin.com/feed/update/…"
+            />
           </div>
-
-          {/* Author */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-700">Yazar Bilgileri</h2>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelCls}>Ad Soyad</label>
-                <input type="text" className={inputCls} value={authorName} onChange={(e) => setAuthorName(e.target.value)} placeholder="Ahmet Hakan Köksal" />
-              </div>
-              <div>
-                <label className={labelCls}>Baş Harfler</label>
-                <input type="text" className={inputCls} maxLength={3} value={authorInitials} onChange={(e) => setAuthorInitials(e.target.value.toUpperCase())} placeholder="AHK" />
-              </div>
-            </div>
-
-            <div>
-              <label className={labelCls}>Avatar Rengi</label>
-              <div className="flex flex-wrap gap-2 mt-1">
-                {AVATAR_COLORS.map((c) => (
-                  <button
-                    key={c.value}
-                    type="button"
-                    title={c.label}
-                    onClick={() => setAuthorAvatarColor(c.value)}
-                    className={`w-7 h-7 rounded-full ${authorAvatarColor === c.value ? 'ring-2 ring-offset-1 ring-gray-800' : ''}`}
-                    style={{ backgroundColor: c.value }}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelCls}>Etiket</label>
-                <input type="text" className={inputCls} value={authorTag} onChange={(e) => setAuthorTag(e.target.value)} placeholder="CBS & 3B Modelleme" />
-              </div>
-              <div>
-                <label className={labelCls}>Etiket Rengi</label>
-                <div className="flex flex-wrap gap-1.5 mt-1">
-                  {TAG_COLORS.map((c) => (
-                    <button
-                      key={c.value}
-                      type="button"
-                      title={c.label}
-                      onClick={() => setAuthorTagColor(c.value)}
-                      className={`px-2 py-0.5 rounded text-[10px] font-medium ${c.value} ${authorTagColor === c.value ? 'ring-2 ring-offset-1 ring-gray-800' : ''}`}
-                    >
-                      {c.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className={labelCls}>Vurgu Gradyanı</label>
-              <div className="flex flex-wrap gap-2 mt-1">
-                {GRADIENTS.map((g) => (
-                  <button
-                    key={g.value}
-                    type="button"
-                    title={g.label}
-                    onClick={() => setAccentGradient(g.value)}
-                    className={`w-8 h-5 rounded bg-gradient-to-r ${g.value} ${accentGradient === g.value ? 'ring-2 ring-offset-1 ring-gray-800' : ''}`}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Sahne extras */}
-          {type === 'sahne' && (
-            <>
-              <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-                <h2 className="text-sm font-semibold text-gray-700">Hashtag&apos;ler</h2>
-                <div>
-                  <label className={labelCls}>Hashtag&apos;ler (virgül veya boşlukla ayır)</label>
-                  <input type="text" className={inputCls} value={hashtagInput} onChange={(e) => setHashtagInput(e.target.value)} placeholder="CBS, 3B, web, haritakademi" />
-                  {hashtagInput && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {hashtagInput.split(/[,\s]+/).filter(Boolean).map((t) => (
-                        <span key={t} className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">#{t.replace(/^#/, '')}</span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-gray-700">Dış Linkler</h2>
-                  <button type="button" onClick={addExternalLink} className="text-xs text-[var(--color-mavi)] hover:underline">+ Ekle</button>
-                </div>
-                {externalLinks.map((link, i) => (
-                  <div key={i} className="flex gap-2 items-start">
-                    <input type="text" placeholder="Etiket" className={`${inputCls} flex-1`} value={link.label} onChange={(e) => updateExternalLink(i, 'label', e.target.value)} />
-                    <input type="url" placeholder="https://…" className={`${inputCls} flex-2`} value={link.href} onChange={(e) => updateExternalLink(i, 'href', e.target.value)} />
-                    <button type="button" onClick={() => removeExternalLink(i)} className="text-red-400 hover:text-red-600 text-lg leading-none mt-1.5">×</button>
-                  </div>
-                ))}
-                {externalLinks.length === 0 && <p className="text-xs text-gray-400">Henüz link yok.</p>}
-              </div>
-
-              <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
-                <h2 className="text-sm font-semibold text-gray-700">Görseller</h2>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => setImageFiles(Array.from(e.target.files ?? []))}
-                  className="text-sm text-gray-600 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
-                />
-                {imageFiles.length > 0 && (
-                  <p className="text-xs text-gray-500">{imageFiles.length} dosya seçildi</p>
-                )}
-              </div>
-            </>
-          )}
         </div>
 
-        {/* Right: Settings */}
-        <div className="space-y-4">
-          <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-700">Yayın</h2>
+        {/* Yazar */}
+        <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+          <h2 className="text-sm font-semibold text-gray-700">Haritakademici</h2>
 
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-700">Yayında</span>
-              <button
-                type="button"
-                onClick={() => setIsPublished((v) => !v)}
-                className={`w-10 h-5 rounded-full transition-colors relative ${isPublished ? 'bg-[var(--color-mavi)]' : 'bg-gray-200'}`}
-              >
-                <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${isPublished ? 'left-5' : 'left-0.5'}`} />
-              </button>
-            </div>
+          <div>
+            <label className={labelCls}>Adı Soyadı *</label>
+            <input
+              type="text"
+              className={inputCls}
+              value={authorName}
+              onChange={(e) => setAuthorName(e.target.value)}
+              placeholder="Ahmet Hakan Köksal"
+            />
+            {authorName && (
+              <p className="mt-1 text-[11px] text-gray-400">
+                Baş harfler: <span className="font-mono text-gray-600">{toInitials(authorName)}</span>
+              </p>
+            )}
+          </div>
 
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelCls}>Durum</label>
-              <select className={inputCls} value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
-                <option value="active">Aktif</option>
-                <option value="completed">Tamamlandı</option>
-                <option value="archived">Arşivlendi</option>
+              <label className={labelCls}>Mezuniyet Türü</label>
+              <select
+                className={inputCls}
+                value={graduationType}
+                onChange={(e) => setGraduationType(e.target.value)}
+              >
+                <option value="">— Seçin —</option>
+                {GRADUATION_TYPES.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
               </select>
+            </div>
+            <div>
+              <label className={labelCls}>Mezuniyet Yılı</label>
+              <input
+                type="number"
+                className={inputCls}
+                value={graduationYear}
+                onChange={(e) => setGraduationYear(e.target.value)}
+                placeholder="2022"
+                min={1980}
+                max={2030}
+              />
             </div>
           </div>
 
-          {/* Preview */}
-          {(authorInitials || authorName) && (
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <h2 className="text-sm font-semibold text-gray-700 mb-3">Önizleme</h2>
-              <div className={`rounded-xl bg-gradient-to-br ${accentGradient} p-3`}>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: authorAvatarColor }}>
-                    {authorInitials || authorName.substring(0, 2).toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="text-white text-xs font-medium leading-tight">{authorName || '—'}</p>
-                    {authorTag && (
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${authorTagColor}`}>{authorTag}</span>
-                    )}
-                  </div>
-                </div>
-                {title && <p className="text-white text-xs font-semibold mt-2 line-clamp-2">{title}</p>}
+          <div>
+            <label className={labelCls}>Mezun Olduğu Üniversite</label>
+            <input
+              type="text"
+              className={inputCls}
+              value={university}
+              onChange={(e) => setUniversity(e.target.value)}
+              placeholder="Karadeniz Teknik Üniversitesi"
+            />
+          </div>
+        </div>
+
+        {/* Proje */}
+        <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+          <h2 className="text-sm font-semibold text-gray-700">Proje</h2>
+
+          <div>
+            <label className={labelCls}>Proje Adı *</label>
+            <input
+              type="text"
+              className={inputCls}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Proje başlığı"
+            />
+            {title && (
+              <p className="mt-1 text-[11px] text-gray-400 font-mono">
+                sahne.haritailesi.org/projeler/<span className="text-gray-600">{toSlug(title)}</span>
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className={labelCls}>Kategori</label>
+            {!customCategory ? (
+              <select
+                className={inputCls}
+                value={projectCategory}
+                onChange={(e) => {
+                  if (e.target.value === '__custom__') {
+                    setCustomCategory(true);
+                    setProjectCategory('');
+                  } else {
+                    setProjectCategory(e.target.value);
+                  }
+                }}
+              >
+                <option value="">— Seçin —</option>
+                {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                <option value="__custom__">+ Yeni kategori ekle…</option>
+              </select>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  className={inputCls}
+                  value={projectCategory}
+                  onChange={(e) => setProjectCategory(e.target.value)}
+                  placeholder="Yeni kategori adı"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => { setCustomCategory(false); setProjectCategory(''); }}
+                  className="px-3 py-2 text-xs text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 whitespace-nowrap"
+                >
+                  Listeden seç
+                </button>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+
+          <div>
+            <label className={labelCls}>Proje Hikayesi</label>
+            <textarea
+              className={inputCls}
+              rows={10}
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder="LinkedIn paylaşım metni…"
+            />
+          </div>
+        </div>
+
+        {/* Otomatik alanlar bilgisi */}
+        <div className="bg-gray-50 rounded-xl border border-dashed border-gray-200 p-4">
+          <p className="text-xs text-gray-400 font-medium mb-1">Otomatik oluşturulan alanlar</p>
+          <p className="text-xs text-gray-400">
+            URL adresi · Tür (LinkedIn) · Durum (Aktif) · Yayın durumu (Yayında) · Avatar rengi · Gradyan
+          </p>
         </div>
       </div>
     </form>

@@ -44,6 +44,13 @@ export default function MemberProfilePage() {
   const [following, setFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
 
+  const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000';
+  type XpInfo = { xp: number; pct: number; current: { label: string; emoji: string }; next: { label: string; emoji: string; minXp: number } | null; lessonXp?: number; quizXp?: number };
+  type EnrollInfo = { trainingId: string; slug: string; title: string; level: string | null; progressPct: number; completedAt: string | null };
+  const [xpInfo, setXpInfo] = useState<XpInfo | null>(null);
+  const [enrollments, setEnrollments] = useState<EnrollInfo[]>([]);
+  const isMe = me?.id === userId;
+
   useEffect(() => {
     if (!token || !userId) return;
     Promise.all([
@@ -57,7 +64,26 @@ export default function MemberProfilePage() {
       })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Profil yüklenemedi.'))
       .finally(() => setLoading(false));
-  }, [userId, token]);
+
+    // XP ve kurs verileri
+    const h = { Authorization: `Bearer ${token}` };
+    if (isMe) {
+      // Kendi profili: tam veri
+      fetch(`${API_URL}/api/v1/cms/my-xp`, { headers: h })
+        .then(r => r.ok ? r.json() : null).then(d => setXpInfo(d as XpInfo)).catch(() => {});
+      fetch(`${API_URL}/api/v1/cms/trainings/enrollments/mine`, { headers: h })
+        .then(r => r.ok ? r.json() : []).then(d => setEnrollments((d as EnrollInfo[]).slice(0, 6))).catch(() => {});
+    } else {
+      // Başkasının profili: public stats (XP + rank + sayılar)
+      fetch(`${API_URL}/api/v1/cms/learner-stats/${userId}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(d => {
+          if (!d) return;
+          const stats = d as { xp: number; rank: { label: string; emoji: string; minXp: number }; nextRank: { label: string; emoji: string; minXp: number } | null; pct: number };
+          setXpInfo({ xp: stats.xp, pct: stats.pct, current: stats.rank, next: stats.nextRank, lessonXp: 0, quizXp: 0 } as XpInfo);
+        }).catch(() => {});
+    }
+  }, [userId, token, isMe, API_URL]);
 
   function handleBack() {
     if (window.history.length > 1) router.back();
@@ -111,7 +137,6 @@ export default function MemberProfilePage() {
     );
   }
 
-  const isMe = me?.id === member.id;
   const active = isActive(member.lastLoginAt);
   const tierLabel = TIER_LABELS_LOCAL[member.membershipTier] ?? member.membershipTier;
 
@@ -312,6 +337,66 @@ export default function MemberProfilePage() {
           )}
         </div>
       </div>
+
+      {/* XP + Rank + Kurslar */}
+      {(xpInfo || enrollments.length > 0) && (
+        <div className="mb-6 space-y-3">
+          {/* XP Rank kartı */}
+          {xpInfo && (
+            <div className="bg-gradient-to-br from-[#0d1b2a] to-[#26496b] rounded-2xl p-5 text-white relative overflow-hidden">
+              <div className="absolute inset-0 opacity-[0.04]"
+                style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+              <div className="relative flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-white/10 flex flex-col items-center justify-center shrink-0 border border-white/15">
+                  <span className="text-2xl leading-none">{xpInfo.current.emoji}</span>
+                  <span className="text-[9px] font-bold text-white/60 mt-0.5 uppercase tracking-wide">{xpInfo.current.label}</span>
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-baseline gap-2 mb-1.5">
+                    <span className="text-2xl font-black text-[#66aca9]">{xpInfo.xp}</span>
+                    <span className="text-xs text-white/50">XP</span>
+                    {xpInfo.next && <span className="text-xs text-white/35 ml-auto">{xpInfo.next.emoji} {xpInfo.next.label}: {xpInfo.next.minXp} XP</span>}
+                  </div>
+                  <div className="w-full bg-white/10 rounded-full h-2">
+                    <div className="h-2 rounded-full bg-gradient-to-r from-[#66aca9] to-emerald-400 transition-all"
+                      style={{ width: `${xpInfo.pct}%` }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Devam eden / tamamlanan kurslar */}
+          {enrollments.length > 0 && (
+            <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-50 dark:border-slate-800">
+                <p className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wide">Kurslar</p>
+              </div>
+              <div className="divide-y divide-gray-50 dark:divide-slate-800">
+                {enrollments.map(e => (
+                  <Link key={e.trainingId} href={`/egitim/${e.slug}`}
+                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
+                    <div className="w-8 h-8 rounded-lg bg-[#26496b]/10 flex items-center justify-center shrink-0 text-sm">
+                      {e.completedAt ? '✅' : '📖'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-gray-800 dark:text-slate-200 truncate">{e.title}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {e.level && <span className="text-[10px] text-gray-400">{e.level}</span>}
+                        <span className={`text-[10px] font-medium ${e.completedAt ? 'text-emerald-600' : 'text-[#26496b]'}`}>%{e.progressPct}</span>
+                      </div>
+                    </div>
+                    <div className="w-12 bg-gray-100 dark:bg-slate-700 rounded-full h-1.5 shrink-0">
+                      <div className={`h-1.5 rounded-full ${e.completedAt ? 'bg-emerald-500' : 'bg-[#26496b]'}`}
+                        style={{ width: `${e.progressPct}%` }} />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Projeler Vitrini */}
       {posts.filter((p) => p.type === 'project_call').length > 0 && (

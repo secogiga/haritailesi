@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { RowMenu } from '@/components/RowMenu';
 import { adminApi, type ExamResource } from '@/lib/api';
 
 const API = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000';
@@ -350,41 +351,41 @@ export default function SinavlarAdminPage() {
           {loading ? (
             <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="bg-white rounded-2xl border border-gray-200 h-16 animate-pulse" />)}</div>
           ) : (
-            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Kategori</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Tip</th>
-                    <th className="px-4 py-3 text-center font-semibold text-gray-600">Soru</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Durum</th>
-                    <th className="px-4 py-3"></th>
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">Kategori</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">Tip</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-400">Soru</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">Durum</th>
+                    <th className="px-4 py-3 w-10" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody>
                   {categories.map(cat => (
-                    <tr key={cat.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          {cat.iconEmoji && <span className="text-lg">{cat.iconEmoji}</span>}
+                    <tr key={cat.id} className="border-b border-gray-50 hover:bg-gray-50/70 transition-colors group">
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-2.5">
+                          {cat.iconEmoji && <span className="text-base">{cat.iconEmoji}</span>}
                           <div>
                             <p className="font-medium text-gray-900">{cat.name}</p>
-                            <p className="text-xs text-gray-400">{cat.slug}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">{cat.slug}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-gray-500">{EXAM_TYPES[cat.examType] ?? cat.examType}</td>
-                      <td className="px-4 py-3 text-center font-semibold text-gray-900">{cat.questionCount}</td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cat.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                      <td className="px-4 py-3.5 text-gray-500">{EXAM_TYPES[cat.examType] ?? cat.examType}</td>
+                      <td className="px-4 py-3.5 text-center font-semibold text-gray-900">{cat.questionCount}</td>
+                      <td className="px-4 py-3.5">
+                        <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${cat.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                           {cat.isActive ? 'Aktif' : 'Pasif'}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2 justify-end">
-                          <button onClick={() => void loadQuestions(cat)} className="text-xs px-3 py-1 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50">Sorular</button>
-                          <button onClick={() => openCatForm(cat)} className="text-xs px-3 py-1 bg-[#26496b] text-white rounded-lg hover:bg-[#1e3a56]">Düzenle</button>
-                        </div>
+                      <td className="px-4 py-3.5">
+                        <RowMenu items={[
+                          { label: 'Soruları Gör', onClick: () => void loadQuestions(cat) },
+                          { label: 'Düzenle', onClick: () => openCatForm(cat) },
+                        ]} />
                       </td>
                     </tr>
                   ))}

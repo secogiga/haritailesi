@@ -199,6 +199,7 @@ export class PostsService {
       viewerVote: params.viewerId
         ? sql<string | null>`(SELECT option_id FROM poll_votes WHERE post_id = ${posts.id} AND user_id = ${params.viewerId} LIMIT 1)`.as('viewer_vote')
         : sql<string | null>`NULL`.as('viewer_vote'),
+      libraryRefs: posts.libraryRefs,
     };
 
     const orderBy = isHot
@@ -261,6 +262,7 @@ export class PostsService {
         viewerVote: viewerId
           ? sql<string | null>`(SELECT option_id FROM poll_votes WHERE post_id = ${posts.id} AND user_id = ${viewerId} LIMIT 1)`.as('viewer_vote')
           : sql<string | null>`NULL`.as('viewer_vote'),
+        libraryRefs: posts.libraryRefs,
       })
       .from(posts)
       .innerJoin(userProfiles, eq(userProfiles.userId, posts.authorId))
@@ -294,6 +296,7 @@ export class PostsService {
       body: string;
       pollOptions?: string[];
       isPublic?: boolean;
+      libraryRefs?: { type: string; slug: string; title: string }[];
     },
   ) {
     const [created] = await this.db
@@ -306,6 +309,7 @@ export class PostsService {
         body: data.body,
         status: 'published',
         isPublic: data.isPublic ?? false,
+        ...(data.libraryRefs?.length ? { libraryRefs: data.libraryRefs as { type: 'term' | 'guide' | 'regulation'; slug: string; title: string }[] } : {}),
       })
       .returning();
 

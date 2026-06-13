@@ -12,6 +12,7 @@ import { SurveysService } from './surveys.service';
 class RespondDto {
   @IsObject() answers!: Record<string, string | string[]>;
   @IsOptional() @IsString() respondentEmail?: string;
+  @IsOptional() @IsString() emailToken?: string;
   @IsOptional() @IsString() source?: string;
   @IsOptional() @IsInt() @Type(() => Number) timeTaken?: number;
 }
@@ -208,6 +209,18 @@ export class SurveysController {
   }
 
   // ── Survey detail & respond ───────────────────────────────────────────────
+
+  @Public()
+  @Get('certificate/:code')
+  getCertificate(@Param('code') code: string) {
+    return this.service.getCertificateByCode(code);
+  }
+
+  @Public()
+  @Get(':id/wrong-stats')
+  getWrongStats(@Param('id') id: string) {
+    return this.service.getWrongStats(id);
+  }
 
   @Public()
   @Get(':id/results/segmented')

@@ -1,9 +1,10 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, VersioningType } from '@nestjs/common';
+import { ValidationPipe, VersioningType, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import type { Request, Response, NextFunction } from 'express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -13,6 +14,21 @@ async function bootstrap() {
   const port = configService.get<number>('PORT', 3000);
   const nodeEnv = configService.get<string>('NODE_ENV', 'development');
 
+  // Request logging — method, path, status, duration
+  const httpLogger = new Logger('HTTP');
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const { method, originalUrl } = req;
+    const start = Date.now();
+    res.on('finish', () => {
+      const ms = Date.now() - start;
+      const { statusCode } = res;
+      if (!originalUrl.startsWith('/api/v1/health')) {
+        httpLogger.log(`${method} ${originalUrl} ${statusCode} +${ms}ms`);
+      }
+    });
+    next();
+  });
+
   // Security headers
   app.use(helmet());
 
@@ -21,7 +37,7 @@ async function bootstrap() {
 
   // CORS — Mutfak, Sahne, Web, Admin'e izin ver
   app.enableCors({
-    origin: configService.get<string>('CORS_ORIGINS', 'http://localhost:3001,http://localhost:3002,http://localhost:3003').split(','),
+    origin: configService.get<string>('CORS_ORIGINS', 'http://localhost:3001,http://localhost:3002,http://localhost:3003,http://localhost:3004').split(','),
     credentials: true,
   });
 

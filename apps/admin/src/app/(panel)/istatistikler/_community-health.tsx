@@ -214,7 +214,7 @@ export default function CommunityHealthPanel({
           accent="bg-red-50 text-red-800"
         />
         <SummaryCard
-          label="Aha anina ulasan"
+          label="Farkındalık Anına Ulaşan"
           value={`%${healthSummary.ahaReachedPct}`}
           sub={`Ort. skor: ${healthSummary.avgAhaScore}`}
           accent="bg-amber-50 text-amber-800"

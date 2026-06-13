@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, index, boolean } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import {
   contentRequestTypeEnum,
@@ -78,3 +78,21 @@ export const jobListingsRelations = relations(jobListings, ({ one }) => ({
   submitter: one(users, { fields: [jobListings.submittedBy], references: [users.id] }),
   contentRequest: one(contentRequests, { fields: [jobListings.contentRequestId], references: [contentRequests.id] }),
 }));
+
+// ─── Listing Alert Subscriptions (Yeni ilan bildirimi) ────────────────────────
+
+export const listingAlertSubscriptions = pgTable(
+  'listing_alert_subscriptions',
+  {
+    id:        uuid('id').primaryKey().defaultRandom(),
+    email:     text('email').notNull(),
+    type:      text('type').notNull(),            // kategori (isbirligi, proje, …) veya 'all'
+    token:     text('token').notNull().unique(),  // unsubscribe token
+    confirmed: boolean('confirmed').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('listing_alert_email_type_idx').on(t.email, t.type),
+    index('listing_alert_token_idx').on(t.token),
+  ],
+);

@@ -1,0 +1,1 @@
+ALTER TYPE "public"."functional_role" ADD VALUE 'partner' BEFORE 'viewer';

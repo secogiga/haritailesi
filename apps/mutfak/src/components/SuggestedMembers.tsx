@@ -9,17 +9,19 @@ import { Avatar } from '@/components/Avatar';
 export function SuggestedMembers() {
   const token = useToken();
 
-  const { data: suggestions = [] } = useQuery({
+  const { data: rawSuggestions = [] } = useQuery({
     queryKey: ['suggested-members', token],
     queryFn: () => mutfakApi.getSuggestedMembers(token),
     staleTime: 10 * 60_000,
     enabled: !!token,
   });
 
+  const suggestions = rawSuggestions.slice(0, 2);
+
   if (suggestions.length === 0) return null;
 
   return (
-    <div className="mb-5 bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+    <div className="mb-3 bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
       <div className="px-4 py-2.5 border-b border-gray-50">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Tanıyor Olabilirsiniz</p>
       </div>

@@ -41,14 +41,26 @@ export default function IsbirligiPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!token) return;
+    if (!token || !user) return;
     setBusy(true);
     setError('');
+
+    const isSponsorship = form.interest === 'Etkinlik Sponsorluğu' || form.interest.toLowerCase().includes('sponsor');
+    const description = [
+      `Şirket: ${form.company}`,
+      `İlgi: ${form.interest || '—'}`,
+      '',
+      form.message,
+    ].filter(Boolean).join('\n');
+
     try {
-      await mutfakApi.submitCommunityFeedback({
-        subject: `İşbirliği Talebi — ${form.company} (${form.interest})`,
-        body: `Şirket: ${form.company}\n\n${form.message}`,
-        type: 'talep',
+      await mutfakApi.submitContentRequest({
+        email: user.email,
+        displayName: user.profile?.displayName ?? user.email,
+        source: 'mutfak',
+        type: isSponsorship ? 'sponsorluk' : 'magaza',
+        title: `${form.company} — ${form.interest || 'İşbirliği Talebi'}`,
+        description,
       }, token);
       setDone(true);
     } catch (err) {

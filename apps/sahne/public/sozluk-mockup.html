@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meslek Sözlüğü — Mockup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8f9fb; color: #111; }
+
+  /* ── Navbar ── */
+  .navbar {
+    height: 56px; background: #fff; border-bottom: 1px solid #e8eaed;
+    display: flex; align-items: center; padding: 0 24px; gap: 32px;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .logo { font-weight: 900; font-size: 15px; color: #0b1829; display: flex; align-items: center; gap: 8px; }
+  .logo-icon { width: 28px; height: 28px; background: #0b1829; border-radius: 7px; display: flex; align-items: center; justify-content: center; }
+  .logo-icon svg { width: 16px; height: 16px; fill: #F59E0B; }
+  .nav-links { display: flex; gap: 24px; flex: 1; }
+  .nav-link { font-size: 13px; color: #555; text-decoration: none; font-weight: 500; }
+  .nav-link.active { color: #0b1829; font-weight: 700; border-bottom: 2px solid #F59E0B; padding-bottom: 2px; }
+
+  /* ── Hero ── */
+  .hero { background: #0b1829; color: #fff; padding: 40px 24px 32px; }
+  .hero-inner { max-width: 1100px; margin: 0 auto; }
+  .hero-breadcrumb { font-size: 11px; color: rgba(255,255,255,.4); margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+  .hero h1 { font-size: 28px; font-weight: 900; margin-bottom: 6px; }
+  .hero-sub { font-size: 13px; color: rgba(255,255,255,.5); margin-bottom: 20px; }
+  .search-box {
+    display: flex; align-items: center; background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.12); border-radius: 12px;
+    padding: 0 16px; gap: 10px; max-width: 520px;
+  }
+  .search-box input { background: none; border: none; outline: none; color: #fff; font-size: 14px; padding: 12px 0; flex: 1; }
+  .search-box input::placeholder { color: rgba(255,255,255,.35); }
+  .search-icon { color: rgba(255,255,255,.35); }
+  .hero-stats { display: flex; gap: 24px; margin-top: 20px; }
+  .hero-stat { font-size: 12px; color: rgba(255,255,255,.45); display: flex; align-items: center; gap: 5px; }
+  .hero-stat strong { color: #F59E0B; font-size: 14px; font-weight: 800; }
+
+  /* ── Filter bar ── */
+  .filter-bar {
+    background: #fff; border-bottom: 1px solid #e8eaed;
+    position: sticky; top: 56px; z-index: 40; padding: 0 24px;
+  }
+  .filter-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 8px; padding: 10px 0; overflow-x: auto; }
+  .filter-chip {
+    font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 20px;
+    border: 1px solid #e0e3e8; background: #fff; color: #555; cursor: pointer; white-space: nowrap;
+  }
+  .filter-chip.active { background: #0b1829; color: #fff; border-color: #0b1829; }
+
+  /* ── Main Content ── */
+  .main-content { max-width: 1100px; margin: 0 auto; padding: 24px; display: grid; grid-template-columns: 1fr 240px; gap: 28px; align-items: start; }
+  .content-col { display: flex; flex-direction: column; gap: 28px; }
+
+  /* ── Sidebar ── */
+  .sidebar { display: flex; flex-direction: column; gap: 12px; }
+  .sidebar-card { background: #fff; border-radius: 14px; border: 1px solid #e8eaed; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+  .sidebar-title { font-size: 11px; font-weight: 800; color: #1a1a1a; letter-spacing: .04em; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; padding-bottom: 10px; border-bottom: 1px solid #f0f2f5; }
+  .sidebar-title::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #F59E0B; display: inline-block; flex-shrink: 0; }
+  .daily-label { font-size: 9px; font-weight: 800; color: #F59E0B; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 6px; }
+  .daily-name { font-size: 16px; font-weight: 900; color: #0b1829; margin-bottom: 3px; }
+  .daily-fullform { font-size: 11px; color: #999; font-style: italic; margin-bottom: 8px; }
+  .daily-def { font-size: 12px; color: #555; line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .trending-row { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 7px; cursor: pointer; transition: background .1s; }
+  .trending-row:hover { background: #f5f6f8; }
+  .trending-rank { width: 16px; font-size: 12px; font-weight: 800; color: #ccc; text-align: right; flex-shrink: 0; }
+  .trending-rank.top { color: #F59E0B; }
+  .trending-name { flex: 1; font-size: 13px; font-weight: 600; color: #1a1a1a; }
+  .trending-views { font-size: 12px; color: #bbb; font-weight: 500; }
+
+  /* ── Section header ── */
+  .section-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .section-hd-title { font-size: 15px; font-weight: 800; color: #0b1829; }
+  .section-hd-link { font-size: 12px; font-weight: 700; color: #26496b; text-decoration: none; }
+
+  /* ── Günün Terimi Hero ── */
+  .daily-hero {
+    background: #fff; border: 1px solid #e8eaed; border-radius: 18px;
+    padding: 28px 32px; display: flex; align-items: center; gap: 32px;
+    position: relative; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.05);
+  }
+  .daily-hero::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 4px; background: #F59E0B; border-radius: 18px 0 0 18px;
+  }
+  .daily-hero-body { flex: 1; }
+  .daily-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: #fef3c7; color: #92400e; font-size: 10px; font-weight: 800;
+    padding: 3px 10px; border-radius: 20px; letter-spacing: .06em; margin-bottom: 12px;
+  }
+  .daily-hero-name { font-size: 28px; font-weight: 900; color: #0b1829; margin-bottom: 2px; }
+  .daily-hero-fullform { font-size: 13px; color: #999; font-style: italic; margin-bottom: 10px; }
+  .daily-hero-def { font-size: 13px; color: #444; line-height: 1.6; margin-bottom: 16px; max-width: 520px; }
+  .daily-hero-btn { background: #F59E0B; color: #0b1829; border: none; font-size: 13px; font-weight: 800; padding: 10px 22px; border-radius: 10px; cursor: pointer; }
+  .daily-hero-img { width: 110px; height: 110px; display: flex; align-items: center; justify-content: center; font-size: 64px; flex-shrink: 0; opacity: .85; }
+  .daily-hero-stat { position: absolute; bottom: 14px; right: 20px; font-size: 11px; color: #bbb; display: flex; align-items: center; gap: 4px; }
+  .deco-star { position: absolute; color: #F59E0B; opacity: .18; font-size: 22px; pointer-events: none; }
+
+  /* ── Featured Grid ── */
+  .featured-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+  .featured-card {
+    background: #fff; border: 1px solid #e8eaed; border-radius: 14px;
+    padding: 18px 14px 14px; text-align: center; cursor: pointer;
+    transition: all .12s; box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  }
+  .featured-card:hover { border-color: #0b1829; box-shadow: 0 4px 14px rgba(0,0,0,.09); transform: translateY(-2px); }
+  .fc-icon { font-size: 32px; margin-bottom: 8px; }
+  .fc-name { font-size: 14px; font-weight: 800; color: #0b1829; margin-bottom: 3px; }
+  .fc-fullform { font-size: 11px; color: #999; margin-bottom: 10px; line-height: 1.4; }
+  .fc-views { font-size: 11px; color: #bbb; display: flex; align-items: center; justify-content: center; gap: 3px; }
+
+  /* ── Two column ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .col-card { background: #fff; border: 1px solid #e8eaed; border-radius: 14px; padding: 18px; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+
+  /* ── Son Eklenen rows ── */
+  .recent-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid #f0f2f5; }
+  .recent-row:last-of-type { border-bottom: none; }
+  .recent-dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; flex-shrink: 0; }
+  .recent-name { font-size: 13px; font-weight: 700; color: #0b1829; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .recent-tag { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px; background: #f0f2f5; color: #555; flex-shrink: 0; }
+  .badge-yeni { font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 10px; background: #d1fae5; color: #065f46; flex-shrink: 0; }
+  .recent-date { font-size: 10px; color: #ccc; flex-shrink: 0; }
+  .recent-views { font-size: 10px; color: #ccc; display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+  .daha-fazla { display: inline-block; margin-top: 12px; font-size: 12px; font-weight: 700; color: #26496b; text-decoration: none; }
+
+  /* ── Katkı Bekleyen rows ── */
+  .katki-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f0f2f5; }
+  .katki-row:last-of-type { border-bottom: none; }
+  .katki-icon { width: 34px; height: 34px; border-radius: 9px; background: #f0f2f5; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 15px; }
+  .katki-body { flex: 1; min-width: 0; }
+  .katki-name { font-size: 13px; font-weight: 700; color: #0b1829; }
+  .katki-status { font-size: 11px; color: #999; margin-top: 1px; }
+  .katki-btn { font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 8px; border: 1.5px solid #0b1829; background: #fff; color: #0b1829; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+  .katki-btn:hover { background: #0b1829; color: #fff; }
+
+  /* ── CTA Banner ── */
+  .cta-banner { max-width: 1100px; margin: 0 auto 40px; padding: 0 24px; }
+  .cta-banner-inner {
+    background: #0b1829; border-radius: 20px; padding: 28px 36px;
+    display: flex; align-items: center; gap: 24px; position: relative; overflow: hidden;
+  }
+  .cta-banner-text { flex: 1; }
+  .cta-banner-title { font-size: 20px; font-weight: 900; color: #fff; margin-bottom: 5px; }
+  .cta-banner-sub { font-size: 13px; color: rgba(255,255,255,.45); }
+  .cta-banner-btns { display: flex; gap: 10px; flex-shrink: 0; }
+  .cta-btn-secondary { background: rgba(255,255,255,.1); color: #fff; font-size: 13px; font-weight: 700; padding: 11px 22px; border-radius: 12px; border: none; cursor: pointer; }
+  .cta-btn-primary { background: #F59E0B; color: #0b1829; font-size: 13px; font-weight: 800; padding: 11px 22px; border-radius: 12px; border: none; cursor: pointer; }
+  .cta-deco { position: absolute; right: 100px; top: 50%; transform: translateY(-50%); font-size: 100px; opacity: .04; color: #fff; pointer-events: none; font-weight: 900; line-height: 1; }
+</style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    </div>
+    Haritailesi
+  </div>
+  <div class="nav-links">
+    <a class="nav-link" href="#">Bilgi Bankası</a>
+    <a class="nav-link" href="#">Soru & Çözümler</a>
+    <a class="nav-link active" href="#">Meslek Sözlüğü</a>
+    <a class="nav-link" href="#">Kendini Dene</a>
+    <a class="nav-link" href="#">Etkinlikler</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-breadcrumb">
+      <span>Meslek Kütüphanesi</span><span>›</span><span style="color:rgba(255,255,255,.7)">Meslek Sözlüğü</span>
+    </div>
+    <h1>Meslek Sözlüğü</h1>
+    <p class="hero-sub">Haritacılık ve geomatik alanında doğrulanmış terim tanımları</p>
+    <div class="search-box">
+      <svg class="search-icon" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" placeholder="Terim ara… (ör. aplikasyon, CBS, GNSS)">
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><strong>208</strong> terim</div>
+      <div class="hero-stat"><strong>35</strong> mevzuat bağlantısı</div>
+      <div class="hero-stat"><strong>13</strong> meslek alanı</div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter bar -->
+<div class="filter-bar">
+  <div class="filter-inner">
+    <div class="filter-chip active">Tümü</div>
+    <div class="filter-chip">Klasik Haritacılık</div>
+    <div class="filter-chip">CBS</div>
+    <div class="filter-chip">Fotogrametri</div>
+    <div class="filter-chip">Kadastro</div>
+    <div class="filter-chip">Uzaktan Algılama</div>
+    <div class="filter-chip">Gayrimenkul</div>
+    <div class="filter-chip">Yazılım</div>
+    <div class="filter-chip">Kamu</div>
+  </div>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+<div class="content-col">
+
+  <!-- Günün Terimi -->
+  <div class="daily-hero">
+    <span class="deco-star" style="top:12px;right:200px">✦</span>
+    <span class="deco-star" style="top:38px;right:162px;font-size:13px">✦</span>
+    <span class="deco-star" style="bottom:18px;right:185px;font-size:10px">✦</span>
+    <div class="daily-hero-body">
+      <div class="daily-chip">✦ GÜNÜN TERİMİ</div>
+      <div class="daily-hero-name">RTK</div>
+      <div class="daily-hero-fullform">Real-Time Kinematic</div>
+      <div class="daily-hero-def">Bir baz istasyonundan gerçek zamanlı düzeltme verisi alarak santimetre düzeyinde hassasiyetle konum belirleyen diferansiyel GNSS tekniğidir.</div>
+      <button class="daily-hero-btn">Detayını İncele →</button>
+    </div>
+    <div class="daily-hero-img">📡</div>
+    <div class="daily-hero-stat">
+      <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      128 kişi bugün okudu
+    </div>
+  </div>
+
+  <!-- Öne Çıkan Terimler -->
+  <div>
+    <div class="section-hd">
+      <div class="section-hd-title">Öne Çıkan Terimler</div>
+      <a class="section-hd-link" href="#">Tümünü Gör →</a>
+    </div>
+    <div class="featured-grid">
+      <div class="featured-card">
+        <div class="fc-icon">🗺️</div>
+        <div class="fc-name">CBS</div>
+        <div class="fc-fullform">Coğrafi Bilgi Sistemi</div>
+        <div class="fc-views"><svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> 1.587</div>
+      </div>
+      <div class="featured-card">
+        <div class="fc-icon">📡</div>
+        <div class="fc-name">GNSS</div>
+        <div class="fc-fullform">Global Navigation Satellite System</div>
+        <div class="fc-views"><svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> 1.204</div>
+      </div>
+      <div class="featured-card">
+        <div class="fc-icon">🔦</div>
+        <div class="fc-name">LiDAR</div>
+        <div class="fc-fullform">Light Detection And Ranging</div>
+        <div class="fc-views"><svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> 759</div>
+      </div>
+      <div class="featured-card">
+        <div class="fc-icon">📸</div>
+        <div class="fc-name">Fotogrametri</div>
+        <div class="fc-fullform">Photogrammetry</div>
+        <div class="fc-views"><svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> 842</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Son Eklenen + Katkı Bekleyen -->
+  <div class="two-col">
+
+    <!-- Sol: Son Eklenen -->
+    <div class="col-card">
+      <div class="section-hd">
+        <div class="section-hd-title">Son Eklenen Terimler</div>
+        <a class="section-hd-link" href="#">Tümünü Gör →</a>
+      </div>
+      <div class="recent-row">
+        <div class="recent-dot"></div>
+        <span class="recent-name">Ada</span>
+        <span class="recent-tag">Kadastro</span>
+        <span class="badge-yeni">YENİ</span>
+        <span class="recent-date">22 May 2024</span>
+        <span class="recent-views"><svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> 42</span>
+      </div>
+      <div class="recent-row">
+        <div class="recent-dot"></div>
+        <span class="recent-name">Spektral Band</span>
+        <span class="recent-tag">Uzaktan Algılama</span>
+        <span class="badge-yeni">YENİ</span>
+        <span class="recent-date">21 May 2024</span>
+        <span class="recent-views"><svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> 88</span>
+      </div>
+      <div class="recent-row">
+        <div class="recent-dot"></div>
+        <span class="recent-name">Bağlama Noktası</span>
+        <span class="recent-tag">Klasik Haritacılık</span>
+        <span class="badge-yeni">YENİ</span>
+        <span class="recent-date">20 May 2024</span>
+        <span class="recent-views"><svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> 67</span>
+      </div>
+      <div class="recent-row">
+        <div class="recent-dot"></div>
+        <span class="recent-name">Eğim Analizi</span>
+        <span class="recent-tag">CBS</span>
+        <span class="badge-yeni">YENİ</span>
+        <span class="recent-date">20 May 2024</span>
+        <span class="recent-views"><svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> 63</span>
+      </div>
+      <div class="recent-row">
+        <div class="recent-dot"></div>
+        <span class="recent-name">Drone Fotogrametri</span>
+        <span class="recent-tag">Fotogrametri</span>
+        <span class="badge-yeni">YENİ</span>
+        <span class="recent-date">19 May 2024</span>
+        <span class="recent-views"><svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> 76</span>
+      </div>
+      <a class="daha-fazla" href="#">Daha Fazlası →</a>
+    </div>
+
+    <!-- Sağ: Katkı Bekleyen -->
+    <div class="col-card">
+      <div class="section-hd">
+        <div class="section-hd-title">Katkı Bekleyen Terimler</div>
+      </div>
+      <div class="katki-row">
+        <div class="katki-icon">🚁</div>
+        <div class="katki-body">
+          <div class="katki-name">Drone Fotogrametrisi</div>
+          <div class="katki-status">Tanım geliştiriliyor</div>
+        </div>
+        <button class="katki-btn">Katkı Yap</button>
+      </div>
+      <div class="katki-row">
+        <div class="katki-icon">🤖</div>
+        <div class="katki-body">
+          <div class="katki-name">SLAM</div>
+          <div class="katki-status">Açıklama ve örnek bekleniyor</div>
+        </div>
+        <button class="katki-btn">Katkı Yap</button>
+      </div>
+      <div class="katki-row">
+        <div class="katki-icon">🏗️</div>
+        <div class="katki-body">
+          <div class="katki-name">BIM-GIS Entegrasyonu</div>
+          <div class="katki-status">Örnek uygulama bekleniyor</div>
+        </div>
+        <button class="katki-btn">Katkı Yap</button>
+      </div>
+      <div class="katki-row">
+        <div class="katki-icon">📈</div>
+        <div class="katki-body">
+          <div class="katki-name">Zaman Serisi Analizi</div>
+          <div class="katki-status">Kaynak eklenmesi bekleniyor</div>
+        </div>
+        <button class="katki-btn">Katkı Yap</button>
+      </div>
+    </div>
+
+  </div>
+
+</div><!-- /content-col -->
+
+<!-- Sidebar -->
+<div class="sidebar">
+
+  <!-- TOP 10 -->
+  <div class="sidebar-card">
+    <div class="sidebar-title">Terimler TOP 10</div>
+    <div class="trending-row"><span class="trending-rank top">1</span><span class="trending-name">CBS</span><span class="trending-views">1.587</span></div>
+    <div class="trending-row"><span class="trending-rank top">2</span><span class="trending-name">GNSS</span><span class="trending-views">1.204</span></div>
+    <div class="trending-row"><span class="trending-rank top">3</span><span class="trending-name">RTK</span><span class="trending-views">1.103</span></div>
+    <div class="trending-row"><span class="trending-rank">4</span><span class="trending-name">Kadastro</span><span class="trending-views">921</span></div>
+    <div class="trending-row"><span class="trending-rank">5</span><span class="trending-name">Fotogrametri</span><span class="trending-views">842</span></div>
+    <div class="trending-row"><span class="trending-rank">6</span><span class="trending-name">LiDAR</span><span class="trending-views">756</span></div>
+    <div class="trending-row"><span class="trending-rank">7</span><span class="trending-name">Ortofoto</span><span class="trending-views">634</span></div>
+    <div class="trending-row"><span class="trending-rank">8</span><span class="trending-name">Projeksiyon</span><span class="trending-views">489</span></div>
+    <div class="trending-row"><span class="trending-rank">9</span><span class="trending-name">Harita Projeksiyonu</span><span class="trending-views">391</span></div>
+    <div class="trending-row" style="background:#f5f6f8"><span class="trending-rank">10</span><span class="trending-name">Spektral Band</span><span class="trending-views">189</span></div>
+  </div>
+
+  <!-- En Aktif Katkı Verenler -->
+  <div class="sidebar-card">
+    <div class="sidebar-title">En Aktif Katkı Verenler</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:28px;height:28px;border-radius:50%;background:#0b1829;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#F59E0B;flex-shrink:0">Y</div>
+        <span style="flex:1;font-size:12px;font-weight:600;color:#1a1a1a">Yakımaz</span>
+        <span style="font-size:11px;color:#bbb">128 katkı</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:28px;height:28px;border-radius:50%;background:#26496b;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0">A</div>
+        <span style="flex:1;font-size:12px;font-weight:600;color:#1a1a1a">Ayşe Demir</span>
+        <span style="font-size:11px;color:#bbb">96 katkı</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:28px;height:28px;border-radius:50%;background:#374151;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0">M</div>
+        <span style="flex:1;font-size:12px;font-weight:600;color:#1a1a1a">Mehmet Kaya</span>
+        <span style="font-size:11px;color:#bbb">74 katkı</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:28px;height:28px;border-radius:50%;background:#4b5563;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0">Z</div>
+        <span style="flex:1;font-size:12px;font-weight:600;color:#1a1a1a">Zeynep Arslan</span>
+        <span style="font-size:11px;color:#bbb">58 katkı</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:28px;height:28px;border-radius:50%;background:#6b7280;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0">E</div>
+        <span style="flex:1;font-size:12px;font-weight:600;color:#1a1a1a">Emre Yıldız</span>
+        <span style="font-size:11px;color:#bbb">41 katkı</span>
+      </div>
+    </div>
+    <a href="#" style="display:block;margin-top:10px;padding-top:10px;border-top:1px solid #f0f2f5;font-size:11px;font-weight:700;color:#26496b;text-decoration:none">Tüm Katkı Verenler →</a>
+  </div>
+
+</div><!-- /sidebar -->
+
+</div><!-- /main-content -->
+
+<!-- CTA Banner -->
+<div class="cta-banner">
+  <div class="cta-banner-inner">
+    <div class="cta-deco">?</div>
+    <div class="cta-banner-text">
+      <div class="cta-banner-title">Eksik bir terim mi gördünüz?</div>
+      <div class="cta-banner-sub">Önerin onaylandığında sözlüğe eklenir, katkın kayıt altına alınır.</div>
+    </div>
+    <div class="cta-banner-btns">
+      <button class="cta-btn-secondary">Kütüphane</button>
+      <button class="cta-btn-primary">Terim Öner →</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

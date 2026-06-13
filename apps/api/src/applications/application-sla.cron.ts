@@ -1,7 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { ApplicationsService } from './applications.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { and, eq, gte, lte, lt, isNotNull, inArray } from 'drizzle-orm';
+import { InjectDb } from '../database/inject-db.decorator';
+import type { Database } from '@haritailesi/database';
+import { applications } from '@haritailesi/database';
+import { ApplicationQueryService } from './application-query.service';
 import { EmailService } from '../email/email.service';
+import { DomainEvent, domainEmit } from './events/domain-events';
+import type { DomainEventPayload } from './events/domain-events';
 
 const STATE_LABEL: Record<string, string> = {
   submitted:        'Yeni Başvuru',
@@ -23,8 +30,10 @@ export class ApplicationSlaCron {
   private readonly logger = new Logger(ApplicationSlaCron.name);
 
   constructor(
-    private readonly applicationsService: ApplicationsService,
+    @InjectDb() private readonly db: Database,
+    private readonly queryService: ApplicationQueryService,
     private readonly emailService: EmailService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   // Her gün 09:15 İstanbul saatiyle çalışır
@@ -32,7 +41,7 @@ export class ApplicationSlaCron {
   async checkSla() {
     this.logger.log('Başvuru SLA kontrolü başlatıldı…');
 
-    const stuck = await this.applicationsService.getStuckApplications();
+    const stuck = await this.queryService.getStuckApplications();
     if (!stuck.length) {
       this.logger.log('SLA ihlali yok.');
       return;
@@ -61,6 +70,99 @@ export class ApplicationSlaCron {
       this.logger.log(`SLA uyarı e-postası gönderildi → ${adminEmail}`);
     } catch (err) {
       this.logger.error('SLA e-posta gönderilemedi', err);
+    }
+  }
+
+  // Her gün 10:00 — son 48 saatte vadesi dolan başvurulara hatırlatma, geçmişleri expired yap
+  @Cron('0 10 * * *', { timeZone: 'Europe/Istanbul' })
+  async checkPaymentDeadlines() {
+    this.logger.log('Ödeme son tarih kontrolü başlatıldı…');
+
+    const now   = new Date();
+    const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+
+    // 1. Süresi dolmuş, hâlâ waiting_payment olanları expired'a çek
+    const expired = await this.db
+      .update(applications)
+      .set({ paymentStatus: 'expired', updatedAt: now })
+      .where(
+        and(
+          eq(applications.state, 'waiting_payment'),
+          isNotNull(applications.paymentDueAt),
+          lt(applications.paymentDueAt, now),
+          inArray(applications.paymentStatus, ['pending', 'reminded']),
+        ),
+      )
+      .returning({ id: applications.id });
+
+    if (expired.length) {
+      this.logger.warn(`${expired.length} başvurunun ödeme süresi doldu → expired işaretlendi.`);
+    }
+
+    // 2. Son 48 saatte vadesi dolacak, hâlâ pending olanları reminded yap + mail gönder
+    const upcoming = await this.db
+      .select()
+      .from(applications)
+      .where(
+        and(
+          eq(applications.state, 'waiting_payment'),
+          isNotNull(applications.paymentDueAt),
+          gte(applications.paymentDueAt, now),
+          lte(applications.paymentDueAt, in48h),
+          eq(applications.paymentStatus, 'pending'),
+        ),
+      );
+
+    if (!upcoming.length) {
+      this.logger.log('Yaklaşan ödeme son tarihi yok.');
+      return;
+    }
+
+    this.logger.log(`${upcoming.length} başvuruya son tarih hatırlatması gönderilecek.`);
+
+    for (const app of upcoming) {
+      const formData = app.formData as Record<string, unknown>;
+      const name   = String(formData['adSoyad'] ?? formData['ad_soyad'] ?? app.applicantEmail);
+      const dueStr = app.paymentDueAt
+        ? app.paymentDueAt.toLocaleDateString('tr-TR', { day: '2-digit', month: 'long', year: 'numeric' })
+        : '';
+
+      try {
+        // Email is sent directly here (not via orchestrator) to keep the
+        // "only mark reminded if delivery succeeded" guarantee intact.
+        await this.emailService.send(
+          app.applicantEmail,
+          'payment_reminder',
+          { displayName: name, paymentDueAt: dueStr, applicationType: app.type, applicationId: app.id },
+          { jobId: `payment_due_reminder:${app.id}:${now.toISOString().slice(0, 10)}` },
+        );
+
+        await this.db
+          .update(applications)
+          .set({
+            paymentStatus: 'reminded',
+            reminderCount: (app.reminderCount ?? 0) + 1,
+            lastReminderAt: now,
+            updatedAt: now,
+          })
+          .where(eq(applications.id, app.id));
+
+        // Emit domain event for push notification routing via orchestrator
+        domainEmit(this.eventEmitter, DomainEvent.PAYMENT_REMINDED, {
+          applicationId: app.id,
+          applicantEmail: app.applicantEmail,
+          applicantUserId: app.applicantUserId ?? null,
+          displayName: name,
+          actorId: null,
+          actorEmail: null,
+          timestamp: now,
+          metadata: { paymentDueAt: dueStr },
+        });
+
+        this.logger.log(`Ödeme hatırlatması → ${app.applicantEmail} (son: ${dueStr})`);
+      } catch (err) {
+        this.logger.error(`Ödeme hatırlatması gönderilemedi app=${app.id}`, err);
+      }
     }
   }
 }

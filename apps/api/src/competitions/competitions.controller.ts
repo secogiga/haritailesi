@@ -15,6 +15,7 @@ class ApplyDto {
   @IsString() @MinLength(2) displayName!: string;
   @IsOptional() @IsString() notes?: string;
   @IsOptional() @IsString() source?: string;
+  @IsString() emailToken!: string;
 }
 
 class CreateCompetitionDto {
@@ -64,6 +65,11 @@ export class CompetitionsController {
     return this.service.apply(id, { ...dto, ...(user?.id ? { userId: user.id } : {}), source: dto.source ?? 'sahne' });
   }
 
+  @Get('me/applications')
+  myApplications(@CurrentUser() user: RequestUser) {
+    return this.service.getMyApplications(user.id);
+  }
+
   // ── Admin ──────────────────────────────────────────────────────────────────
 
   @Get('admin/all')
@@ -95,6 +101,16 @@ export class CompetitionsController {
     return this.service.uploadPoster(id, file);
   }
 
+  @Public()
+  @Post('applications/:appId/file')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadApplicationFile(
+    @Param('appId') appId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.service.uploadApplicationFile(appId, file);
+  }
+
   @Get('admin/:id/applications')
   @RequirePermission('user.manage')
   listApplications(@Param('id') id: string) {
@@ -108,5 +124,15 @@ export class CompetitionsController {
     @Body('status') status: string,
   ) {
     return this.service.updateApplicationStatus(appId, status);
+  }
+
+  @Patch('admin/applications/:appId/jury')
+  @RequirePermission('user.manage')
+  updateApplicationJury(
+    @Param('appId') appId: string,
+    @Body('juryScore') juryScore: number | null,
+    @Body('juryNotes') juryNotes: string | null,
+  ) {
+    return this.service.updateApplicationJury(appId, juryScore, juryNotes);
   }
 }

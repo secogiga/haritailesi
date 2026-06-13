@@ -500,6 +500,9 @@ export const adminApi = {
   getLevelStats: () =>
     request<LevelStats>('/admin/dashboard/level-stats'),
 
+  getSenNeDersinStats: () =>
+    request<SenNeDersinStats>('/admin/dashboard/sen-ne-dersin-stats'),
+
   getMutfakBehaviorStats: (periodMonths: 3 | 6 | 12 = 12) =>
     request<MutfakBehaviorStats>(`/admin/dashboard/mutfak-behavior?period=${periodMonths}`),
 
@@ -1459,7 +1462,7 @@ export const adminApi = {
   bulkTagSubscribers: (emails: string[], addTags?: string[], removeTags?: string[]) =>
     request<{ updated: number }>('/admin/newsletter/subscribers/bulk-tag', { method: 'POST', body: JSON.stringify({ emails, addTags, removeTags }) }),
 
-  previewSegment: (body: { tags?: string[]; regions?: string[]; sources?: string[]; interestAreas?: string[]; behavior?: 'active_90d' | 'inactive_90d' | 'never_opened' }) =>
+  previewSegment: (body: { tags?: string[]; regions?: string[]; sources?: string[]; interestAreas?: string[]; behavior?: string }) =>
     request<{ count: number; sample: string[]; behaviorDataAvailable: boolean }>('/admin/newsletter/segments/preview', { method: 'POST', body: JSON.stringify(body) }),
 
   getBrevoContactsCount: () =>
@@ -1474,14 +1477,116 @@ export const adminApi = {
   importSubscribers: (emails: string[]) =>
     request<{ added: number; failed: number }>('/admin/newsletter/subscribers/import', { method: 'POST', body: JSON.stringify({ emails }) }),
 
-  previewSegment: (filters: { tags?: string[]; regions?: string[]; sources?: string[]; interestAreas?: string[]; behavior?: string }) =>
-    request<{ count: number; sample: string[]; behaviorDataAvailable: boolean }>('/admin/newsletter/segments/preview', { method: 'POST', body: JSON.stringify(filters) }),
-
   sendToSegment: (id: string, filters: { tags?: string[]; regions?: string[]; sources?: string[]; interestAreas?: string[]; behavior?: string }) =>
     request<{ ok: boolean; recipientCount: number; campaignId: number }>(`/admin/newsletter/newsletters/${id}/send-segment`, { method: 'POST', body: JSON.stringify(filters) }),
 
   getInactiveSubscribers: (days?: number) =>
     request<{ count: number; emails: string[]; thresholdDays: number }>(`/admin/newsletter/inactive-subscribers${days ? `?days=${days}` : ''}`),
+
+  // ─── Meslek Kütüphanesi ───────────────────────────────────────────────────────
+
+  listAdminTerms: (params?: { status?: string; q?: string }) => {
+    const qs = new URLSearchParams(Object.fromEntries(Object.entries(params ?? {}).filter(([, v]) => v)) as Record<string, string>).toString();
+    return request<LibraryTerm[]>(`/library/admin/terms${qs ? `?${qs}` : ''}`);
+  },
+
+  createLibraryTerm: (dto: { term: string; fullForm?: string; definition: string; fields?: string[]; tags?: string[]; isFeatured?: boolean }) =>
+    request<LibraryTerm>('/library/admin/terms', { method: 'POST', body: JSON.stringify(dto) }),
+
+  updateLibraryTerm: (id: string, dto: Record<string, unknown>) =>
+    request<LibraryTerm>(`/library/admin/terms/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+
+  deleteLibraryTerm: (id: string) =>
+    request<{ deleted: boolean }>(`/library/admin/terms/${id}`, { method: 'DELETE' }),
+
+  listAdminGuides: (params?: { status?: string }) => {
+    const qs = params?.status ? `?status=${params.status}` : '';
+    return request<LibraryGuide[]>(`/library/admin/guides${qs}`);
+  },
+
+  createLibraryGuide: (dto: { slug: string; title: string; summary: string; body?: string; type?: string; fields?: string[]; tags?: string[]; authorName?: string; readingTimeMinutes?: number }) =>
+    request<LibraryGuide>('/library/admin/guides', { method: 'POST', body: JSON.stringify(dto) }),
+
+  updateLibraryGuide: (id: string, dto: Record<string, unknown>) =>
+    request<LibraryGuide>(`/library/admin/guides/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+
+  deleteLibraryGuide: (id: string) =>
+    request<{ deleted: boolean }>(`/library/admin/guides/${id}`, { method: 'DELETE' }),
+
+  listAdminDocuments: (params?: { status?: string }) => {
+    const qs = params?.status ? `?status=${params.status}` : '';
+    return request<LibraryDocument[]>(`/library/admin/documents${qs}`);
+  },
+
+  createLibraryDocument: (dto: { title: string; description?: string; type?: string; fields?: string[]; tags?: string[]; authorName?: string; publishYear?: number; fileUrl?: string; externalUrl?: string }) =>
+    request<LibraryDocument>('/library/admin/documents', { method: 'POST', body: JSON.stringify(dto) }),
+
+  updateLibraryDocument: (id: string, dto: Record<string, unknown>) =>
+    request<LibraryDocument>(`/library/admin/documents/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+
+  deleteLibraryDocument: (id: string) =>
+    request<{ deleted: boolean }>(`/library/admin/documents/${id}`, { method: 'DELETE' }),
+
+  listAdminRegulations: (params?: { status?: string }) => {
+    const qs = params?.status ? `?status=${params.status}` : '';
+    return request<LibraryRegulation[]>(`/library/admin/regulations${qs}`);
+  },
+
+  createLibraryRegulation: (dto: { slug: string; title: string; shortTitle?: string; type?: string; fields?: string[]; issuingBody?: string; referenceNumber?: string; publishDate?: string; summary?: string; fullText?: string; externalUrl?: string }) =>
+    request<LibraryRegulation>('/library/admin/regulations', { method: 'POST', body: JSON.stringify(dto) }),
+
+  updateLibraryRegulation: (id: string, dto: Record<string, unknown>) =>
+    request<LibraryRegulation>(`/library/admin/regulations/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+
+  deleteLibraryRegulation: (id: string) =>
+    request<{ deleted: boolean }>(`/library/admin/regulations/${id}`, { method: 'DELETE' }),
+
+  listLibrarySuggestions: (status = 'pending') =>
+    request<LibrarySuggestion[]>(`/library/admin/suggestions?status=${status}`),
+
+  reviewLibrarySuggestion: (id: string, data: { status: 'approved' | 'rejected'; adminNote?: string }) =>
+    request<{ updated: boolean }>(`/library/admin/suggestions/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  listExamCategories: () =>
+    request<{ id: string; name: string; slug: string; examType: string }[]>('/library/admin/exam-categories'),
+
+  listExamQuestions: (categoryId?: string) => {
+    const qs = categoryId ? `?categoryId=${encodeURIComponent(categoryId)}` : '';
+    return request<LibraryExamQuestion[]>(`/library/admin/exam-questions${qs}`);
+  },
+
+  createExamQuestion: (dto: {
+    categoryId: string; questionText: string;
+    optionA: string; optionB: string; optionC: string; optionD: string; optionE?: string;
+    correctOption: string; explanation?: string; difficulty?: string; source?: string;
+    relatedTermSlugs?: string[];
+  }) =>
+    request<{ id: string }>('/library/admin/exam-questions', { method: 'POST', body: JSON.stringify(dto) }),
+
+  deleteExamQuestion: (id: string) =>
+    request<{ deleted: boolean }>(`/library/admin/exam-questions/${id}`, { method: 'DELETE' }),
+
+  listAdminPaths: (params?: { status?: string }) => {
+    const qs = params?.status ? `?status=${params.status}` : '';
+    return request<LibraryPath[]>(`/library/admin/paths${qs}`);
+  },
+
+  createLibraryPath: (dto: {
+    slug: string; title: string; description?: string; field?: string;
+    difficulty?: string; estimatedMinutes?: number; coverEmoji?: string;
+    items?: Array<{ contentType: string; contentId: string; slug: string; title: string; order: number }>;
+    status?: string;
+  }) =>
+    request<LibraryPath>('/library/admin/paths', { method: 'POST', body: JSON.stringify(dto) }),
+
+  updateLibraryPath: (id: string, dto: Record<string, unknown>) =>
+    request<LibraryPath>(`/library/admin/paths/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+
+  deleteLibraryPath: (id: string) =>
+    request<{ deleted: boolean }>(`/library/admin/paths/${id}`, { method: 'DELETE' }),
 };
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -2611,6 +2716,30 @@ export interface LevelStats {
   trackedUsers: number;
 }
 
+// ─── Sen Ne Dersin? Stats ─────────────────────────────────────────────────────
+
+export interface SenNeDersinStats {
+  summary: {
+    totalSurveys: number;
+    totalTests: number;
+    totalResponses: number;
+    responsesThisMonth: number;
+    testPassRate: number | null;
+    testAttempts: number;
+  };
+  byType: Record<string, number>;
+  byStatus: Record<string, number>;
+  topContent: Array<{
+    id: string;
+    title: string;
+    type: string;
+    slug: string | null;
+    responseCount: number;
+    viewCount: number;
+  }>;
+  dailyResponses: Array<{ day: string; count: number }>;
+}
+
 // ─── Newsletter ───────────────────────────────────────────────────────────────
 
 export interface Newsletter {
@@ -2650,4 +2779,128 @@ export interface MonthlyContent {
 export interface BrevoSubscribers {
   contacts: Array<{ email: string; createdAt: string; emailBlacklisted: boolean }>;
   count: number;
+}
+
+export interface LibraryTerm {
+  id: string;
+  slug: string | null;
+  term: string;
+  fullForm: string | null;
+  definition: string;
+  fields: string[];
+  tags: string[];
+  status: 'draft' | 'published' | 'archived';
+  isFeatured: boolean;
+  viewCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LibraryGuide {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  body: string | null;
+  type: string;
+  fields: string[];
+  tags: string[];
+  authorName: string | null;
+  status: 'draft' | 'published' | 'archived';
+  isFeatured: boolean;
+  readingTimeMinutes: number | null;
+  viewCount: number;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LibraryDocument {
+  id: string;
+  title: string;
+  description: string | null;
+  type: string;
+  fields: string[];
+  tags: string[];
+  fileUrl: string | null;
+  externalUrl: string | null;
+  authorName: string | null;
+  publishYear: number | null;
+  status: 'draft' | 'published' | 'archived';
+  isFeatured: boolean;
+  downloadCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LibraryRegulation {
+  id: string;
+  slug: string;
+  title: string;
+  shortTitle: string | null;
+  type: string;
+  fields: string[];
+  issuingBody: string | null;
+  referenceNumber: string | null;
+  publishDate: string | null;
+  summary: string | null;
+  fullText: string | null;
+  aiSummary: string | null;
+  externalUrl: string | null;
+  status: 'draft' | 'published' | 'archived';
+  isFeatured: boolean;
+  viewCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LibrarySuggestion {
+  id: string;
+  content_type: 'term' | 'guide' | 'regulation';
+  content_id: string;
+  body: string;
+  status: 'pending' | 'approved' | 'rejected';
+  admin_note: string | null;
+  created_at: string;
+  display_name: string;
+  email: string;
+}
+
+export interface LibraryExamQuestion {
+  id: string;
+  categoryId: string;
+  questionText: string;
+  optionA: string; optionB: string; optionC: string; optionD: string; optionE: string | null;
+  correctOption: string;
+  explanation: string | null;
+  difficulty: string;
+  source: string | null;
+  relatedTermSlugs: string[];
+  isActive: boolean;
+  createdAt: string;
+  categoryName: string;
+  examType: string;
+}
+
+export interface LibraryPathItem {
+  contentType: 'term' | 'guide' | 'regulation' | 'document';
+  contentId: string;
+  slug: string;
+  title: string;
+  order: number;
+}
+
+export interface LibraryPath {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  field: string | null;
+  difficulty: string;
+  estimatedMinutes: number | null;
+  coverEmoji: string | null;
+  items: LibraryPathItem[];
+  status: 'draft' | 'published' | 'archived';
+  createdAt: string;
+  updatedAt: string;
 }

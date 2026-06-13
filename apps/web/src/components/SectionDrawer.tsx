@@ -69,6 +69,20 @@ export function SectionDrawer({ sectionKey, label, initialData, onClose }: Props
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  // navbar:menu için API'den fresh veri çek
+  useEffect(() => {
+    if (!token || context !== 'navbar' || key !== 'menu') return;
+    fetch(`${API_URL}/api/v1/admin/cms/settings/navbar`, {
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (Array.isArray(d) && d.length > 0) setData(d);
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
   async function authFetch(path: string, opts?: RequestInit) {
     return fetch(`${API_URL}/api/v1${path}`, {
       ...opts,
@@ -87,12 +101,27 @@ export function SectionDrawer({ sectionKey, label, initialData, onClose }: Props
     try {
       if (context === 'homepage' || context === 'footer') {
         const settingsKey = context === 'footer' ? 'footer' : 'homepage';
-        const res = await authFetch(`/admin/cms/settings/${settingsKey}`);
-        const current: Record<string, unknown> = res.ok ? (await res.json() as Record<string, unknown>) : {};
-        const merged = { ...current, [key]: data };
-        const put = await authFetch(`/admin/cms/settings/${settingsKey}`, {
+        if (key === 'links') {
+          // footer_links is a top-level settings key
+          const put = await authFetch(`/admin/cms/settings/footer_links`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+          });
+          if (!put.ok) throw new Error(`HTTP ${put.status}`);
+        } else {
+          const res = await authFetch(`/admin/cms/settings/${settingsKey}`);
+          const current: Record<string, unknown> = res.ok ? (await res.json() as Record<string, unknown>) : {};
+          const merged = { ...current, [key]: data };
+          const put = await authFetch(`/admin/cms/settings/${settingsKey}`, {
+            method: 'PUT',
+            body: JSON.stringify(merged),
+          });
+          if (!put.ok) throw new Error(`HTTP ${put.status}`);
+        }
+      } else if (context === 'navbar') {
+        const put = await authFetch(`/admin/cms/settings/navbar`, {
           method: 'PUT',
-          body: JSON.stringify(merged),
+          body: JSON.stringify(data),
         });
         if (!put.ok) throw new Error(`HTTP ${put.status}`);
       } else if (context === 'page') {
@@ -197,12 +226,35 @@ export function SectionDrawer({ sectionKey, label, initialData, onClose }: Props
       }
 
       if (key === 'mgTeaser') {
-        const d = (data ?? {}) as { title?: string; description?: string };
-        const set = (k: string, v: string) => setData({ ...d, [k]: v });
+        const d = (data ?? {}) as { title?: string; description?: string; items?: { label: string }[] };
+        const set = (k: string, v: unknown) => setData({ ...d, [k]: v });
+        const items = d.items ?? [{ label: 'Mentorluk' }, { label: 'Proje Geliştirme' }, { label: 'Network' }, { label: 'Eğitim' }];
+        const updateItem = (i: number, v: string) => set('items', items.map((x, j) => j === i ? { label: v } : x));
+        const addItem = () => set('items', [...items, { label: '' }]);
+        const removeItem = (i: number) => set('items', items.filter((_, j) => j !== i));
         return (
           <div className="space-y-4">
             <Field label="Başlık" value={d.title ?? ''} onChange={(v) => set('title', v)} />
             <Field label="Açıklama" value={d.description ?? ''} onChange={(v) => set('description', v)} textarea />
+            <div>
+              <p className="text-xs font-semibold text-gray-500 mb-2">Özellik Kartları (sağ taraf)</p>
+              <div className="space-y-2">
+                {items.map((item, i) => (
+                  <div key={i} className="flex gap-2 items-center">
+                    <input
+                      className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-[var(--color-mavi)]"
+                      value={item.label}
+                      onChange={e => updateItem(i, e.target.value)}
+                      placeholder="Özellik adı"
+                    />
+                    <button onClick={() => removeItem(i)} className="text-gray-300 hover:text-red-500 transition-colors p-0.5">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                  </div>
+                ))}
+                <button onClick={addItem} className="text-xs font-medium text-[var(--color-mavi)] hover:underline">+ Kart Ekle</button>
+              </div>
+            </div>
           </div>
         );
       }
@@ -228,6 +280,21 @@ export function SectionDrawer({ sectionKey, label, initialData, onClose }: Props
           </div>
         );
       }
+
+      if (key === 'bagis') {
+        const d = (data ?? {}) as { badge?: string; title?: string; titleHighlight?: string; description?: string; ctaPrimary?: string; ctaSecondary?: string };
+        const set = (k: string, v: string) => setData({ ...d, [k]: v });
+        return (
+          <div className="space-y-4">
+            <Field label="Rozet Metni" value={d.badge ?? ''} onChange={(v) => set('badge', v)} hint="Örn: Yıllık Destek Programı" />
+            <Field label="Başlık" value={d.title ?? ''} onChange={(v) => set('title', v)} />
+            <Field label="Vurgulu Başlık (renkli)" value={d.titleHighlight ?? ''} onChange={(v) => set('titleHighlight', v)} />
+            <Field label="Açıklama" value={d.description ?? ''} onChange={(v) => set('description', v)} textarea />
+            <Field label="Ana Buton" value={d.ctaPrimary ?? ''} onChange={(v) => set('ctaPrimary', v)} />
+            <Field label="İkincil Buton" value={d.ctaSecondary ?? ''} onChange={(v) => set('ctaSecondary', v)} />
+          </div>
+        );
+      }
     }
 
     if (context === 'footer') {
@@ -245,6 +312,33 @@ export function SectionDrawer({ sectionKey, label, initialData, onClose }: Props
                 <Field label="YouTube URL" value={d.youtubeUrl ?? ''} onChange={(v) => set('youtubeUrl', v)} />
               </div>
             </div>
+          </div>
+        );
+      }
+
+    }
+
+    if (context === 'navbar') {
+      if (key === 'menu') {
+        type NavItem = { label: string; href: string; sub: { label: string; href: string }[] | null };
+        const arr = (Array.isArray(data) ? data : []) as NavItem[];
+        const updateItem = (i: number, field: string, v: string) => setData(arr.map((it, j) => j === i ? { ...it, [field]: v } : it));
+        const removeItem = (i: number) => setData(arr.filter((_, j) => j !== i));
+        const addItem = () => setData([...arr, { label: 'Yeni', href: '/', sub: null }]);
+        return (
+          <div className="space-y-3">
+            {arr.map((item, i) => (
+              <div key={i} className="flex gap-2 items-start border border-gray-100 rounded-lg p-3">
+                <div className="flex-1 grid grid-cols-2 gap-2">
+                  <Field label="Menü Adı" value={item.label} onChange={(v) => updateItem(i, 'label', v)} />
+                  <Field label="URL" value={item.href} onChange={(v) => updateItem(i, 'href', v)} />
+                </div>
+                <button onClick={() => removeItem(i)} className="text-gray-300 hover:text-red-500 transition-colors mt-5 p-0.5 shrink-0">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+            ))}
+            <button onClick={addItem} className="text-xs font-medium text-[var(--color-mavi)] hover:underline">+ Menü Öğesi Ekle</button>
           </div>
         );
       }

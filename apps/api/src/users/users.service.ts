@@ -3,9 +3,10 @@ import { eq, ne, isNull, isNotNull, and, desc, asc, ilike, or, sql, gte, lte, no
 import * as bcrypt from 'bcrypt';
 import { InjectDb } from '../database/inject-db.decorator';
 import type { Database } from '@haritailesi/database';
-import { users, userProfiles, applications, userFunctionalRoles, userFollows, userBadges, posts, postReactions, comments, userStatusEnum, mentorshipRequests, verificationDocuments } from '@haritailesi/database';
+import { users, userProfiles, applications, userFunctionalRoles, userFollows, userBadges, posts, postReactions, comments, userStatusEnum, mentorshipRequests, verificationDocuments, userLevelActions, surveys, surveyResponses } from '@haritailesi/database';
 import type Redis from 'ioredis';
 import { REDIS_TOKEN } from '../redis/redis.constants';
+import { EmailService } from '../email/email.service';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -20,6 +21,7 @@ export class UsersService {
   constructor(
     @InjectDb() private readonly db: Database,
     @Inject(REDIS_TOKEN) private readonly redis: Redis,
+    private readonly emailService: EmailService,
   ) {}
 
   async createFromApplication(app: {
@@ -72,11 +74,89 @@ export class UsersService {
       where: eq(userBadges.userId, userId),
     });
 
+    const levelActions = await this.db
+      .select({ actionId: userLevelActions.actionId })
+      .from(userLevelActions)
+      .where(eq(userLevelActions.userId, userId));
+
     return {
       ...user,
       functionalRoles: user.functionalRoles.map((r) => r.role),
       badges: badges.map((b) => b.badgeType),
+      completedActionIds: levelActions.map((a) => a.actionId),
     };
+  }
+
+  async recordLevelAction(userId: string, actionId: string): Promise<string[]> {
+    const before = await this.db
+      .select({ actionId: userLevelActions.actionId })
+      .from(userLevelActions)
+      .where(eq(userLevelActions.userId, userId));
+    const levelBefore = this.computeLevel(before.map((r) => r.actionId));
+
+    await this.db
+      .insert(userLevelActions)
+      .values({ userId, actionId })
+      .onConflictDoNothing();
+
+    const rows = await this.db
+      .select({ actionId: userLevelActions.actionId })
+      .from(userLevelActions)
+      .where(eq(userLevelActions.userId, userId));
+
+    const levelAfter = this.computeLevel(rows.map((r) => r.actionId));
+    if (levelAfter !== levelBefore) {
+      void this.notifyLevelUp(userId, levelAfter);
+    }
+
+    return rows.map((r) => r.actionId);
+  }
+
+  async syncLevelActions(userId: string, actionIds: string[]): Promise<string[]> {
+    const before = await this.db
+      .select({ actionId: userLevelActions.actionId })
+      .from(userLevelActions)
+      .where(eq(userLevelActions.userId, userId));
+    const levelBefore = this.computeLevel(before.map((r) => r.actionId));
+
+    if (actionIds.length > 0) {
+      const values = actionIds.slice(0, 200).map((actionId) => ({ userId, actionId }));
+      await this.db.insert(userLevelActions).values(values).onConflictDoNothing();
+    }
+
+    const rows = await this.db
+      .select({ actionId: userLevelActions.actionId })
+      .from(userLevelActions)
+      .where(eq(userLevelActions.userId, userId));
+
+    const levelAfter = this.computeLevel(rows.map((r) => r.actionId));
+    if (levelAfter !== levelBefore) {
+      void this.notifyLevelUp(userId, levelAfter);
+    }
+
+    return rows.map((r) => r.actionId);
+  }
+
+  private computeLevel(ids: string[]): string {
+    const d = ids.filter((id) => id.startsWith('d-')).length;
+    const c = ids.filter((id) => id.startsWith('c-')).length;
+    const p = ids.filter((id) => id.startsWith('p-')).length;
+    return d >= 1 ? 'etki_yaratan' : c >= 2 ? 'katki_sunan' : p >= 3 ? 'katilimci' : 'izleyici';
+  }
+
+  private async notifyLevelUp(userId: string, level: string): Promise<void> {
+    try {
+      const user = await this.db.query.users.findFirst({
+        where: and(eq(users.id, userId), isNull(users.deletedAt)),
+        with: { profile: true },
+      });
+      if (!user) return;
+      await this.emailService.sendLevelUp(
+        user.email,
+        user.profile?.displayName ?? 'Üye',
+        level,
+      );
+    } catch { /* e-posta hatası aksiyon kaydını engellemesin */ }
   }
 
   async getMyStats(userId: string) {
@@ -394,6 +474,9 @@ export class UsersService {
         experienceYears: userProfiles.professionalExperienceYears,
         skillTags: userProfiles.skillTags,
         corporateName: userProfiles.corporateName,
+        dCount: sql<string>`(SELECT COUNT(*) FROM user_level_actions WHERE user_id = ${users.id} AND action_id LIKE 'd-%')`,
+        cCount: sql<string>`(SELECT COUNT(*) FROM user_level_actions WHERE user_id = ${users.id} AND action_id LIKE 'c-%')`,
+        pCount: sql<string>`(SELECT COUNT(*) FROM user_level_actions WHERE user_id = ${users.id} AND action_id LIKE 'p-%')`,
       })
       .from(users)
       .leftJoin(userProfiles, eq(userProfiles.userId, users.id))
@@ -402,7 +485,11 @@ export class UsersService {
       .limit(limit + 1);
 
     const hasMore = rows.length > limit;
-    const data = rows.slice(0, limit);
+    const data = rows.slice(0, limit).map(({ dCount, cCount, pCount, ...row }) => {
+      const d = Number(dCount); const c = Number(cCount); const p = Number(pCount);
+      const level = d >= 1 ? 'etki_yaratan' : c >= 2 ? 'katki_sunan' : p >= 3 ? 'katilimci' : 'izleyici';
+      return { ...row, level };
+    });
 
     return {
       data,
@@ -531,6 +618,58 @@ export class UsersService {
     return updated;
   }
 
+  async setSndSubscribed(userId: string, subscribed: boolean) {
+    await this.db.update(userProfiles)
+      .set({ sndSubscribed: subscribed, updatedAt: new Date() })
+      .where(eq(userProfiles.userId, userId));
+    return { subscribed };
+  }
+
+  async getSndPublicProfile(userId: string) {
+    const [profile] = await this.db
+      .select({
+        userId: userProfiles.userId,
+        displayName: userProfiles.displayName,
+        avatarUrl: userProfiles.avatarUrl,
+        city: userProfiles.city,
+        profession: userProfiles.profession,
+        skillTags: userProfiles.skillTags,
+        bio: userProfiles.bio,
+      })
+      .from(userProfiles)
+      .where(eq(userProfiles.userId, userId));
+
+    if (!profile) throw new NotFoundException('Kullanıcı bulunamadı.');
+
+    const completedSurveys = await this.db
+      .select({
+        surveyId: surveys.id,
+        slug: surveys.slug,
+        title: surveys.title,
+        type: surveys.type,
+        score: surveyResponses.score,
+        maxScore: surveyResponses.maxScore,
+        passingScore: surveys.passingScore,
+        completedAt: surveyResponses.createdAt,
+      })
+      .from(surveyResponses)
+      .innerJoin(surveys, eq(surveyResponses.surveyId, surveys.id))
+      .where(and(eq(surveyResponses.userId, userId), eq(surveys.showResults, true)))
+      .orderBy(desc(surveyResponses.createdAt))
+      .limit(20);
+
+    return {
+      ...profile,
+      surveys: completedSurveys.map(r => ({
+        ...r,
+        percent: r.maxScore && r.score != null ? Math.round((r.score / r.maxScore) * 100) : null,
+        passed: r.passingScore != null && r.maxScore && r.score != null
+          ? Math.round((r.score / r.maxScore) * 100) >= r.passingScore
+          : null,
+      })),
+    };
+  }
+
   private async invalidateMembersCache() {
     try {
       const keys = await this.redis.keys('members:list:*');
@@ -644,9 +783,21 @@ export class UsersService {
       .functionalRoles.some((r) => r.role === 'super_admin');
     if (isSuperAdmin) throw new BadRequestException('Süper admin hesabı silinemez.');
 
+    // Delete all open applications belonging to this user
+    await this.db
+      .delete(applications)
+      .where(eq(applications.applicantUserId, targetId));
+
+    // Anonymize email so the address is freed from the unique constraint
+    // and can be re-used for a new registration immediately.
     await this.db
       .update(users)
-      .set({ status: 'deleted', deletedAt: new Date(), updatedAt: new Date() })
+      .set({
+        email: `deleted_${targetId}@deleted.haritailesi.org`,
+        status: 'deleted',
+        deletedAt: new Date(),
+        updatedAt: new Date(),
+      })
       .where(eq(users.id, targetId));
 
     return { id: targetId, deleted: true };

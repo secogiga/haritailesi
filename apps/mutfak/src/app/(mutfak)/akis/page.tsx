@@ -452,6 +452,34 @@ function PostCard({
           </a>
         )}
 
+        {/* Library refs */}
+        {localPost.libraryRefs && localPost.libraryRefs.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {localPost.libraryRefs.map(ref => {
+              const SAHNE_URL = process.env['NEXT_PUBLIC_SAHNE_URL'] ?? 'https://sahne.haritailesi.org';
+              const href = ref.type === 'term'
+                ? `${SAHNE_URL}/kutuphane/sozluk/${ref.slug}`
+                : `${SAHNE_URL}/kutuphane/rehberler/${ref.slug}`;
+              return (
+                <a
+                  key={`${ref.type}:${ref.slug}`}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`flex items-center gap-1.5 text-xs border rounded-full px-2.5 py-1 hover:opacity-80 transition-opacity ${isAnnouncement ? 'border-white/30 bg-white/10 text-white' : 'border-violet-200 bg-violet-50 text-violet-700'}`}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                  <span className="font-semibold">{ref.type === 'term' ? 'Terim' : 'Rehber'}:</span>
+                  <span className="truncate max-w-[160px]">{ref.title}</span>
+                </a>
+              );
+            })}
+          </div>
+        )}
+
         {/* Actions */}
         <div className={`flex items-center gap-3 mt-4 pt-3 border-t ${isAnnouncement ? 'border-white/15' : 'border-gray-100'}`}>
           {/* Reaction button with picker */}
@@ -697,6 +725,79 @@ function PostCard({
 
 // ── Create Post Modal ─────────────────────────────────────────────────────────
 
+type LibraryRef = { type: 'term' | 'guide'; slug: string; title: string };
+
+function LibraryRefPicker({
+  onAdd,
+  onClose,
+}: {
+  onAdd: (ref: LibraryRef) => void;
+  onClose: () => void;
+}) {
+  const [q, setQ] = useState('');
+  const [results, setResults] = useState<LibraryRef[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!q.trim()) { setResults([]); return; }
+    const t = setTimeout(async () => {
+      setBusy(true);
+      const [terms, guides] = await Promise.all([
+        mutfakApi.searchLibraryTerms(q),
+        mutfakApi.searchLibraryGuides(q),
+      ]);
+      setResults([
+        ...terms.map(t => ({ type: 'term' as const, slug: t.slug ?? t.id, title: t.term })),
+        ...guides.map(g => ({ type: 'guide' as const, slug: g.slug, title: g.title })),
+      ]);
+      setBusy(false);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  return (
+    <div className="border border-violet-200 rounded-xl p-3 bg-violet-50/50 space-y-2">
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-xs font-semibold text-violet-800">Kütüphaneden bağla</p>
+        <button type="button" onClick={onClose} className="text-violet-400 hover:text-violet-600">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <input
+        autoFocus
+        type="text"
+        value={q}
+        onChange={e => setQ(e.target.value)}
+        placeholder="Terim veya rehber ara…"
+        className="w-full px-3 py-2 text-sm border border-violet-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-violet-400"
+      />
+      {busy && <p className="text-xs text-violet-400 px-1">Aranıyor…</p>}
+      {results.length > 0 && (
+        <div className="space-y-1 max-h-40 overflow-y-auto">
+          {results.map(r => (
+            <button
+              key={`${r.type}:${r.slug}`}
+              type="button"
+              onClick={() => { onAdd(r); onClose(); }}
+              className="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-violet-100 hover:border-violet-400 hover:bg-violet-50 transition-colors"
+            >
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${r.type === 'term' ? 'bg-violet-100 text-violet-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                {r.type === 'term' ? 'Terim' : 'Rehber'}
+              </span>
+              <span className="text-sm text-gray-800 truncate">{r.title}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {q.trim() && !busy && results.length === 0 && (
+        <p className="text-xs text-gray-400 px-1">Sonuç bulunamadı.</p>
+      )}
+    </div>
+  );
+}
+
 function CreatePostModal({
   token,
   onClose,
@@ -717,6 +818,8 @@ function CreatePostModal({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pollOptionInputs, setPollOptionInputs] = useState(['', '']);
+  const [libraryRefs, setLibraryRefs] = useState<LibraryRef[]>([]);
+  const [showLibraryPicker, setShowLibraryPicker] = useState(false);
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -757,6 +860,7 @@ function CreatePostModal({
           body: body.trim(),
           ...(type === 'poll' ? { pollOptions: validOptions } : {}),
           isPublic,
+          ...(libraryRefs.length > 0 ? { libraryRefs } : {}),
         },
         token,
       );
@@ -929,6 +1033,45 @@ function CreatePostModal({
               </button>
             )}
           </div>
+
+          {/* Library refs */}
+          {libraryRefs.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {libraryRefs.map(ref => (
+                <span key={`${ref.type}:${ref.slug}`} className="flex items-center gap-1.5 text-xs bg-violet-50 border border-violet-200 text-violet-700 rounded-full px-2.5 py-1">
+                  <span className="font-semibold">{ref.type === 'term' ? 'Terim' : 'Rehber'}:</span>
+                  {ref.title}
+                  <button type="button" onClick={() => setLibraryRefs(rs => rs.filter(r => r.slug !== ref.slug || r.type !== ref.type))} className="text-violet-400 hover:text-violet-600 ml-0.5">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {showLibraryPicker ? (
+            <LibraryRefPicker
+              onAdd={ref => {
+                if (!libraryRefs.find(r => r.slug === ref.slug && r.type === ref.type)) {
+                  setLibraryRefs(rs => [...rs, ref]);
+                }
+              }}
+              onClose={() => setShowLibraryPicker(false)}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowLibraryPicker(true)}
+              className="flex items-center gap-2 text-xs text-violet-600 hover:text-violet-800 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+              Kütüphaneden bağla {libraryRefs.length > 0 && `(${libraryRefs.length})`}
+            </button>
+          )}
 
           {/* Public toggle */}
           <button
@@ -1285,11 +1428,6 @@ export default function AkisPage() {
         </div>
       )}
 
-      {/* Community Stats */}
-      <ActivityWidget />
-      <SuggestedMembers />
-      <StatsBar />
-
       {/* Feed Tabs */}
       <div className="flex items-center gap-2 mb-4">
         <div className="flex gap-0.5 bg-gray-100 rounded-xl p-1 flex-1">
@@ -1395,6 +1533,11 @@ export default function AkisPage() {
           ))}
         </div>
       </div>
+
+      {/* Discovery widgets — below filters so posts load immediately above the fold */}
+      <StatsBar />
+      <ActivityWidget />
+      <SuggestedMembers />
 
       {/* Bu Hafta Öne Çıkan */}
       {weeklyHighlight && !search.trim() && !categoryFilter && !typeFilter && (

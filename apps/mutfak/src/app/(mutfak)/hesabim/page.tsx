@@ -10,6 +10,8 @@ import { BadgeRow } from '@/components/BadgeRow';
 import { BookmarksTab } from './_components/BookmarksTab';
 import { ProfileEditForm } from './_components/ProfileEditForm';
 import { MembershipWidget } from '@/components/MembershipWidget';
+import { EgitimlerTab } from './_components/EgitimlerTab';
+import { KutuphaneTab } from './_components/KutuphaneTab';
 
 type FormState = {
   displayName: string;
@@ -27,7 +29,7 @@ export default function HesabimPage() {
   const token = useToken();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [activeTab, setActiveTab] = useState<'profil' | 'uyelik' | 'kaydedilenler'>('profil');
+  const [activeTab, setActiveTab] = useState<'profil' | 'uyelik' | 'kaydedilenler' | 'egitimler' | 'kutuphane'>('profil');
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -142,8 +144,10 @@ export default function HesabimPage() {
       <div className="flex gap-1 mb-6 border-b border-gray-100">
         {([
           { key: 'profil', label: 'Profilim' },
+          { key: 'egitimler', label: 'Eğitimler' },
           { key: 'uyelik', label: 'Üyelik' },
           { key: 'kaydedilenler', label: 'Kaydedilenler' },
+          { key: 'kutuphane', label: 'Kütüphanem' },
         ] as const).map((tab) => (
           <button
             key={tab.key}
@@ -161,6 +165,8 @@ export default function HesabimPage() {
 
       {activeTab === 'kaydedilenler' && <BookmarksTab token={token} />}
       {activeTab === 'uyelik' && <MembershipWidget />}
+      {activeTab === 'egitimler' && <EgitimlerTab token={token} />}
+      {activeTab === 'kutuphane' && <KutuphaneTab token={token} />}
 
       {activeTab === 'profil' && (
         <>

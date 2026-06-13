@@ -19,7 +19,7 @@ export function StatsBar() {
   ];
 
   return (
-    <div className="flex items-center gap-0 mb-5 rounded-xl border border-gray-100 bg-white shadow-sm overflow-hidden divide-x divide-gray-100">
+    <div className="flex items-center gap-0 mb-3 rounded-xl border border-gray-100 bg-white shadow-sm overflow-hidden divide-x divide-gray-100">
       {items.map(({ label, value }) => (
         <div key={label} className="flex-1 text-center px-3 py-2.5">
           <div className="text-base font-bold text-[#26496b] font-display leading-none">

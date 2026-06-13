@@ -155,9 +155,25 @@ export interface CmsEvent {
   description: string | null;
   body: string | null;
   registrationUrl: string | null;
+  meetingUrl: string | null;
   coverImageKey: string | null;
+  maxCapacity: number | null;
+  isCancelled: boolean;
+  attendeeCount: number;
+  viewCount: number;
   isPublished: boolean;
   createdAt: string;
+}
+
+export interface EventSpeaker {
+  id: string; name: string; title: string | null; affiliation: string | null;
+  bio: string | null; avatarUrl: string | null; linkedinUrl: string | null; sortOrder: number;
+}
+export interface EventSession {
+  id: string; title: string; description: string | null; sessionType: string;
+  hall: string | null; startTime: string | null; endTime: string | null; sortOrder: number;
+  speakerId: string | null; speakerName: string | null; speakerTitle: string | null;
+  speakerAffiliation: string | null; speakerAvatarUrl: string | null;
 }
 
 export interface CmsProject {
@@ -178,7 +194,39 @@ export const cms = {
   boardMembers: () => cmsGet<BoardMember[]>('/board-members'),
   events: (type?: string) => cmsGet<CmsEvent[]>(`/events${type ? `?type=${type}` : ''}`),
   event: (slug: string) => cmsGet<CmsEvent>(`/events/${slug}`),
+  eventSponsors: (id: string) => cmsGet<Array<{ id: string; companyName: string; logoKey: string | null; websiteUrl: string | null; tier: string; description: string | null }>>(`/events/${id}/sponsors`),
+  eventSpeakers: (id: string) => cmsGet<EventSpeaker[]>(`/events/${id}/speakers`),
+  eventSessions: (id: string) => cmsGet<EventSession[]>(`/events/${id}/sessions`),
   projects: (status?: string) => cmsGet<CmsProject[]>(`/projects${status ? `?status=${status}` : ''}`),
   project: (slug: string) => cmsGet<CmsProject>(`/projects/${slug}`),
   settings: <T = Record<string, unknown>>(key: string) => cmsGet<T>(`/settings/${key}`),
+  newsletters: () => newsletterGet<NewsletterArchiveItem[]>('/archive'),
+  newsletter: (id: string) => newsletterGet<NewsletterArchiveDetail>(`/archive/${id}`),
 };
+
+// ─── Newsletter Archive (Public) ───────────────────────────────────────────────
+
+export interface NewsletterArchiveItem {
+  id: string;
+  title: string;
+  subject: string;
+  month: string;
+  sentAt: string;
+  emailCount: number;
+}
+
+export interface NewsletterArchiveDetail extends NewsletterArchiveItem {
+  htmlBody: string | null;
+}
+
+async function newsletterGet<T>(path: string): Promise<T | null> {
+  try {
+    const res = await fetch(`${API_URL}/api/v1/admin/newsletter${path}`, {
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) return null;
+    return res.json() as Promise<T>;
+  } catch {
+    return null;
+  }
+}

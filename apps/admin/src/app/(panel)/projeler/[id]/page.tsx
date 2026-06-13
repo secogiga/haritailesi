@@ -5,6 +5,17 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { adminApi, type CmsProject } from '@/lib/api';
 
+const CATEGORIES = [
+  'Mesleki Uygulama',
+  'Mesleki Proje',
+  'Eğitim',
+  'Bilgi Paylaşımı',
+  'Analiz Çalışması',
+  'Mesleki Yayın',
+  'Blog Yazısı',
+  'Saha Ölçümü',
+];
+
 const AVATAR_COLORS = [
   { label: 'Lacivert', value: '#26496b' },
   { label: 'Teal', value: '#66aca9' },
@@ -99,6 +110,7 @@ export default function EditProjePage() {
   const [graduationType, setGraduationType] = useState('');
   const [graduationYear, setGraduationYear] = useState<number | null>(null);
   const [projectCategory, setProjectCategory] = useState('');
+  const [customCategory, setCustomCategory] = useState(false);
   const [awardCohortMonth, setAwardCohortMonth] = useState<number | null>(null);
   const [awardRank, setAwardRank] = useState<number | null>(null);
 
@@ -145,7 +157,9 @@ export default function EditProjePage() {
         setUniversity(p.university ?? '');
         setGraduationType(p.graduationType ?? '');
         setGraduationYear(p.graduationYear ?? null);
-        setProjectCategory(p.projectCategory ?? '');
+        const cat = p.projectCategory ?? '';
+        setProjectCategory(cat);
+        setCustomCategory(cat !== '' && !CATEGORIES.includes(cat));
         setAwardCohortMonth(p.awardCohortMonth ?? null);
         setAwardRank(p.awardRank ?? null);
       })
@@ -616,6 +630,8 @@ export default function EditProjePage() {
                 <label className={labelCls}>Mezuniyet Türü</label>
                 <select className={inputCls} value={graduationType} onChange={e => setGraduationType(e.target.value)}>
                   <option value="">Seç</option>
+                  <option>Lise</option>
+                  <option>Ön Lisans</option>
                   <option>Lisans</option>
                   <option>Yüksek Lisans</option>
                   <option>Doktora</option>
@@ -628,7 +644,33 @@ export default function EditProjePage() {
             </div>
             <div>
               <label className={labelCls}>Kategori</label>
-              <input type="text" className={inputCls} value={projectCategory} onChange={e => setProjectCategory(e.target.value)} placeholder="Mesleki Proje" />
+              <select
+                className={inputCls}
+                value={customCategory ? '__custom__' : (projectCategory || '')}
+                onChange={e => {
+                  if (e.target.value === '__custom__') {
+                    setCustomCategory(true);
+                    if (CATEGORIES.includes(projectCategory)) setProjectCategory('');
+                  } else {
+                    setCustomCategory(false);
+                    setProjectCategory(e.target.value);
+                  }
+                }}
+              >
+                <option value="">— Seçiniz —</option>
+                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                <option value="__custom__">+ Yeni kategori ekle…</option>
+              </select>
+              {customCategory && (
+                <input
+                  type="text"
+                  className={`${inputCls} mt-2`}
+                  value={projectCategory}
+                  onChange={e => setProjectCategory(e.target.value)}
+                  placeholder="Yeni kategori adı…"
+                  autoFocus
+                />
+              )}
             </div>
           </div>
 

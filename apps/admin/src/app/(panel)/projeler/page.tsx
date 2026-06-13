@@ -1,11 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { adminApi, type CmsProject, type ContentRequestItem } from '@/lib/api';
 import { STATUS_CLS, SOURCE_LABELS, SOURCE_COLORS } from '@/lib/ui';
 
-type Tab = 'talepler' | 'projeler';
+type Tab = 'talepler' | 'projeler' | 'yillik';
+
+const AY_LABELS: Record<number, string> = {
+  1: 'Ocak', 2: 'Şubat', 3: 'Mart', 4: 'Nisan', 5: 'Mayıs',
+  6: 'Haziran', 7: 'Temmuz', 8: 'Ağustos', 9: 'Eylül', 10: 'Ekim', 11: 'Kasım', 12: 'Aralık',
+};
 
 const REQ_STATUS_LABELS: Record<string, string> = {
   pending: 'Bekliyor', approved: 'Onaylandı', rejected: 'Reddedildi',
@@ -86,6 +91,109 @@ export default function ProjelerPage() {
   const [liPostUrlDraft, setLiPostUrlDraft] = useState<Record<string, string>>({});
   const [liPostUrlSaving, setLiPostUrlSaving] = useState<string | null>(null);
 
+  // ── LinkedIn Bulk Update ──
+  const [liUploadOpen, setLiUploadOpen] = useState(false);
+  const [liMatches, setLiMatches] = useState<Array<{ id: string; title: string; newViews: number; oldViews: number; newLikes: number; newComments: number; newClicks: number }> | null>(null);
+  const [liUploadMsg, setLiUploadMsg] = useState('');
+  const [liUploading, setLiUploading] = useState(false);
+  const liFileRef = useRef<HTMLInputElement>(null);
+
+  // ── Yıllık Ödül ──
+  const [awardSaving, setAwardSaving] = useState<string | null>(null);
+  const [communityVotes, setCommunityVotes] = useState<Record<string, string>>({});
+
+
+  async function handleLinkedinFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLiMatches(null);
+    setLiUploadMsg('Dosya okunuyor…');
+    try {
+      const XLSX = await import('xlsx');
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]!]!;
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws);
+      const urlMap: Record<string, { views: number; likes: number; comments: number; clicks: number }> = {};
+      for (const row of rows) {
+        const url = String(row['Gönderi linki'] ?? '').trim();
+        if (!url) continue;
+        urlMap[url] = {
+          views: Number(row['Görüntülenme'] ?? 0),
+          likes: Number(row['Beğenmeler'] ?? 0),
+          comments: Number(row['Yorumlar'] ?? 0),
+          clicks: Number(row['Tıklama'] ?? 0),
+        };
+      }
+      const matched = projects
+        .filter(p => p.linkedinPostUrl && urlMap[p.linkedinPostUrl])
+        .map(p => ({
+          id: p.id,
+          title: p.title,
+          newViews: urlMap[p.linkedinPostUrl!]!.views,
+          oldViews: p.linkedinViewCount ?? 0,
+          newLikes: urlMap[p.linkedinPostUrl!]!.likes,
+          newComments: urlMap[p.linkedinPostUrl!]!.comments,
+          newClicks: urlMap[p.linkedinPostUrl!]!.clicks,
+        }));
+      setLiMatches(matched);
+      setLiUploadMsg(matched.length > 0 ? `${matched.length} proje eşleşti` : 'Eşleşen proje bulunamadı. LinkedIn URL\'leri kontrol edin.');
+    } catch (err) {
+      setLiUploadMsg(`Hata: ${(err as Error).message}`);
+    }
+  }
+
+  async function confirmLinkedinUpdate() {
+    if (!liMatches || liMatches.length === 0) return;
+    setLiUploading(true);
+    try {
+      const items = liMatches.map(m => ({
+        id: m.id,
+        linkedinViewCount: m.newViews,
+        linkedinLikeCount: m.newLikes,
+        linkedinCommentCount: m.newComments,
+        linkedinClickCount: m.newClicks,
+      }));
+      const res = await adminApi.bulkUpdateLinkedinViews(items);
+      setLiUploadMsg(`✓ ${res.updated} proje güncellendi`);
+      setLiMatches(null);
+      loadProjects();
+    } catch (err) {
+      setLiUploadMsg(`Hata: ${(err as Error).message}`);
+    } finally {
+      setLiUploading(false);
+      if (liFileRef.current) liFileRef.current.value = '';
+    }
+  }
+
+  async function toggleAward(project: CmsProject, field: 'finalist' | 'winner') {
+    setAwardSaving(project.id + field);
+    try {
+      const newVal = !project[field];
+      await adminApi.updateProject(project.id, { [field]: newVal } as never);
+      setProjects(prev => prev.map(p => p.id === project.id ? { ...p, [field]: newVal } : p));
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      setAwardSaving(null);
+    }
+  }
+
+  async function saveCommunityVotes(project: CmsProject) {
+    const raw = communityVotes[project.id];
+    if (raw === undefined) return;
+    const votes = parseInt(raw, 10);
+    if (isNaN(votes)) return;
+    setAwardSaving(project.id + 'votes');
+    try {
+      await adminApi.updateProject(project.id, { awardCommunityVotes: votes } as never);
+      setProjects(prev => prev.map(p => p.id === project.id ? { ...p, awardCommunityVotes: votes } : p));
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      setAwardSaving(null);
+    }
+  }
 
   function loadRequests() {
     setReqLoading(true);
@@ -107,7 +215,7 @@ export default function ProjelerPage() {
   }
 
   useEffect(() => { loadRequests(); }, [statusFilter, sourceFilter]); // eslint-disable-line
-  useEffect(() => { if (tab === 'projeler' && !projLoaded) loadProjects(); }, [tab]); // eslint-disable-line
+  useEffect(() => { if ((tab === 'projeler' || tab === 'yillik') && !projLoaded) loadProjects(); }, [tab]); // eslint-disable-line
 
   async function review(id: string, status: 'approved' | 'rejected') {
     setReviewing(id);
@@ -167,6 +275,10 @@ export default function ProjelerPage() {
         <button onClick={() => setTab('projeler')}
           className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${tab === 'projeler' ? 'bg-white text-[#26496b] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
           Yayındaki Projeler
+        </button>
+        <button onClick={() => setTab('yillik')}
+          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${tab === 'yillik' ? 'bg-white text-[#26496b] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+          🏆 Yıllık Ödül
         </button>
       </div>
 
@@ -286,6 +398,117 @@ export default function ProjelerPage() {
         </div>
       )}
 
+      {/* ── Tab 3: Yıllık Ödül ── */}
+      {tab === 'yillik' && (
+        <div>
+          {/* Formül bilgisi */}
+          <div className="mb-5 bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3 flex flex-wrap items-center gap-4 text-sm">
+            <span className="font-semibold text-amber-800">Puan Formülü:</span>
+            <span className="text-amber-700">%50 İstatistik</span>
+            <span className="text-amber-400">+</span>
+            <span className="text-amber-700">%30 Topluluk Oyu</span>
+            <span className="text-amber-400">+</span>
+            <span className="text-amber-700">%20 Vakıf Ekibi</span>
+          </div>
+
+          {projLoading ? (
+            <div className="space-y-3">{[1, 2, 3].map(i => (
+              <div key={i} className="bg-white rounded-2xl border border-gray-100 h-20 animate-pulse" />
+            ))}</div>
+          ) : (() => {
+            const awardProjects = projects.filter(p => p.awardCohortMonth != null);
+            if (awardProjects.length === 0) return (
+              <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center text-gray-400">
+                Ödüllü proje bulunamadı.
+              </div>
+            );
+            const months = Array.from(new Set(awardProjects.map(p => p.awardCohortMonth!))).sort((a, b) => a - b);
+            return (
+              <div className="space-y-6">
+                {months.map(month => {
+                  const monthProjects = awardProjects
+                    .filter(p => p.awardCohortMonth === month)
+                    .sort((a, b) => (a.awardRank ?? 99) - (b.awardRank ?? 99));
+                  return (
+                    <div key={month}>
+                      <div className="flex items-center gap-3 mb-3">
+                        <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide">{AY_LABELS[month] ?? `Ay ${month}`}</h3>
+                        <div className="flex-1 h-px bg-gray-100" />
+                        <span className="text-xs text-gray-400">{monthProjects.length} proje</span>
+                      </div>
+                      <div className="space-y-2">
+                        {monthProjects.map(p => {
+                          const totalViews = (p.linkedinViewCount ?? 0) + (p.viewCount ?? 0);
+                          const isSavingF = awardSaving === p.id + 'finalist';
+                          const isSavingW = awardSaving === p.id + 'winner';
+                          const isSavingV = awardSaving === p.id + 'votes';
+                          return (
+                            <div key={p.id}
+                              className={`bg-white rounded-2xl border shadow-sm p-4 flex flex-wrap items-start gap-4 ${p.winner ? 'border-amber-300 bg-amber-50/30' : p.finalist ? 'border-emerald-200 bg-emerald-50/20' : 'border-gray-100'}`}>
+                              {/* Sıra + Ay */}
+                              <div className="flex flex-col items-center gap-1 shrink-0 w-10">
+                                <span className={`text-xl font-black ${p.awardRank === 1 ? 'text-amber-500' : p.awardRank === 2 ? 'text-gray-400' : 'text-orange-400'}`}>
+                                  #{p.awardRank}
+                                </span>
+                                <span className="text-[9px] font-semibold text-gray-400 uppercase">{AY_LABELS[month]}</span>
+                              </div>
+
+                              {/* Proje bilgileri */}
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-sm text-gray-900 leading-snug">{p.authorName ?? '—'}</p>
+                                <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{p.title}</p>
+                                <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-2 flex-wrap">
+                                  {p.university && <span>{p.university.replace(' Üniversitesi', ' Ü.').replace(' Teknik', ' T.')}</span>}
+                                  {p.projectCategory && <span>· {p.projectCategory}</span>}
+                                  <span className="text-blue-500 font-semibold">· {totalViews.toLocaleString('tr-TR')} görüntülenme</span>
+                                </p>
+                              </div>
+
+                              {/* Topluluk oyu */}
+                              <div className="flex flex-col gap-1 shrink-0">
+                                <label className="text-[9px] font-semibold text-gray-400 uppercase tracking-wide">Topluluk Oyu</label>
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    placeholder="0"
+                                    value={communityVotes[p.id] ?? (p.awardCommunityVotes?.toString() ?? '')}
+                                    onChange={e => setCommunityVotes(prev => ({ ...prev, [p.id]: e.target.value }))}
+                                    onBlur={() => void saveCommunityVotes(p)}
+                                    className="w-16 text-xs border border-gray-200 rounded-lg px-2 py-1.5 text-center focus:outline-none focus:border-amber-400 bg-white"
+                                  />
+                                  {isSavingV && <span className="text-[9px] text-gray-400">...</span>}
+                                </div>
+                              </div>
+
+                              {/* Finalist / Kazanan */}
+                              <div className="flex items-center gap-2 shrink-0">
+                                <button
+                                  disabled={isSavingF}
+                                  onClick={() => void toggleAward(p, 'finalist')}
+                                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors disabled:opacity-50 ${p.finalist ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-400 hover:text-emerald-600'}`}>
+                                  {isSavingF ? '…' : p.finalist ? '✓ Finalist' : 'Finalist'}
+                                </button>
+                                <button
+                                  disabled={isSavingW}
+                                  onClick={() => void toggleAward(p, 'winner')}
+                                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors disabled:opacity-50 ${p.winner ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-600 border-gray-200 hover:border-amber-400 hover:text-amber-600'}`}>
+                                  {isSavingW ? '…' : p.winner ? '🏆 Kazanan' : 'Kazanan'}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
       {/* ── Tab 2: Yayındaki Projeler ── */}
       {tab === 'projeler' && (
         <div>
@@ -336,14 +559,73 @@ export default function ProjelerPage() {
                 <option value="createdAt">Tarih ↓</option>
               </select>
             </div>
-            <Link href="/projeler/yeni"
-              className="flex items-center gap-2 px-4 py-2 bg-[#26496b] text-white text-sm font-semibold rounded-xl hover:bg-[#1e3a56] transition-colors shrink-0">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Yeni Proje
-            </Link>
+            <div className="flex items-center gap-2 shrink-0">
+              <button onClick={() => { setLiUploadOpen(o => !o); setLiMatches(null); setLiUploadMsg(''); }}
+                className="flex items-center gap-2 px-4 py-2 bg-[#0a66c2] text-white text-sm font-semibold rounded-xl hover:bg-[#005a9e] transition-colors">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                </svg>
+                LinkedIn Güncelle
+              </button>
+              <Link href="/projeler/yeni"
+                className="flex items-center gap-2 px-4 py-2 bg-[#26496b] text-white text-sm font-semibold rounded-xl hover:bg-[#1e3a56] transition-colors">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Yeni Proje
+              </Link>
+            </div>
           </div>
+
+          {/* LinkedIn Bulk Update Panel */}
+          {liUploadOpen && (
+            <div className="mb-4 bg-[#0a66c2]/5 border border-[#0a66c2]/20 rounded-2xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">LinkedIn Analitik Güncelle</p>
+                  <p className="text-xs text-gray-500 mt-0.5">allcontents.xls dosyasını yükle — &quot;Gönderi linki&quot;, &quot;Görüntülenme&quot;, &quot;Beğenmeler&quot;, &quot;Yorumlar&quot;, &quot;Tıklama&quot; sütunları bekleniyor</p>
+                </div>
+                <button onClick={() => { setLiUploadOpen(false); setLiMatches(null); setLiUploadMsg(''); }}
+                  className="text-gray-400 hover:text-gray-600 p-1">✕</button>
+              </div>
+
+              <input
+                ref={liFileRef}
+                type="file"
+                accept=".xls,.xlsx"
+                onChange={e => void handleLinkedinFile(e)}
+                className="block text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#0a66c2] file:text-white hover:file:bg-[#005a9e] cursor-pointer"
+              />
+
+              {liUploadMsg && (
+                <p className={`text-sm font-medium ${liUploadMsg.startsWith('✓') ? 'text-green-700' : liUploadMsg.startsWith('Hata') ? 'text-red-600' : 'text-gray-600'}`}>
+                  {liUploadMsg}
+                </p>
+              )}
+
+              {liMatches && liMatches.length > 0 && (
+                <div className="space-y-2">
+                  <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                    {liMatches.map(m => (
+                      <div key={m.id} className="flex items-center justify-between bg-white rounded-lg border border-gray-100 px-3 py-2 text-xs">
+                        <span className="text-gray-700 truncate max-w-[60%]">{m.title}</span>
+                        <span className="text-gray-400 shrink-0">
+                          <span className="text-gray-400 line-through mr-1">{m.oldViews.toLocaleString('tr-TR')}</span>
+                          <span className="text-emerald-600 font-semibold">→ {m.newViews.toLocaleString('tr-TR')}</span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    disabled={liUploading}
+                    onClick={() => void confirmLinkedinUpdate()}
+                    className="px-4 py-2 bg-[#0a66c2] text-white text-sm font-semibold rounded-xl hover:bg-[#005a9e] disabled:opacity-50 transition-colors">
+                    {liUploading ? 'Güncelleniyor…' : `${liMatches.length} Projeyi Güncelle`}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {projLoading ? (
             <div className="space-y-3">{[1, 2, 3].map(i => (

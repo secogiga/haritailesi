@@ -10,6 +10,7 @@ import { ILLER, UNIVERSITELER } from '@/lib/turkiye';
 
 const schema = z.object({
   // 1. SİZİ TANIYALIM
+  tcKimlikNo: z.string().regex(/^\d{11}$/, 'TC kimlik no 11 haneli olmalıdır.'),
   adSoyad: z.string().min(2, 'Ad soyad zorunludur.'),
   eposta: z.string().email('Geçerli bir e-posta girin.'),
   telefon: z.string().min(10, 'Telefon numarası zorunludur.'),
@@ -33,6 +34,7 @@ const schema = z.object({
     'ozel',
     'serbest',
     'kendi_ofis',
+    'stk',
   ], { required_error: 'Çalışma durumu zorunludur.' }),
   kurumAdi: z.string().optional().or(z.literal('')),
   unvan: z.string().optional().or(z.literal('')),
@@ -126,6 +128,99 @@ const TANISMA_KANALLARI = [
   { value: 'referans', label: 'Referans' },
   { value: 'google', label: 'Google' },
   { value: 'diger', label: 'Diğer' },
+];
+
+const KAMU_KURUMLARI = [
+  'Adalet Bakanlığı',
+  'Afet ve Acil Durum Yönetimi Başkanlığı',
+  'Aile ve Sosyal Hizmetler Bakanlığı',
+  'Anayasa Mahkemesi',
+  'Atatürk Araştırma Merkezi',
+  'Atatürk Kültür Merkezi',
+  'Atatürk Kültür, Dil ve Tarih Yüksek Kurumu',
+  'Avrupa Birliği Başkanlığı',
+  'Ceza ve İnfaz Kurumları ile Tutukevleri İşyurtları Kurumu',
+  'Cumhurbaşkanlığı',
+  'Çalışma ve Sosyal Güvenlik Bakanlığı',
+  'Çevre, Şehircilik ve İklim Değişikliği Bakanlığı',
+  'Danıştay',
+  'Devlet Arşivleri Başkanlığı',
+  'Devlet Opera ve Balesi Genel Müdürlüğü',
+  'Devlet Su İşleri Genel Müdürlüğü',
+  'Devlet Tiyatroları Genel Müdürlüğü',
+  'Dışişleri Bakanlığı',
+  'Diyanet İşleri Başkanlığı',
+  'Doğa Koruma ve Milli Parklar Genel Müdürlüğü',
+  'Doğu Anadolu Projesi Bölge Kalkınma İdaresi Başkanlığı',
+  'Doğu Karadeniz Projesi Bölge Kalkınma İdaresi Başkanlığı',
+  'Emniyet Genel Müdürlüğü',
+  'Enerji ve Tabii Kaynaklar Bakanlığı',
+  'GAP Bölge Kalkınma İdaresi',
+  'Gelir İdaresi Başkanlığı',
+  'Gençlik ve Spor Bakanlığı',
+  'Göç İdaresi Başkanlığı',
+  'Hakimler ve Savcılar Kurulu',
+  'Hazine ve Maliye Bakanlığı',
+  'Helal Akreditasyon Kurumu',
+  'İçişleri Bakanlığı',
+  'İklim Değişikliği Başkanlığı',
+  'İletişim Başkanlığı',
+  'Jandarma Genel Komutanlığı',
+  'Kamu Denetçiliği Kurumu',
+  'Kapadokya Alan Başkanlığı',
+  'Karayolları Genel Müdürlüğü',
+  'Kentsel Dönüşüm Başkanlığı',
+  'Konya Ovası Projesi Bölge Kalkınma İdaresi Başkanlığı',
+  'Küçük ve Orta Ölçekli İşletmeleri Geliştirme ve Destekleme İdaresi Başkanlığı',
+  'Kültür ve Turizm Bakanlığı',
+  'Maden Tetkik ve Arama Genel Müdürlüğü (MTA)',
+  'Maden ve Petrol İşleri Genel Müdürlüğü (MAPEG)',
+  'Mesleki Yeterlilik Kurumu',
+  'Meteoroloji Genel Müdürlüğü',
+  'Milli Eğitim Bakanlığı',
+  'Milli Saraylar İdaresi Başkanlığı',
+  'Orman Genel Müdürlüğü',
+  'Ölçme, Seçme ve Yerleştirme Merkezi Başkanlığı',
+  'Özelleştirme İdaresi Başkanlığı',
+  'Sağlık Bakanlığı',
+  'Sahil Güvenlik Komutanlığı',
+  'Sanayi ve Teknoloji Bakanlığı',
+  'Savunma Sanayi Başkanlığı',
+  'Sayıştay',
+  'Siber Güvenlik Başkanlığı',
+  'Sivil Havacılık Genel Müdürlüğü',
+  'Sosyal Güvenlik Kurumu',
+  'Strateji ve Bütçe Başkanlığı',
+  'Tapu ve Kadastro Genel Müdürlüğü',
+  'Tarım ve Orman Bakanlığı',
+  'Ticaret Bakanlığı',
+  'Türk Akreditasyon Kurumu',
+  'Türk Dil Kurumu',
+  'Türk İşbirliği ve Koordinasyon Ajansı Başkanlığı',
+  'Türk Patent ve Marka Kurumu',
+  'Türk Standartları Enstitüsü',
+  'Türk Tarih Kurumu',
+  'Türkiye Adalet Akademisi',
+  'Türkiye Bilimler Akademisi',
+  'Türkiye Bilimsel ve Teknolojik Araştırma Kurumu',
+  'Türkiye Büyük Millet Meclisi',
+  'Türkiye Enerji, Nükleer ve Maden Araştırma Kurumu (TENMAK)',
+  'Türkiye Hudut ve Sahiller Sağlık Genel Müdürlüğü',
+  'Türkiye İlaç ve Tıbbi Cihaz Kurumu',
+  'Türkiye İnsan Hakları ve Eşitlik Kurumu',
+  'Türkiye İstatistik Kurumu',
+  'Türkiye İş Kurumu Genel Müdürlüğü',
+  'Türkiye Sağlık Enstitüleri Başkanlığı',
+  'Türkiye Su Enstitüsü',
+  'Türkiye Uzay Ajansı',
+  'Türkiye Yazma Eserler Kurumu Başkanlığı',
+  'Ulaştırma ve Altyapı Bakanlığı',
+  'Uludağ Alan Başkanlığı',
+  'Vakıflar Genel Müdürlüğü',
+  'Yargıtay',
+  'Yurtdışı Türkler ve Akraba Topluluklar Başkanlığı',
+  'Yükseköğretim Kalite Kurulu',
+  'Yükseköğretim Kurulu',
 ];
 
 function formatTelefon(raw: string): string {
@@ -271,7 +366,17 @@ export default function BireyselBasvuruPage() {
   const epostaValue = watch('eposta') ?? '';
   const enYuksekEgitim = watch('enYuksekEgitim');
 
+  const kurumAdiValue = watch('kurumAdi') ?? '';
+  const [kamuKurumDiger, setKamuKurumDiger] = useState(false);
+
+  useEffect(() => {
+    if (calismaDurumu !== 'kamu') setKamuKurumDiger(false);
+  }, [calismaDurumu]);
+
   // Lise autocomplete
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [loadTime] = useState(() => Date.now());
+  const [honeypot, setHoneypot] = useState('');
   const [liseler, setLiseler] = useState<string[]>([]);
   const [liseQuery, setLiseQuery] = useState('');
   const [liseOpen, setLiseOpen] = useState(false);
@@ -284,8 +389,10 @@ export default function BireyselBasvuruPage() {
     calismaDurumu === 'kamu' ? 'Kurum / Kuruluş Adı' :
     calismaDurumu === 'ozel' ? 'Şirket / SHKM / LİHKAB Adı' :
     calismaDurumu === 'serbest' ? 'SHKM Adı' :
-    calismaDurumu === 'kendi_ofis' ? 'Şirket Adı' : null;
-  const showKurum = kurumLabel !== null;
+    calismaDurumu === 'kendi_ofis' ? 'Şirket Adı' :
+    calismaDurumu === 'stk' ? 'STK Adı' : null;
+  const showKurum   = kurumLabel !== null;
+  const showUnvan   = calismaDurumu === 'stk';
   const showDeneyim = !!calismaDurumu;
 
   useEffect(() => {
@@ -320,6 +427,8 @@ export default function BireyselBasvuruPage() {
   }
 
   async function onSubmit(values: FormValues) {
+    setSubmitError(null);
+    if (honeypot || Date.now() - loadTime < 2000) return;
     try {
       const { kvkk, iletisimOnay, eposta, ...rest } = values;
       await submitApplication({
@@ -329,7 +438,7 @@ export default function BireyselBasvuruPage() {
       });
       router.push('/uye-ol/tesekkurler?tip=bireysel');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Bir hata oluştu.');
+      setSubmitError(err instanceof Error ? err.message : 'Bir hata oluştu. Lütfen tekrar deneyin.');
     }
   }
 
@@ -352,12 +461,28 @@ export default function BireyselBasvuruPage() {
           </p>
         </div>
 
+        {submitError && (
+          <div className="mb-4 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <svg className="mt-0.5 w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+            {submitError}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-5 sm:p-8">
+          {/* Honeypot — bot tuzağı */}
+          <input type="text" name="website" value={honeypot} onChange={e => setHoneypot(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: 'absolute', left: '-9999px', top: 0, width: '1px', height: '1px', opacity: 0 }} />
 
           {/* 1. SİZİ TANIYALIM */}
           <section>
             <h2 className={sectionTitle}>1. Sizi Tanıyalım</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2">
+                <label className={lbl}>TC Kimlik No *</label>
+                <input {...register('tcKimlikNo')} type="text" inputMode="numeric" maxLength={11} placeholder="___________" className={inp} />
+                {errors.tcKimlikNo && <p className={fieldErr}>{errors.tcKimlikNo.message}</p>}
+              </div>
               <div>
                 <label className={lbl}>Ad Soyad *</label>
                 <input {...register('adSoyad')} type="text" className={inp} />
@@ -470,6 +595,7 @@ export default function BireyselBasvuruPage() {
                 { value: 'ozel', label: 'Özel sektörde çalışıyorum' },
                 { value: 'serbest', label: 'Serbest mühendis olarak çalışıyorum' },
                 { value: 'kendi_ofis', label: 'Kendi ofisim / şirketim var' },
+                { value: 'stk', label: "STK'da çalışıyorum" },
               ].map((opt) => (
                 <label key={opt.value} className={radioRow}>
                   <input {...register('calismaDurumu')} type="radio" value={opt.value}
@@ -481,15 +607,47 @@ export default function BireyselBasvuruPage() {
             {errors.calismaDurumu && <p className={fieldErr}>{errors.calismaDurumu.message}</p>}
 
             {showKurum && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+              <div className={`grid grid-cols-1 ${showUnvan ? 'sm:grid-cols-2' : 'sm:grid-cols-1'} gap-4 mt-4`}>
                 <div>
                   <label className={lbl}>{kurumLabel}</label>
-                  <input {...register('kurumAdi')} type="text" className={inp} />
+                  {calismaDurumu === 'kamu' ? (
+                    <>
+                      <select
+                        value={kamuKurumDiger ? 'diger' : kurumAdiValue}
+                        onChange={(e) => {
+                          if (e.target.value === 'diger') {
+                            setKamuKurumDiger(true);
+                            setValue('kurumAdi', '', { shouldValidate: false });
+                          } else {
+                            setKamuKurumDiger(false);
+                            setValue('kurumAdi', e.target.value, { shouldValidate: true });
+                          }
+                        }}
+                        className={inp}
+                      >
+                        <option value="">Seçin…</option>
+                        {KAMU_KURUMLARI.map((k) => <option key={k} value={k}>{k}</option>)}
+                        <option value="diger">Diğer</option>
+                      </select>
+                      {kamuKurumDiger && (
+                        <input
+                          {...register('kurumAdi')}
+                          type="text"
+                          placeholder="Kurum / kuruluş adını girin"
+                          className={`${inp} mt-2`}
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <input {...register('kurumAdi')} type="text" className={inp} />
+                  )}
                 </div>
-                <div>
-                  <label className={lbl}>Ünvan</label>
-                  <input {...register('unvan')} type="text" className={inp} />
-                </div>
+                {showUnvan && (
+                  <div>
+                    <label className={lbl}>Ünvan</label>
+                    <input {...register('unvan')} type="text" className={inp} />
+                  </div>
+                )}
               </div>
             )}
 

@@ -28,6 +28,7 @@ const schema = z
     webSitesi: z.string().optional().or(z.literal('')),
 
     // 2. TEMSİLCİ BİLGİLERİ
+    temsilciTcKimlikNo: z.string().regex(/^\d{11}$/, 'TC kimlik no 11 haneli olmalıdır.'),
     temsilciAdSoyad: z.string().min(2, 'Ad soyad zorunludur.'),
     temsilciRol: z.enum(['kurucu', 'yonetici', 'calisan', 'diger'], {
       required_error: 'Rol zorunludur.',
@@ -129,6 +130,8 @@ export default function KurumsalBasvuruPage() {
 
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [tanitimFile, setTanitimFile] = useState<File | null>(null);
+  const [loadTime] = useState(() => Date.now());
+  const [honeypot, setHoneypot] = useState('');
 
   const kurulusTipi = watch('kurulusTipi');
   const likhab = watch('likhab');
@@ -148,6 +151,7 @@ export default function KurumsalBasvuruPage() {
   }
 
   async function onSubmit(values: FormValues) {
+    if (honeypot || Date.now() - loadTime < 2000) return;
     try {
       const { kvkk, iletisimOnay, temsilciEposta, ...rest } = values;
       await submitApplication({
@@ -188,7 +192,8 @@ export default function KurumsalBasvuruPage() {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-5 sm:p-8">
-
+          {/* Honeypot — bot tuzağı */}
+          <input type="text" name="website" value={honeypot} onChange={e => setHoneypot(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: 'absolute', left: '-9999px', top: 0, width: '1px', height: '1px', opacity: 0 }} />
           {/* 1. KURULUŞ BİLGİLERİ */}
           <section>
             <h2 className={sectionTitle}>1. Kuruluş Bilgileri</h2>
@@ -334,6 +339,11 @@ export default function KurumsalBasvuruPage() {
           <section>
             <h2 className={sectionTitle}>2. Temsilci Bilgileri</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2">
+                <label className={lbl}>TC Kimlik No *</label>
+                <input {...register('temsilciTcKimlikNo')} type="text" inputMode="numeric" maxLength={11} placeholder="___________" className={inp} />
+                {errors.temsilciTcKimlikNo && <p className={fieldErr}>{errors.temsilciTcKimlikNo.message}</p>}
+              </div>
               <div>
                 <label className={lbl}>Ad Soyad *</label>
                 <input {...register('temsilciAdSoyad')} type="text" className={inp} />

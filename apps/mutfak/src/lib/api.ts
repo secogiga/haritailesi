@@ -88,6 +88,57 @@ function del<T>(path: string, token: string) {
 }
 
 
+export interface StoreSeller {
+  id: string;
+  userId: string | null;
+  applicantName: string;
+  email: string;
+  phone: string | null;
+  businessType: 'bireysel' | 'kurumsal';
+  businessName: string | null;
+  taxNumber: string | null;
+  iban: string | null;
+  productDescription: string;
+  commissionRate: string | null;
+  status: 'pending' | 'approved' | 'rejected' | 'suspended';
+  appliedFrom: 'sahne' | 'mutfak';
+  adminNotes: string | null;
+  approvedAt: string | null;
+  createdAt: string;
+}
+
+export interface StoreProduct {
+  id: string;
+  slug: string;
+  ownerType: 'vakif' | 'seller';
+  title: string;
+  subtitle: string | null;
+  description: string;
+  type: 'digital' | 'physical' | 'app';
+  price: number;
+  memberPrice: number | null;
+  images: string[];
+  stock: number | null;
+  tags: string[];
+  status: string;
+}
+
+export interface StoreOrderItem {
+  id: string;
+  orderId: string;
+  productSnapshot: { title: string; price: number; type: string; ownerType: string };
+  quantity: number;
+  unitPrice: number;
+  commissionAmount: number;
+  sellerAmount: number;
+  shippingStatus: 'pending' | 'preparing' | 'shipped' | 'delivered';
+  trackingNumber: string | null;
+  trackingCompany: string | null;
+  shippedAt: string | null;
+  deliveredAt: string | null;
+  createdAt: string;
+}
+
 export interface Me {
   id: string;
   email: string;
@@ -163,6 +214,7 @@ export interface DmThread {
     displayName: string;
     avatarUrl: string | null;
     profession: string | null;
+    isStaff: boolean;
   } | null;
 }
 
@@ -274,6 +326,7 @@ export interface FeedPost {
   imageUrl?: string | null;
   pollOptions?: PollOption[] | null;
   viewerVote?: string | null;
+  libraryRefs?: { type: 'term' | 'guide' | 'regulation'; slug: string; title: string }[];
 }
 
 export interface PostComment {
@@ -555,7 +608,7 @@ export const mutfakApi = {
     get<FeedPost>(`/posts/${postId}`, token),
 
   createPost: (
-    data: { type: string; category: string; title?: string; body: string; pollOptions?: string[]; isPublic?: boolean },
+    data: { type: string; category: string; title?: string; body: string; pollOptions?: string[]; isPublic?: boolean; libraryRefs?: { type: string; slug: string; title: string }[] },
     token: string,
   ) => post<FeedPost>('/posts', data, token),
 
@@ -691,6 +744,9 @@ export const mutfakApi = {
   resetPassword: (token: string, newPassword: string) =>
     post<void>('/auth/reset-password', { token, newPassword }),
 
+  setupPassword: (token: string, password: string) =>
+    post<{ accessToken: string; refreshToken: string }>('/auth/setup-password', { token, password }),
+
   changePassword: (data: { currentPassword: string; newPassword: string }, token: string) =>
     post<void>('/auth/change-password', data, token),
 
@@ -738,14 +794,22 @@ export const mutfakApi = {
   getThreads: (token: string) =>
     get<DmThread[]>('/messages', token),
 
-  getMessages: (userId: string, token: string) =>
-    get<DirectMessage[]>(`/messages/${userId}`, token),
+  getMessages: (userId: string, token: string, opts?: { before?: string; limit?: number }) => {
+    const params = new URLSearchParams();
+    if (opts?.before) params.set('before', opts.before);
+    if (opts?.limit) params.set('limit', String(opts.limit));
+    const qs = params.toString();
+    return get<{ data: DirectMessage[]; hasMore: boolean }>(`/messages/${userId}${qs ? `?${qs}` : ''}`, token);
+  },
 
   sendMessage: (userId: string, body: string, token: string) =>
     post<DirectMessage>(`/messages/${userId}`, { body }, token),
 
   markThreadRead: (userId: string, token: string) =>
     patch<void>(`/messages/${userId}/read`, {}, token),
+
+  deleteThread: (userId: string, token: string) =>
+    del<void>(`/messages/${userId}`, token),
 
   // ── Search ───────────────────────────────────────────────────────────────────
 
@@ -805,10 +869,31 @@ export const mutfakApi = {
   getMyRsvps: (token: string) =>
     get<string[]>('/cms/events-rsvp/mine', token),
 
+  toggleSessionFavorite: (sessionId: string, token: string) =>
+    post<{ favorited: boolean }>(`/cms/sessions/${sessionId}/favorite`, {}, token),
+
+  getMySessionFavorites: (eventId: string, token: string) =>
+    get<string[]>(`/cms/events/${eventId}/my-favorites`, token),
+
+  submitContentRequest: (
+    dto: { email: string; displayName: string; source: string; type: string; title: string; description: string; contactInfo?: string },
+    token: string,
+  ) => post<{ id: string }>('/marketplace/content-requests', dto, token),
+
+  getEventRegistrationQuestions: (eventId: string) => {
+    const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000';
+    return fetch(`${API_URL}/api/v1/cms/events/${eventId}/registration-questions`)
+      .then(r => r.ok ? r.json() as Promise<Array<{ id: string; question: string; questionType: string; options: string[] | null; isRequired: boolean }>> : [])
+      .catch(() => [] as Array<{ id: string; question: string; questionType: string; options: string[] | null; isRequired: boolean }>);
+  },
+
+  submitRegistrationAnswers: (attendanceId: string, answers: Array<{ questionId: string; answer: string }>, token: string) =>
+    post<void>(`/cms/attendances/${attendanceId}/answers`, { answers }, token),
+
   // ── Community ─────────────────────────────────────────────────────────────
 
   submitCommunityFeedback: (
-    data: { email?: string; subject: string; body: string; type: 'talep' | 'gorus' },
+    data: { email?: string; subject: string; body: string; type: 'talep' | 'gorus'; urgency?: string; subCategory?: string; expectation?: string; userType?: string; attachmentUrls?: string[] },
     token?: string,
   ) => {
     const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000';
@@ -821,7 +906,20 @@ export const mutfakApi = {
       body: JSON.stringify({ ...data, source: 'mutfak' }),
     }).then(async (r) => {
       if (!r.ok) throw new Error('Gönderim başarısız oldu.');
-      return r.json() as Promise<{ id: string }>;
+      return r.json() as Promise<{ id: string; ticketNo: number }>;
+    });
+  },
+
+  getMyTickets: (token: string) => {
+    const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000';
+    return fetch(`${API_URL}/api/v1/community/my-tickets`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(async (r) => {
+      if (!r.ok) throw new Error('Talepler alınamadı.');
+      return r.json() as Promise<Array<{
+        id: string; ticketNo: number; subject: string; type: string;
+        status: string; adminReply: string | null; createdAt: string; resolvedAt: string | null;
+      }>>;
     });
   },
 
@@ -911,6 +1009,47 @@ export const mutfakApi = {
       body: JSON.stringify(data),
     }),
 
+  // ── Store: Satıcı başvurusu ────────────────────────────────────────────────
+
+  applyAsSeller: (
+    token: string,
+    dto: {
+      applicantName: string; email: string; phone?: string;
+      businessType: 'bireysel' | 'kurumsal'; businessName?: string;
+      taxNumber?: string; iban?: string; productDescription: string;
+    },
+  ) =>
+    apiFetch<{ id: string }>('/store/sellers/apply/member', {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ ...dto, appliedFrom: 'mutfak' }),
+    }),
+
+  // ── Store: Satıcı profili + siparişleri ───────────────────────────────────
+
+  getMySellerProfile: (token: string) =>
+    apiFetch<StoreSeller | null>('/store/seller/me', { method: 'GET', token }),
+
+  getMySellerProducts: (token: string) =>
+    apiFetch<{ data: StoreProduct[] }>('/store/seller/me/products', { method: 'GET', token }),
+
+  getMySellerOrders: (token: string) =>
+    apiFetch<{ data: StoreOrderItem[] }>('/store/seller/me/orders', { method: 'GET', token }),
+
+  getMySellerBalance: (token: string) =>
+    apiFetch<{ held: number; released: number; totalPaid: number }>('/store/seller/me/balance', { method: 'GET', token }),
+
+  updateMyItemShipping: (
+    token: string,
+    itemId: string,
+    dto: { shippingStatus: 'preparing' | 'shipped' | 'delivered'; trackingNumber?: string; trackingCompany?: string },
+  ) =>
+    apiFetch<{ id: string }>(`/store/seller/me/orders/items/${itemId}/shipping`, {
+      method: 'PATCH',
+      token,
+      body: JSON.stringify(dto),
+    }),
+
   // ── Analytics Events ───────────────────────────────────────────────────────
 
   trackEvent: (
@@ -923,4 +1062,45 @@ export const mutfakApi = {
       token,
       body: JSON.stringify({ eventType, metadata }),
     }).catch(() => undefined), // fire-and-forget, never throw
+
+  searchLibraryTerms: (q: string) =>
+    apiFetch<{ id: string; slug: string | null; term: string; definition: string }[]>(
+      `/library/terms?q=${encodeURIComponent(q)}&limit=8`,
+      { method: 'GET' },
+    ).catch(() => []),
+
+  searchLibraryGuides: (q: string) =>
+    apiFetch<{ id: string; slug: string; title: string; summary: string }[]>(
+      `/library/guides?q=${encodeURIComponent(q)}&limit=8`,
+      { method: 'GET' },
+    ).catch(() => []),
+
+  submitLibraryContribution: (
+    token: string,
+    data: { contentType: string; contentId?: string; body: string },
+  ) =>
+    apiFetch<{ submitted: boolean }>('/library/suggestions', {
+      method: 'POST', token, body: JSON.stringify(data),
+    }),
+
+  getMyLibrarySubmissions: (token: string) =>
+    apiFetch<{
+      id: string; content_type: string; content_id: string | null;
+      body: string; status: string; admin_note: string | null; created_at: string;
+    }[]>('/library/me/suggestions', { method: 'GET', token }),
+
+  getLibraryPrefs: (token: string) =>
+    apiFetch<{
+      fieldPref: string | null;
+      bookmarks: {
+        terms: Array<{ id: string; title: string; slug: string }>;
+        guides: Array<{ id: string; title: string; slug: string }>;
+        regulations: Array<{ id: string; title: string; slug: string }>;
+      };
+    }>('/library/me/prefs', { method: 'GET', token }),
+
+  getLibraryReadingList: (token: string) =>
+    apiFetch<Array<{
+      id: string; content_type: string; content_id: string; created_at: string;
+    }>>('/library/me/reading-list', { method: 'GET', token }),
 };

@@ -1,0 +1,1 @@
+ALTER TABLE "course_lessons" ADD COLUMN "xp_reward" integer DEFAULT 10 NOT NULL;

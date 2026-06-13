@@ -1,7 +1,7 @@
 import {
   Controller, Get, Post, Patch, Delete,
   Body, Param, Query,
-  ParseUUIDPipe, NotFoundException, BadRequestException,
+  ParseUUIDPipe, NotFoundException, BadRequestException, ForbiddenException,
 } from '@nestjs/common';
 import {
   IsString, IsEmail, IsOptional, IsIn, IsBoolean, MaxLength, IsNotEmpty,
@@ -13,12 +13,12 @@ import type { RequestUser } from '../auth/auth.types';
 import { InjectDb } from '../database/inject-db.decorator';
 import type { Database } from '@haritailesi/database';
 import {
-  communityQuestions, communityAnswers, userProfiles, users, posts,
+  communityQuestions, communityAnswers, communityAnswerVotes, userProfiles, users, posts,
 } from '@haritailesi/database';
-import { eq, desc, and, type SQL } from 'drizzle-orm';
+import { eq, desc, and, sql as drizzleSql, type SQL } from 'drizzle-orm';
 
 const TIER_DISPLAY: Record<string, string> = {
-  registered_user: 'Sahne Üyesi',
+  registered_user: 'Kayıtlı',
   haritailesi_genc: 'Haritailesi Genç',
   new_graduate_member: 'Mesleğin Geleceği',
   individual_member: 'Mesleğin Değer Ortağı',
@@ -245,6 +245,8 @@ export class QaController {
           submitterName: communityAnswers.submitterName,
           submitterTier: communityAnswers.submitterTier,
           showFullName: communityAnswers.showFullName,
+          isAccepted: communityAnswers.isAccepted,
+          upvoteCount: communityAnswers.upvoteCount,
           updatedAt: communityAnswers.updatedAt,
         })
         .from(communityAnswers)
@@ -301,6 +303,8 @@ export class QaController {
           submitterName: communityAnswers.submitterName,
           submitterTier: communityAnswers.submitterTier,
           showFullName: communityAnswers.showFullName,
+          isAccepted: communityAnswers.isAccepted,
+          upvoteCount: communityAnswers.upvoteCount,
           updatedAt: communityAnswers.updatedAt,
         })
         .from(communityAnswers)
@@ -680,5 +684,87 @@ export class QaController {
     if (!answer) throw new NotFoundException('Cevap bulunamadı.');
     await this.db.delete(communityAnswers).where(eq(communityAnswers.id, answerId));
     return { deleted: true };
+  }
+
+  // ── Auth: Upvote toggle ────────────────────────────────────────────────────
+
+  @Post('answers/:answerId/upvote')
+  async toggleUpvote(
+    @Param('answerId', ParseUUIDPipe) answerId: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    const answer = await this.db.query.communityAnswers.findFirst({
+      where: and(eq(communityAnswers.id, answerId), eq(communityAnswers.isPublished, true)),
+    });
+    if (!answer) throw new NotFoundException('Cevap bulunamadı.');
+
+    const existing = await this.db.query.communityAnswerVotes.findFirst({
+      where: and(
+        eq(communityAnswerVotes.userId, user.id),
+        eq(communityAnswerVotes.answerId, answerId),
+      ),
+    });
+
+    if (existing) {
+      await this.db.delete(communityAnswerVotes)
+        .where(eq(communityAnswerVotes.id, existing.id));
+      const [updated] = await this.db
+        .update(communityAnswers)
+        .set({ upvoteCount: drizzleSql`${communityAnswers.upvoteCount} - 1`, updatedAt: new Date() })
+        .where(eq(communityAnswers.id, answerId))
+        .returning({ upvoteCount: communityAnswers.upvoteCount });
+      return { upvoted: false, upvoteCount: updated!.upvoteCount };
+    }
+
+    await this.db.insert(communityAnswerVotes).values({ userId: user.id, answerId });
+    const [updated] = await this.db
+      .update(communityAnswers)
+      .set({ upvoteCount: drizzleSql`${communityAnswers.upvoteCount} + 1`, updatedAt: new Date() })
+      .where(eq(communityAnswers.id, answerId))
+      .returning({ upvoteCount: communityAnswers.upvoteCount });
+    return { upvoted: true, upvoteCount: updated!.upvoteCount };
+  }
+
+  // ── Auth: Check my vote ────────────────────────────────────────────────────
+
+  @Get('answers/:answerId/my-vote')
+  async getMyVote(
+    @Param('answerId', ParseUUIDPipe) answerId: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    const vote = await this.db.query.communityAnswerVotes.findFirst({
+      where: and(
+        eq(communityAnswerVotes.userId, user.id),
+        eq(communityAnswerVotes.answerId, answerId),
+      ),
+    });
+    return { upvoted: !!vote };
+  }
+
+  // ── Auth: Accept answer (question author only) ────────────────────────────
+
+  @Patch('answers/:answerId/accept')
+  async toggleAccept(
+    @Param('answerId', ParseUUIDPipe) answerId: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    const answer = await this.db.query.communityAnswers.findFirst({
+      where: eq(communityAnswers.id, answerId),
+    });
+    if (!answer) throw new NotFoundException('Cevap bulunamadı.');
+
+    const question = await this.db.query.communityQuestions.findFirst({
+      where: eq(communityQuestions.id, answer.questionId),
+    });
+    if (!question) throw new NotFoundException('Soru bulunamadı.');
+    if (question.userId !== user.id) throw new ForbiddenException('Sadece soru sahibi kabul işlemi yapabilir.');
+
+    const newAccepted = !answer.isAccepted;
+    const [updated] = await this.db
+      .update(communityAnswers)
+      .set({ isAccepted: newAccepted, updatedAt: new Date() })
+      .where(eq(communityAnswers.id, answerId))
+      .returning({ id: communityAnswers.id, isAccepted: communityAnswers.isAccepted });
+    return updated;
   }
 }

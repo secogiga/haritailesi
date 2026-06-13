@@ -1,7 +1,10 @@
 {
   "name": "haritailesi",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
@@ -23,5 +26,9 @@
   "engines": {
     "node": ">=20"
   },
-  "packageManager": "npm@11.12.1"
+  "packageManager": "npm@11.12.1",
+  "dependencies": {
+    "@tiptap/extension-highlight": "^2.27.2",
+    "@tiptap/extension-text-align": "^2.27.2"
+  }
 }

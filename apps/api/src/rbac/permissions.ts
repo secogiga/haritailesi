@@ -1,161 +1,50 @@
 import type { MembershipTier, FunctionalRole } from '@haritailesi/types';
+import { Perm, ROLE_PERMISSIONS, getUserPermissions, hasPermission } from '@haritailesi/permissions';
 
-// ─── Permission Definition ─────────────────────────────────────────────────────
-// Format: 'resource.action'
+// Re-export everything the rest of the API needs
+export { Perm, ROLE_PERMISSIONS, getUserPermissions, hasPermission };
+export type { Permission } from '@haritailesi/permissions';
 
-export type Permission =
-  // Feed
-  | 'feed.read'
-  | 'feed.post.create'
-  | 'feed.post.delete_own'
-  | 'feed.post.delete_any'
-  | 'feed.post.pin'
-  | 'feed.comment.create'
-  | 'feed.comment.delete_own'
-  | 'feed.comment.delete_any'
-  | 'feed.react'
-  // Applications
-  | 'application.submit'
-  | 'application.review'
-  | 'application.approve'
-  | 'application.reject'
-  // Users
-  | 'user.profile.read'
-  | 'user.profile.update_own'
-  | 'user.manage'
-  | 'user.roles.manage'
-  | 'user.delete'
-  // Verification
-  | 'verification.submit'
-  | 'verification.review'
-  // Mentorship
-  | 'mentor.request'
-  | 'mentor.manage'
-  | 'mentor.accept'
-  // Content
-  | 'content.read'
-  | 'content.create'
-  | 'content.publish'
-  | 'content.delete_any'
-  // Admin
-  | 'admin.dashboard.read'
-  | 'admin.settings.manage'
-  | 'audit.read';
+import type { Permission } from '@haritailesi/permissions';
 
-// ─── Tier Permissions ─────────────────────────────────────────────────────────
-// Membership tier'ına göre temel izinler. Functional roller bunun üstüne eklenir.
+// ─── Tier Permissions (API-only — not shared with frontend) ───────────────────
 
 const TIER_PERMISSIONS: Record<MembershipTier, Permission[]> = {
   visitor: [],
-  registered_user: ['application.submit', 'user.profile.read'],
+  registered_user: [Perm.APPLICATION_SUBMIT, Perm.USER_PROFILE_READ],
   haritailesi_genc: [
-    'application.submit',
-    'user.profile.read',
-    'user.profile.update_own',
-    'verification.submit',
-    'mentor.request',
-    'content.read',
+    Perm.APPLICATION_SUBMIT, Perm.USER_PROFILE_READ, Perm.USER_PROFILE_UPDATE_OWN,
+    Perm.VERIFICATION_SUBMIT, Perm.MENTOR_REQUEST, Perm.CONTENT_READ,
   ],
   new_graduate_member: [
-    'application.submit',
-    'user.profile.read',
-    'user.profile.update_own',
-    'verification.submit',
-    'mentor.request',
-    'content.read',
-    'feed.read',
-    'feed.post.create',
-    'feed.post.delete_own',
-    'feed.comment.create',
-    'feed.comment.delete_own',
-    'feed.react',
+    Perm.APPLICATION_SUBMIT, Perm.USER_PROFILE_READ, Perm.USER_PROFILE_UPDATE_OWN,
+    Perm.VERIFICATION_SUBMIT, Perm.MENTOR_REQUEST, Perm.CONTENT_READ,
+    Perm.FEED_READ, Perm.FEED_POST_CREATE, Perm.FEED_POST_DELETE_OWN,
+    Perm.FEED_COMMENT_CREATE, Perm.FEED_COMMENT_DELETE_OWN, Perm.FEED_REACT,
   ],
   individual_member: [
-    'application.submit',
-    'user.profile.read',
-    'user.profile.update_own',
-    'verification.submit',
-    'mentor.request',
-    'mentor.accept',
-    'content.read',
-    'content.create',
-    'feed.read',
-    'feed.post.create',
-    'feed.post.delete_own',
-    'feed.comment.create',
-    'feed.comment.delete_own',
-    'feed.react',
+    Perm.APPLICATION_SUBMIT, Perm.USER_PROFILE_READ, Perm.USER_PROFILE_UPDATE_OWN,
+    Perm.VERIFICATION_SUBMIT, Perm.MENTOR_REQUEST, Perm.MENTOR_ACCEPT,
+    Perm.CONTENT_READ, Perm.CONTENT_CREATE,
+    Perm.FEED_READ, Perm.FEED_POST_CREATE, Perm.FEED_POST_DELETE_OWN,
+    Perm.FEED_COMMENT_CREATE, Perm.FEED_COMMENT_DELETE_OWN, Perm.FEED_REACT,
   ],
   corporate_member: [
-    'user.profile.read',
-    'user.profile.update_own',
-    'verification.submit',
-    'content.read',
-  ],
-};
-
-// ─── Functional Role Permissions ──────────────────────────────────────────────
-
-const ROLE_PERMISSIONS: Record<FunctionalRole, Permission[]> = {
-  mentor: ['mentor.accept', 'mentor.manage'],
-  moderator: [
-    'feed.post.delete_any',
-    'feed.comment.delete_any',
-    'feed.post.pin',
-    'user.manage',
-  ],
-  editor: ['content.create', 'content.publish', 'content.delete_any'],
-  meslegin_gelecekleri_participant: [],
-  corporate_rep: [],
-  admin: [
-    'feed.post.delete_any',
-    'feed.comment.delete_any',
-    'feed.post.pin',
-    'application.review',
-    'application.approve',
-    'application.reject',
-    'user.manage',
-    'user.roles.manage',
-    'verification.review',
-    'content.publish',
-    'content.delete_any',
-    'mentor.manage',
-    'admin.dashboard.read',
-    'audit.read',
-  ],
-  super_admin: [
-    'feed.post.delete_any',
-    'feed.comment.delete_any',
-    'feed.post.pin',
-    'application.review',
-    'application.approve',
-    'application.reject',
-    'user.manage',
-    'user.roles.manage',
-    'user.delete',
-    'verification.review',
-    'content.publish',
-    'content.delete_any',
-    'mentor.manage',
-    'admin.dashboard.read',
-    'admin.settings.manage',
-    'audit.read',
+    Perm.USER_PROFILE_READ, Perm.USER_PROFILE_UPDATE_OWN,
+    Perm.VERIFICATION_SUBMIT, Perm.CONTENT_READ,
   ],
 };
 
 // ─── Permission Checker ────────────────────────────────────────────────────────
+// Checks membership tier permissions first, then functional role permissions.
+// resource param reserved for future resource-aware (ABAC) checks.
 
 export function can(
   user: { membershipTier: MembershipTier; functionalRoles: FunctionalRole[] },
   permission: Permission,
+  _resource?: unknown,
 ): boolean {
   const tierPerms = TIER_PERMISSIONS[user.membershipTier] ?? [];
   if (tierPerms.includes(permission)) return true;
-
-  for (const role of user.functionalRoles) {
-    const rolePerms = ROLE_PERMISSIONS[role] ?? [];
-    if (rolePerms.includes(permission)) return true;
-  }
-
-  return false;
+  return hasPermission(user.functionalRoles, permission);
 }

@@ -933,10 +933,10 @@ export default async function SahnePage() {
                 <ul className="space-y-2 text-sm">
                   {[
                     { label: 'Etkinlikler', href: '/etkinlikler' },
-                    { label: 'Mentorluk', href: '/mentorluk' },
                     { label: 'Projeler', href: '/projeler' },
-                    { label: 'İlan Panosu', href: '/ilanlar' },
-                    { label: 'Forum', href: '/forum' },
+                    { label: 'Meslek Kütüphanesi', href: '/kutuphane' },
+                    { label: 'Sınavlar', href: '/sinavlar' },
+                    { label: 'Mentorluk', href: '/mentorluk' },
                   ].map((l) => (
                     <li key={l.label}>
                       <Link href={l.href} className="hover:text-white transition-colors">{l.label}</Link>

@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import type { Route } from 'next';
 import { cms } from '@/lib/api';
-import { EditableSection } from './EditableSection';
 
 type FooterSettings = {
   tagline?: string;
@@ -84,64 +83,54 @@ export default async function Footer() {
   const instagramUrl = fs?.instagramUrl ?? 'https://instagram.com/haritailesi';
   const youtubeUrl = fs?.youtubeUrl ?? 'https://youtube.com/@haritailesi';
 
-  const brandData = { tagline, linkedinUrl, instagramUrl, youtubeUrl };
+  const savedLinks = await cms.settings<typeof FOOTER_LINKS>('footer_links');
+  const hasValidLinks = Array.isArray(savedLinks) && savedLinks.length > 0 &&
+    savedLinks.some(col => col.linkler?.some(l => l.label?.trim()));
+  const rawLinks = hasValidLinks ? savedLinks! : FOOTER_LINKS;
+  // Eksik veya boş sütunları default'larla tamamla
+  const footerLinks = FOOTER_LINKS.map((def) => {
+    const saved = rawLinks.find((s) => s.baslik === def.baslik);
+    if (!saved) return def;
+    const validLinks = saved.linkler?.filter((l) => l.label?.trim()) ?? [];
+    return validLinks.length > 0 ? saved : def;
+  });
 
   return (
     <footer className="bg-[var(--color-mavi)] text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12 items-start">
           {/* Marka */}
-          <EditableSection sectionKey="footer:brand" label="Footer Marka" initialData={brandData} className="col-span-2 md:col-span-4 lg:col-span-1">
-          <div>
+          <div className="col-span-2 md:col-span-4 lg:col-span-1">
             <span className="text-2xl font-bold tracking-tight">
               <span style={{ color: '#ffffff' }}>harit</span><span style={{ color: '#66aca9' }}>a</span><span style={{ color: '#ffffff' }}>ilesi</span>
             </span>
-            <p className="mt-3 text-sm text-white/60 leading-relaxed">
-              {tagline}
-            </p>
+            <p className="mt-3 text-sm text-white/60 leading-relaxed">{tagline}</p>
             <div className="flex gap-3 mt-5">
-              <a href={linkedinUrl} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="text-white/50 hover:text-white transition-colors">
-                <LinkedInIcon />
-              </a>
-              <a href={instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="text-white/50 hover:text-white transition-colors">
-                <InstagramIcon />
-              </a>
-              <a href={youtubeUrl} target="_blank" rel="noopener noreferrer" aria-label="YouTube" className="text-white/50 hover:text-white transition-colors">
-                <YouTubeIcon />
-              </a>
+              <a href={linkedinUrl} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="text-white/50 hover:text-white transition-colors"><LinkedInIcon /></a>
+              <a href={instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="text-white/50 hover:text-white transition-colors"><InstagramIcon /></a>
+              <a href={youtubeUrl} target="_blank" rel="noopener noreferrer" aria-label="YouTube" className="text-white/50 hover:text-white transition-colors"><YouTubeIcon /></a>
             </div>
           </div>
-          </EditableSection>
 
           {/* Linkler */}
-          {FOOTER_LINKS.map((kolon) => (
-            <div key={kolon.baslik}>
-              <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-4">{kolon.baslik}</h3>
-              <ul className="space-y-2.5">
-                {kolon.linkler.map((link) => (
-                  <li key={link.href}>
-                    {link.external ? (
-                      <a
-                        href={link.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-white/70 hover:text-white transition-colors"
-                      >
-                        {link.label}
-                      </a>
-                    ) : (
-                      <Link
-                        href={link.href as Route}
-                        className="text-sm text-white/70 hover:text-white transition-colors"
-                      >
-                        {link.label}
-                      </Link>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          <div className="col-span-2 md:col-span-3 lg:col-span-4 grid grid-cols-2 md:grid-cols-4 gap-8">
+            {footerLinks.map((kolon) => (
+              <div key={kolon.baslik}>
+                <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-4">{kolon.baslik}</h3>
+                <ul className="space-y-2.5">
+                  {kolon.linkler.map((link) => (
+                    <li key={link.href}>
+                      {link.external ? (
+                        <a href={link.href} target="_blank" rel="noopener noreferrer" className="text-sm text-white/70 hover:text-white transition-colors">{link.label}</a>
+                      ) : (
+                        <Link href={link.href as Route} className="text-sm text-white/70 hover:text-white transition-colors">{link.label}</Link>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-white/40">
@@ -152,6 +141,7 @@ export default async function Footer() {
             <span>|</span>
             <Link href={'/kvkk' as Route} className="hover:text-white/70 transition-colors">KVKK Politikası</Link>
           </div>
+
           <span>© {new Date().getFullYear()} Haritailesi Vakfı. Tüm hakları saklıdır.</span>
         </div>
       </div>

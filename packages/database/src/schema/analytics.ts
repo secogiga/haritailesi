@@ -6,6 +6,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 import { users } from './users';
@@ -71,6 +72,25 @@ export const userEvents = pgTable(
     index('user_events_created_at_idx').on(t.createdAt),
     index('user_events_user_type_idx').on(t.userId, t.eventType),
     index('user_events_category_action_idx').on(t.category, t.action),
+  ],
+);
+
+// ─── user_level_actions ───────────────────────────────────────────────────────
+// Kademe sistemi: kullanıcının tamamladığı aksiyon ID'leri.
+// Her (userId, actionId) çifti tektir; çakışmada sessizce görmezden gelinir.
+
+export const userLevelActions = pgTable(
+  'user_level_actions',
+  {
+    id:          uuid('id').primaryKey().defaultRandom(),
+    userId:      uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    actionId:    text('action_id').notNull(),
+    completedAt: timestamp('completed_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('user_level_actions_user_action_unique').on(t.userId, t.actionId),
+    index('user_level_actions_user_id_idx').on(t.userId),
+    index('user_level_actions_action_id_idx').on(t.actionId),
   ],
 );
 

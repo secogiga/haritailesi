@@ -6,6 +6,8 @@ import { mutfakApi, type CmsEvent } from '@/lib/api';
 import { useToken } from '@/hooks/useToken';
 import { useAuth } from '@/contexts/AuthContext';
 
+type Session = { id: string; title: string; sessionType: string; startTime: string | null; endTime: string | null; speakerName: string | null; hall: string | null; sortOrder: number };
+
 const EVENT_TYPE_LABELS: Record<string, string> = {
   kongre: 'Kongre',
   networking: 'Networking',
@@ -55,12 +57,16 @@ function EventCard({
   onRsvp,
   onCancelRsvp,
   rsvpBusy,
+  favoritedSessions,
+  onFavorite,
 }: {
-  event: CmsEvent;
+  event: CmsEvent & { sessions?: Session[] | undefined };
   isRsvpd: boolean;
   onRsvp: (id: string) => void;
   onCancelRsvp: (id: string) => void;
   rsvpBusy: boolean;
+  favoritedSessions: Set<string>;
+  onFavorite: (sessionId: string) => void;
 }) {
   const past = isPast(event.dateStart);
   const typeColor = EVENT_TYPE_COLORS[event.type] ?? EVENT_TYPE_COLORS.diger;
@@ -72,7 +78,7 @@ function EventCard({
       {event.coverImageKey && (
         <div className="h-36 bg-gray-100 overflow-hidden">
           <img
-            src={`/api/v1/media/${event.coverImageKey}`}
+            src={`/api/v1/media?key=${encodeURIComponent(event.coverImageKey!)}`}
             alt={event.title}
             className="w-full h-full object-cover"
           />
@@ -135,6 +141,38 @@ function EventCard({
             )}
           </div>
         </div>
+
+        {/* Program (sessions) */}
+        {event.sessions && event.sessions.length > 0 && (
+          <div className="mt-3 border-t border-gray-100 pt-3 space-y-1.5">
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Program</p>
+            {event.sessions.map((ss: Session) => (
+              <div key={ss.id} className="flex items-start gap-2.5">
+                {ss.startTime && (
+                  <span className="text-[10px] font-medium text-[#26496b] w-10 shrink-0 mt-0.5">
+                    {new Date(ss.startTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Istanbul' })}
+                  </span>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-medium text-gray-800 leading-snug truncate">{ss.title}</p>
+                    <button
+                      onClick={() => onFavorite(ss.id)}
+                      disabled={!onFavorite}
+                      className={`shrink-0 p-1 rounded transition-colors ${favoritedSessions.has(ss.id) ? 'text-amber-500' : 'text-gray-300 hover:text-amber-400'}`}
+                      title={favoritedSessions.has(ss.id) ? 'Favoriden çıkar' : 'Favoriye ekle'}
+                    >
+                      <svg className="w-3.5 h-3.5" fill={favoritedSessions.has(ss.id) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                      </svg>
+                    </button>
+                  </div>
+                  {ss.speakerName && <p className="text-[10px] text-gray-400 truncate">{ss.speakerName}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="mt-4 flex flex-wrap gap-2">
           {!past && !event.isCancelled && (
@@ -199,12 +237,80 @@ function EventCard({
 
 // ─── Ana Sayfa ────────────────────────────────────────────────────────────────
 
+type RegQuestion = { id: string; question: string; questionType: string; options: string[] | null; isRequired: boolean };
+
+function RsvpQuestionsModal({
+  questions, onSubmit, onClose, busy,
+}: {
+  questions: RegQuestion[];
+  onSubmit: (answers: Record<string, string>) => void;
+  onClose: () => void;
+  busy: boolean;
+}) {
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const set = (id: string, v: string) => setAnswers(a => ({ ...a, [id]: v }));
+  const inp = 'w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#26496b]/30 focus:border-[#26496b] bg-white';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div>
+            <h3 className="font-bold text-gray-900">Katılım Bilgileri</h3>
+            <p className="text-xs text-gray-400 mt-0.5">Lütfen aşağıdaki soruları yanıtlayın.</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
+        </div>
+        <div className="px-5 py-4 space-y-4">
+          {questions.map(q => (
+            <div key={q.id}>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                {q.question}{q.isRequired && <span className="text-red-500 ml-1">*</span>}
+              </label>
+              {q.questionType === 'select' && q.options ? (
+                <select className={inp} value={answers[q.id] ?? ''} onChange={e => set(q.id, e.target.value)}>
+                  <option value="">Seçin…</option>
+                  {q.options.map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+              ) : q.questionType === 'checkbox' ? (
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input type="checkbox" checked={answers[q.id] === 'evet'} onChange={e => set(q.id, e.target.checked ? 'evet' : 'hayır')} className="rounded" />
+                  Evet
+                </label>
+              ) : (
+                <input type="text" className={inp} value={answers[q.id] ?? ''} onChange={e => set(q.id, e.target.value)} placeholder="Yanıtınız…" />
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="px-5 py-4 border-t border-gray-100 flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50">İptal</button>
+          <button
+            disabled={busy}
+            onClick={() => {
+              const missing = questions.filter(q => q.isRequired && !answers[q.id]?.trim());
+              if (missing.length) return;
+              onSubmit(answers);
+            }}
+            className="px-5 py-2 text-sm font-semibold text-white bg-[#26496b] hover:bg-[#1e3a56] rounded-xl disabled:opacity-60"
+          >
+            {busy ? 'Kaydediliyor…' : 'Katıl'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function EtkinliklerPage() {
   const { user } = useAuth();
   const token = useToken();
   const queryClient = useQueryClient();
   const [typeFilter, setTypeFilter] = useState('');
   const [rsvpBusyId, setRsvpBusyId] = useState<string | null>(null);
+  const [questionModal, setQuestionModal] = useState<{ eventId: string; questions: RegQuestion[] } | null>(null);
+  const [favoritedSessions, setFavoritedSessions] = useState<Set<string>>(new Set());
+  const [eventSessions, setEventSessions] = useState<Record<string, Session[]>>({});
 
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['events', typeFilter],
@@ -221,14 +327,66 @@ export default function EtkinliklerPage() {
 
   const rsvpSet = new Set(myRsvps);
 
-  async function handleRsvp(eventId: string) {
+  async function doRsvp(eventId: string, answers?: Record<string, string>) {
     if (!token) return;
     setRsvpBusyId(eventId);
     try {
-      await mutfakApi.rsvpEvent(eventId, token);
+      const result = await mutfakApi.rsvpEvent(eventId, token) as { attendanceId?: string };
+      // Cevaplar varsa kaydet
+      if (answers && result?.attendanceId) {
+        const answerList = Object.entries(answers).map(([questionId, answer]) => ({ questionId, answer }));
+        if (answerList.length) {
+          await mutfakApi.submitRegistrationAnswers(result.attendanceId, answerList, token).catch(() => {});
+        }
+      }
       void queryClient.invalidateQueries({ queryKey: ['my-rsvps'] });
     } finally {
       setRsvpBusyId(null);
+      setQuestionModal(null);
+    }
+  }
+
+  async function handleToggleFavorite(sessionId: string) {
+    if (!token) return;
+    try {
+      const res = await mutfakApi.toggleSessionFavorite(sessionId, token);
+      setFavoritedSessions(prev => {
+        const next = new Set(prev);
+        if (res.favorited) next.add(sessionId); else next.delete(sessionId);
+        return next;
+      });
+    } catch { /* ignore */ }
+  }
+
+  // Etkinliklerin session'larını yükle
+  useEffect(() => {
+    if (!events.length) return;
+    events.forEach(ev => {
+      if (eventSessions[ev.id]) return;
+      const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000';
+      fetch(`${API_URL}/api/v1/cms/events/${ev.id}/sessions`)
+        .then(r => r.ok ? r.json() as Promise<Session[]> : [])
+        .then(sessions => {
+          if (sessions.length) setEventSessions(prev => ({ ...prev, [ev.id]: sessions }));
+          // Favori bilgisi
+          if (token && sessions.length) {
+            mutfakApi.getMySessionFavorites(ev.id, token)
+              .then(ids => setFavoritedSessions(prev => new Set([...prev, ...ids])))
+              .catch(() => {});
+          }
+        })
+        .catch(() => {});
+    });
+  }, [events, token]); // eslint-disable-line
+
+  async function handleRsvp(eventId: string) {
+    if (!token) return;
+    // Kayıt soruları var mı kontrol et
+    const questions = await mutfakApi.getEventRegistrationQuestions(eventId).catch(() => []) ?? [];
+    if (questions.length > 0) {
+      setQuestionModal({ eventId, questions });
+    } else {
+      await doRsvp(eventId);
     }
   }
 
@@ -248,6 +406,14 @@ export default function EtkinliklerPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
+      {questionModal && (
+        <RsvpQuestionsModal
+          questions={questionModal.questions}
+          busy={rsvpBusyId === questionModal.eventId}
+          onClose={() => setQuestionModal(null)}
+          onSubmit={(answers) => void doRsvp(questionModal.eventId, answers)}
+        />
+      )}
       <div className="mb-6">
         <h1 className="text-xl font-bold text-gray-900 font-display">Etkinlikler</h1>
         <p className="text-sm text-gray-500 mt-0.5">Topluluk buluşmaları, kongreler ve networkinglere katılın</p>
@@ -296,11 +462,13 @@ export default function EtkinliklerPage() {
                 {upcoming.map((event) => (
                   <EventCard
                     key={event.id}
-                    event={event}
+                    event={{ ...event, ...(eventSessions[event.id] ? { sessions: eventSessions[event.id] } : {}) }}
                     isRsvpd={rsvpSet.has(event.id)}
                     onRsvp={(id) => void handleRsvp(id)}
                     onCancelRsvp={(id) => void handleCancelRsvp(id)}
                     rsvpBusy={rsvpBusyId === event.id}
+                    favoritedSessions={favoritedSessions}
+                    onFavorite={(sid) => void handleToggleFavorite(sid)}
                   />
                 ))}
               </div>
@@ -316,11 +484,13 @@ export default function EtkinliklerPage() {
                 {past.map((event) => (
                   <EventCard
                     key={event.id}
-                    event={event}
+                    event={{ ...event, ...(eventSessions[event.id] ? { sessions: eventSessions[event.id] } : {}) }}
                     isRsvpd={rsvpSet.has(event.id)}
                     onRsvp={(id) => void handleRsvp(id)}
                     onCancelRsvp={(id) => void handleCancelRsvp(id)}
                     rsvpBusy={rsvpBusyId === event.id}
+                    favoritedSessions={favoritedSessions}
+                    onFavorite={(sid) => void handleToggleFavorite(sid)}
                   />
                 ))}
               </div>

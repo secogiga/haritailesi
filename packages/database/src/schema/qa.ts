@@ -1,6 +1,7 @@
 import {
   pgTable, pgEnum, uuid, text, boolean, integer, timestamp, index, uniqueIndex,
 } from 'drizzle-orm/pg-core';
+// uniqueIndex used below for community_answer_votes
 import { relations } from 'drizzle-orm';
 import { users } from './users';
 import { posts } from './feed';
@@ -78,6 +79,8 @@ export const communityAnswers = pgTable(
 
     showFullName: boolean('show_full_name').notNull().default(true),
     isPublished: boolean('is_published').notNull().default(false),
+    isAccepted: boolean('is_accepted').notNull().default(false),
+    upvoteCount: integer('upvote_count').notNull().default(0),
     approvedBy: uuid('approved_by').references(() => users.id, { onDelete: 'set null' }),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -87,6 +90,20 @@ export const communityAnswers = pgTable(
     index('ca_question_idx').on(t.questionId),
     index('ca_published_idx').on(t.isPublished),
     index('ca_source_idx').on(t.source),
+  ],
+);
+
+// ─── Community Answer Votes ───────────────────────────────────────────────────
+export const communityAnswerVotes = pgTable(
+  'community_answer_votes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    answerId: uuid('answer_id').notNull().references(() => communityAnswers.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('cav_user_answer_unique').on(t.userId, t.answerId),
   ],
 );
 

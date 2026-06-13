@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { RowMenu } from '@/components/RowMenu';
 
 const API = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000';
 
@@ -40,6 +41,10 @@ interface Application {
   source: string;
   status: string;
   createdAt: string;
+  fileName: string | null;
+  fileUrl: string | null;
+  juryScore: number | null;
+  juryNotes: string | null;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -169,6 +174,66 @@ function CompetitionForm({
   );
 }
 
+function JuryCell({ app, onSave }: { app: Application; onSave: (score: number | null, notes: string | null) => Promise<void> }) {
+  const [open, setOpen] = useState(false);
+  const [score, setScore] = useState(app.juryScore != null ? String(app.juryScore) : '');
+  const [notes, setNotes] = useState(app.juryNotes ?? '');
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    setBusy(true);
+    try {
+      await onSave(score !== '' ? Number(score) : null, notes || null);
+      setOpen(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen(o => !o)} className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#26496b]">
+        {app.juryScore != null ? (
+          <span className="px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 font-bold">{app.juryScore}</span>
+        ) : (
+          <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">Puan yok</span>
+        )}
+        <svg className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute right-0 z-20 mt-1.5 w-52 bg-white rounded-xl border border-gray-200 shadow-lg p-3 space-y-2">
+          <div>
+            <label className="block text-[10px] font-semibold text-gray-400 mb-1">Puan (0–100)</label>
+            <input
+              type="number" min={0} max={100}
+              className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-violet-400"
+              value={score} onChange={e => setScore(e.target.value)}
+              placeholder="—"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-semibold text-gray-400 mb-1">Notlar</label>
+            <textarea
+              rows={2}
+              className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs resize-none focus:outline-none focus:ring-1 focus:ring-violet-400"
+              value={notes} onChange={e => setNotes(e.target.value)}
+              placeholder="Kısa not…"
+            />
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => setOpen(false)} className="flex-1 text-xs py-1.5 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50">İptal</button>
+            <button disabled={busy} onClick={() => void save()} className="flex-1 text-xs py-1.5 bg-violet-600 text-white rounded-lg hover:bg-violet-700 disabled:opacity-60 font-semibold">
+              {busy ? '…' : 'Kaydet'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function YarismalarAdminPage() {
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(true);
@@ -214,8 +279,14 @@ export default function YarismalarAdminPage() {
   }
 
   async function updateAppStatus(appId: string, status: string) {
+    if (status === 'winner' && !confirm('Bu kişiyi kazanan ilan edeceksiniz.\nKullanıcı hesabı "Bireysel Üye" seviyesine otomatik yükseltilecek.\n\nOnaylıyor musunuz?')) return;
     await apiFetch(`/competitions/admin/applications/${appId}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
     if (viewApps) void openApplications(viewApps);
+  }
+
+  async function updateJury(appId: string, juryScore: number | null, juryNotes: string | null) {
+    await apiFetch(`/competitions/admin/applications/${appId}/jury`, { method: 'PATCH', body: JSON.stringify({ juryScore, juryNotes }) });
+    setApplications(prev => prev.map(a => a.id === appId ? { ...a, juryScore, juryNotes } : a));
   }
 
   function triggerPosterUpload(compId: string) {
@@ -258,34 +329,59 @@ export default function YarismalarAdminPage() {
         ) : applications.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center text-gray-400">Henüz başvuru yok.</div>
         ) : (
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Ad Soyad</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600">E-posta</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Kaynak</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Tarih</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Durum</th>
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">Ad Soyad</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">E-posta</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">Dosya</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">Kaynak</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">Tarih</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">Durum</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400">Jüri</th>
+                  <th className="px-4 py-3 w-10" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody>
                 {applications.map(app => (
-                  <tr key={app.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900">{app.displayName}</td>
-                    <td className="px-4 py-3 text-gray-500">{app.email}</td>
-                    <td className="px-4 py-3">
-                      <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs">{app.source}</span>
+                  <tr key={app.id} className="border-b border-gray-50 hover:bg-gray-50/70 transition-colors group">
+                    <td className="px-4 py-3.5 font-medium text-gray-900">{app.displayName}</td>
+                    <td className="px-4 py-3.5 text-xs text-gray-500">{app.email}</td>
+                    <td className="px-4 py-3.5">
+                      {app.fileUrl ? (
+                        <a href={app.fileUrl} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-xs text-[#26496b] hover:underline font-medium">
+                          <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                          {app.fileName ?? 'İndir'}
+                        </a>
+                      ) : (
+                        <span className="text-xs text-gray-300">—</span>
+                      )}
                     </td>
-                    <td className="px-4 py-3 text-gray-400 text-xs">{new Date(app.createdAt).toLocaleDateString('tr-TR')}</td>
-                    <td className="px-4 py-3">
-                      <select
-                        value={app.status}
-                        onChange={e => void updateAppStatus(app.id, e.target.value)}
-                        className={`text-xs px-2 py-1 rounded-full border-0 font-semibold cursor-pointer ${APP_STATUS_COLORS[app.status] ?? 'bg-gray-100 text-gray-600'}`}
-                      >
+                    <td className="px-4 py-3.5">
+                      <span className="px-2.5 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">{app.source}</span>
+                    </td>
+                    <td className="px-4 py-3.5 text-xs text-gray-400 whitespace-nowrap">
+                      {new Date(app.createdAt).toLocaleDateString('tr-TR')}
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <select value={app.status} onChange={e => void updateAppStatus(app.id, e.target.value)}
+                        className={`text-xs px-2.5 py-0.5 rounded-full border-0 font-semibold cursor-pointer ${APP_STATUS_COLORS[app.status] ?? 'bg-gray-100 text-gray-600'}`}>
                         {Object.entries(APP_STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                       </select>
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <JuryCell app={app} onSave={(score, notes) => updateJury(app.id, score, notes)} />
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <RowMenu items={[
+                        { label: 'Kazanan İlan Et 🏆', onClick: () => void updateAppStatus(app.id, 'winner') },
+                        { label: 'Kısa Listeye Al', onClick: () => void updateAppStatus(app.id, 'shortlisted') },
+                        { label: 'Reddet', onClick: () => void updateAppStatus(app.id, 'rejected'), danger: true },
+                      ]} />
                     </td>
                   </tr>
                 ))}

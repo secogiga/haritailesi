@@ -25,6 +25,12 @@ export function fmtShortDate(iso: string): string {
   return new Date(iso).toLocaleDateString('tr-TR');
 }
 
+/** Şehir adını düzgün büyük harfle gösterir — "ÇAnakkale" → "Çanakkale" */
+export function normCity(city: string | null | undefined): string {
+  if (!city) return '—';
+  return city.charAt(0).toLocaleUpperCase('tr') + city.slice(1).toLocaleLowerCase('tr');
+}
+
 // ─── Avatar Helpers ────────────────────────────────────────────────────────────
 
 export const AVATAR_COLORS = [

@@ -58,6 +58,7 @@ const currentYear = new Date().getFullYear();
 
 const schema = z.object({
   membershipType: z.enum(['ogrenci', 'yeni_mezun'], { required_error: 'Üyelik tipi zorunludur.' }),
+  tcKimlikNo: z.string().regex(/^\d{11}$/, 'TC kimlik no 11 haneli olmalıdır.'),
   adSoyad: z.string().min(2, 'Ad soyad zorunludur.'),
   eposta: z.string().email('Geçerli bir e-posta girin.'),
   telefon: z.string().min(10, 'Telefon numarası zorunludur.'),
@@ -161,6 +162,8 @@ export default function GencBasvuruPage() {
   const [liseQuery, setLiseQuery] = useState('');
   const [liseOpen, setLiseOpen] = useState(false);
   const liseRef = useRef<HTMLDivElement>(null);
+  const [loadTime] = useState(() => Date.now());
+  const [honeypot, setHoneypot] = useState('');
   const filteredLiseler = liseQuery.length >= 2
     ? liseler.filter(l => l.toLocaleLowerCase('tr').includes(liseQuery.toLocaleLowerCase('tr'))).slice(0, 10)
     : [];
@@ -218,6 +221,7 @@ export default function GencBasvuruPage() {
   }
 
   async function onSubmit(values: FormValues) {
+    if (honeypot || Date.now() - loadTime < 2000) return;
     try {
       const { kvkk, iletisimOnay, eposta, ...rest } = values;
       await submitApplication({
@@ -250,6 +254,8 @@ export default function GencBasvuruPage() {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-5 sm:p-8">
+          {/* Honeypot — bot tuzağı */}
+          <input type="text" name="website" value={honeypot} onChange={e => setHoneypot(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: 'absolute', left: '-9999px', top: 0, width: '1px', height: '1px', opacity: 0 }} />
 
           {/* ÜYELİK TİPİ */}
           <section>
@@ -287,6 +293,11 @@ export default function GencBasvuruPage() {
           <section>
             <h2 className={sectionTitle}>Kişisel Bilgiler</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2">
+                <label className={lbl}>TC Kimlik No *</label>
+                <input {...register('tcKimlikNo')} type="text" inputMode="numeric" maxLength={11} placeholder="___________" className={inp} />
+                {errors.tcKimlikNo && <p className={fieldErr}>{errors.tcKimlikNo.message}</p>}
+              </div>
               <div>
                 <label className={lbl}>Ad Soyad *</label>
                 <input {...register('adSoyad')} type="text" className={inp} />

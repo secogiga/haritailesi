@@ -16,6 +16,9 @@ export type FunctionalRole =
   | 'editor'
   | 'meslegin_gelecekleri_participant'
   | 'corporate_rep'
+  | 'partner'
+  | 'viewer'
+  | 'finance'
   | 'admin'
   | 'super_admin';
 

@@ -1,15 +1,17 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { adminApi, type DashboardStats, type SahneStats, type OnboardingMetrics, type OnboardingInsights, type CommunityHealth } from '@/lib/api';
+import { adminApi, type DashboardStats, type SahneStats, type OnboardingMetrics, type OnboardingInsights, type CommunityHealth, type LevelStats, type SenNeDersinStats } from '@/lib/api';
 import UyeIstatistikleri from './_uyeler';
 import SahneIstatistikleri from './_sahne';
 import MutfakIstatistikleri from './_mutfak';
 import OnboardingIstatistikleri from './_onboarding';
 import InsightsPanel from './_insights';
 import CommunityHealthPanel from './_community-health';
+import KademelerPanel from './_kademeler';
+import SenNeDersinIstatistikleri from './_sen-ne-dersin';
 
-type Tab = 'uyeler' | 'sahne' | 'mutfak' | 'onboarding' | 'community';
+type Tab = 'uyeler' | 'sahne' | 'mutfak' | 'onboarding' | 'community' | 'kademeler' | 'sen_ne_dersin';
 type OnboardingSubTab = 'metrics' | 'insights';
 
 const TABS = [
@@ -63,6 +65,26 @@ const TABS = [
       </svg>
     ),
   },
+  {
+    id: 'kademeler',
+    label: 'Kademeler',
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M3 10h4v11H3zM10 3h4v18h-4zM17 7h4v14h-4z" />
+      </svg>
+    ),
+  },
+  {
+    id: 'sen_ne_dersin',
+    label: 'Sen Ne Dersin?',
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+      </svg>
+    ),
+  },
 ] satisfies { id: Tab; label: string; icon: React.ReactNode }[];
 
 export default function IstatistiklerPage() {
@@ -76,6 +98,8 @@ export default function IstatistiklerPage() {
   const [onboardingStats, setOnboardingStats] = useState<OnboardingMetrics | null>(null);
   const [insightsData, setInsightsData] = useState<OnboardingInsights | null>(null);
   const [communityHealth, setCommunityHealth] = useState<CommunityHealth | null>(null);
+  const [levelStats, setLevelStats] = useState<LevelStats | null>(null);
+  const [senNeDersinStats, setSenNeDersinStats] = useState<SenNeDersinStats | null>(null);
 
   function load() {
     setLoading(true);
@@ -85,12 +109,16 @@ export default function IstatistiklerPage() {
       adminApi.getOnboardingMetrics(),
       adminApi.getOnboardingInsights(),
       adminApi.getCommunityHealth(),
-    ]).then(([uyeResult, sahneResult, onboardingResult, insightsResult, healthResult]) => {
+      adminApi.getLevelStats(),
+      adminApi.getSenNeDersinStats(),
+    ]).then(([uyeResult, sahneResult, onboardingResult, insightsResult, healthResult, levelResult, senResult]) => {
       if (uyeResult.status === 'fulfilled') setUyeStats(uyeResult.value);
       if (sahneResult.status === 'fulfilled') setSahneStats(sahneResult.value);
       if (onboardingResult.status === 'fulfilled') setOnboardingStats(onboardingResult.value);
       if (insightsResult.status === 'fulfilled') setInsightsData(insightsResult.value);
       if (healthResult.status === 'fulfilled') setCommunityHealth(healthResult.value);
+      if (levelResult.status === 'fulfilled') setLevelStats(levelResult.value);
+      if (senResult.status === 'fulfilled') setSenNeDersinStats(senResult.value);
       setLastUpdated(new Date());
     }).finally(() => {
       setLoading(false);
@@ -189,6 +217,12 @@ export default function IstatistiklerPage() {
       )}
       {tab === 'community' && (
         <CommunityHealthPanel data={communityHealth} loading={loading} />
+      )}
+      {tab === 'kademeler' && (
+        <KademelerPanel data={levelStats} loading={loading} />
+      )}
+      {tab === 'sen_ne_dersin' && (
+        <SenNeDersinIstatistikleri data={senNeDersinStats} loading={loading} />
       )}
 
     </div>

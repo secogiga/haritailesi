@@ -1,4 +1,4 @@
-import { IsEmail, IsEnum, IsObject, IsOptional, IsString } from 'class-validator';
+import { IsEmail, IsEnum, IsInt, IsObject, IsOptional, IsString, Min } from 'class-validator';
 import type { ApplicationType } from '@haritailesi/types';
 
 export class CreateApplicationDto {
@@ -9,7 +9,6 @@ export class CreateApplicationDto {
   applicantEmail!: string;
 
   // Tüm form alanları JSONB'de saklanır — her form tipi farklı alan setine sahip
-  // Validation schema değil, client-side form validation ile yapılır
   @IsObject()
   formData!: Record<string, unknown>;
 }
@@ -25,4 +24,14 @@ export class TransitionStateDto {
   @IsOptional()
   @IsObject()
   metadata?: Record<string, unknown>;
+
+  // Ödeme onayı (waiting_payment → waiting_verification) için
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  paymentAmountKurus?: number;
+
+  @IsOptional()
+  @IsString()
+  paymentDescription?: string;
 }

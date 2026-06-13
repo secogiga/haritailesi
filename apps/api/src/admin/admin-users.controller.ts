@@ -1,21 +1,28 @@
 import { Body, Controller, Delete, Get, HttpCode, Inject, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { IsIn, IsOptional, IsString, MinLength, IsEmail } from 'class-validator';
+import { eq, desc, asc } from 'drizzle-orm';
 import { UsersService } from '../users/users.service';
 import { MembershipService } from '../membership/membership.service';
+import { MemberProfileService } from '../member-profile/member-profile.service';
 import { RequirePermission } from '../rbac/rbac.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { REDIS_TOKEN } from '../redis/redis.constants';
+import { InjectDb } from '../database/inject-db.decorator';
+import type { Database } from '@haritailesi/database';
+import { surveyResponses, surveys, surveyQuestions } from '@haritailesi/database';
 import type { RequestUser } from '../auth/auth.types';
 import type { FunctionalRole, MembershipTier } from '@haritailesi/types';
 import type Redis from 'ioredis';
 
-const FUNCTIONAL_ROLES = [
-  'mentor', 'moderator', 'editor', 'meslegin_gelecekleri_participant', 'corporate_rep', 'admin', 'super_admin',
-] as const;
+const FUNCTIONAL_ROLES: FunctionalRole[] = [
+  'mentor', 'moderator', 'editor', 'meslegin_gelecekleri_participant',
+  'corporate_rep', 'viewer', 'finance', 'admin', 'super_admin',
+];
 
-const MEMBERSHIP_TIERS = [
-  'registered_user', 'haritailesi_genc', 'new_graduate_member', 'individual_member', 'corporate_member',
-] as const;
+const MEMBERSHIP_TIERS: MembershipTier[] = [
+  'registered_user', 'haritailesi_genc', 'new_graduate_member',
+  'individual_member', 'corporate_member',
+];
 
 class ListUsersQuery {
   @IsOptional() @IsString() tier?: string;
@@ -79,7 +86,9 @@ export class AdminUsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly membershipService: MembershipService,
+    private readonly memberProfileService: MemberProfileService,
     @Inject(REDIS_TOKEN) private readonly redis: Redis,
+    @InjectDb() private readonly db: Database,
   ) {}
 
   @Get('online')
@@ -116,45 +125,51 @@ export class AdminUsersController {
     return this.usersService.listUsersForAdmin(p);
   }
 
+  // Returns full member aggregate: identity + profile + roles + applications + subscription
   @Get(':id')
   @RequirePermission('user.manage')
   findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.usersService.getUserForAdmin(id);
+    return this.memberProfileService.getAggregate(id);
   }
 
   @Patch(':id/role')
   @RequirePermission('user.roles.manage')
   updateRole(
-    @CurrentUser() admin: RequestUser,
+    @CurrentUser() actor: RequestUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateRoleDto,
   ) {
     if (dto.action === 'assign') {
-      return this.usersService.assignRole(admin.id, id, dto.role);
+      return this.memberProfileService.assignRole(id, dto.role, actor);
     }
-    return this.usersService.revokeRole(admin.id, id, dto.role);
+    return this.memberProfileService.removeRole(id, dto.role, actor);
   }
 
   @Patch(':id/tier')
-  @RequirePermission('user.roles.manage')
+  @RequirePermission('member.edit')
   updateTier(
+    @CurrentUser() actor: RequestUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateTierDto,
   ) {
-    return this.usersService.updateTier(id, dto.tier);
+    return this.memberProfileService.updateTier(id, dto.tier, actor);
   }
 
   @Patch(':id/status')
-  @RequirePermission('user.manage')
+  @RequirePermission('member.activate')
   updateStatus(
+    @CurrentUser() actor: RequestUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateStatusDto,
   ) {
+    if (dto.status === 'active') return this.memberProfileService.activateMember(id, actor);
+    if (dto.status === 'passive') return this.memberProfileService.deactivateMember(id, actor);
+    // suspended / pending — direct update without a specific domain event
     return this.usersService.updateStatus(id, dto.status);
   }
 
   @Patch(':id/verification-status')
-  @RequirePermission('user.manage')
+  @RequirePermission('verification.review')
   setVerificationStatus(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateVerificationStatusDto,
@@ -188,5 +203,35 @@ export class AdminUsersController {
   async sendInvite(@Param('id', ParseUUIDPipe) id: string) {
     await this.membershipService.sendInviteToUser(id);
     return { sent: true };
+  }
+
+  @Get(':id/surveys')
+  @RequirePermission('user.manage')
+  async getUserSurveys(@Param('id', ParseUUIDPipe) id: string) {
+    const responses = await this.db
+      .select({
+        id: surveyResponses.id,
+        surveyId: surveyResponses.surveyId,
+        score: surveyResponses.score,
+        maxScore: surveyResponses.maxScore,
+        timeTaken: surveyResponses.timeTaken,
+        createdAt: surveyResponses.createdAt,
+        surveyTitle: surveys.title,
+        surveyType: surveys.type,
+        surveyPassingScore: surveys.passingScore,
+      })
+      .from(surveyResponses)
+      .innerJoin(surveys, eq(surveyResponses.surveyId, surveys.id))
+      .where(eq(surveyResponses.userId, id))
+      .orderBy(desc(surveyResponses.createdAt))
+      .limit(50);
+
+    return responses.map(r => ({
+      ...r,
+      percent: r.maxScore && r.score != null ? Math.round((r.score / r.maxScore) * 100) : null,
+      passed: r.surveyType === 'test' && r.surveyPassingScore != null && r.maxScore && r.score != null
+        ? Math.round((r.score / r.maxScore) * 100) >= r.surveyPassingScore
+        : null,
+    }));
   }
 }

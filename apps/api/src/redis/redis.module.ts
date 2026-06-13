@@ -1,7 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
-import { REDIS_TOKEN } from './redis.constants';
+import { REDIS_TOKEN, REDIS_SUB_TOKEN } from './redis.constants';
 import Redis from 'ioredis';
 
 @Global()
@@ -26,14 +26,22 @@ import Redis from 'ioredis';
     {
       provide: REDIS_TOKEN,
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => {
-        return new Redis(config.getOrThrow<string>('REDIS_URL'), {
+      useFactory: (config: ConfigService) =>
+        new Redis(config.getOrThrow<string>('REDIS_URL'), {
           maxRetriesPerRequest: null,
           enableReadyCheck: false,
-        });
-      },
+        }),
+    },
+    {
+      provide: REDIS_SUB_TOKEN,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) =>
+        new Redis(config.getOrThrow<string>('REDIS_URL'), {
+          maxRetriesPerRequest: null,
+          enableReadyCheck: false,
+        }),
     },
   ],
-  exports: [REDIS_TOKEN, BullModule],
+  exports: [REDIS_TOKEN, REDIS_SUB_TOKEN, BullModule],
 })
 export class RedisModule {}

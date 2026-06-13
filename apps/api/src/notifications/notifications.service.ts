@@ -1,10 +1,14 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import type { Queue } from 'bullmq';
 import { Subject } from 'rxjs';
 import { eq, and, desc } from 'drizzle-orm';
 import * as webpush from 'web-push';
 import { InjectDb } from '../database/inject-db.decorator';
 import type { Database } from '@haritailesi/database';
 import { notifications, notificationPreferences, pushSubscriptions } from '@haritailesi/database';
+import { PUSH_QUEUE } from '../redis/redis.constants';
+import type { PushJob } from './push.types';
 
 @Injectable()
 export class NotificationsService implements OnModuleInit {
@@ -12,7 +16,10 @@ export class NotificationsService implements OnModuleInit {
   // userId → Subject for SSE streams
   private readonly streams = new Map<string, Subject<MessageEvent>>();
 
-  constructor(@InjectDb() private readonly db: Database) {}
+  constructor(
+    @InjectDb() private readonly db: Database,
+    @InjectQueue(PUSH_QUEUE) private readonly pushQueue: Queue<PushJob>,
+  ) {}
 
   onModuleInit() {
     const publicKey = process.env.VAPID_PUBLIC_KEY;
@@ -102,8 +109,14 @@ export class NotificationsService implements OnModuleInit {
       .returning();
     // Push SSE event to live stream if connected
     if (created) this.emit(userId, 'notification', created);
-    // Fire web push in background (non-blocking)
-    if (created) void this.sendPush(userId, { title: opts.title, body: opts.body, tag: opts.type });
+    // Enqueue web push delivery (BullMQ — retried on failure)
+    if (created) {
+      await this.pushQueue.add(
+        'send',
+        { userId, title: opts.title, body: opts.body, tag: opts.type },
+        { attempts: 3, backoff: { type: 'exponential', delay: 5000 }, removeOnComplete: 100, removeOnFail: 200 },
+      );
+    }
     return created;
   }
 
@@ -132,27 +145,4 @@ export class NotificationsService implements OnModuleInit {
     return { ok: true };
   }
 
-  private async sendPush(userId: string, payload: { title: string; body: string; url?: string; tag?: string }) {
-    if (!process.env.VAPID_PUBLIC_KEY) return;
-    const subs = await this.db
-      .select()
-      .from(pushSubscriptions)
-      .where(eq(pushSubscriptions.userId, userId));
-
-    for (const sub of subs) {
-      try {
-        await webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          JSON.stringify(payload),
-        );
-      } catch (err: unknown) {
-        // Remove expired/invalid subscriptions (410 Gone)
-        if (err && typeof err === 'object' && 'statusCode' in err && (err as { statusCode: number }).statusCode === 410) {
-          await this.db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, sub.id));
-        } else {
-          this.logger.warn(`Push gönderilemedi uid=${userId}: ${String(err)}`);
-        }
-      }
-    }
-  }
 }

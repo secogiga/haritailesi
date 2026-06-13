@@ -93,7 +93,7 @@ export class DonationsController {
   }
 
   @Get()
-  @RequirePermission('user.manage')
+  @RequirePermission('donation.view')
   list(
     @Query('status') status?: string,
     @Query('method') method?: string,
@@ -115,14 +115,14 @@ export class DonationsController {
   }
 
   @Patch(':id/confirm')
-  @RequirePermission('user.manage')
+  @RequirePermission('donation.update')
   confirm(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() admin: RequestUser) {
     return this.donationsService.confirm(id, admin.id);
   }
 
   @Post(':id/proof')
   @HttpCode(200)
-  @RequirePermission('user.manage')
+  @RequirePermission('donation.update')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }))
   async uploadProof(
     @Param('id', ParseUUIDPipe) id: string,
@@ -146,7 +146,7 @@ export class DonationsController {
   }
 
   @Get(':id/proof/url')
-  @RequirePermission('user.manage')
+  @RequirePermission('donation.view')
   async getProofUrl(@Param('id', ParseUUIDPipe) id: string) {
     const donation = await this.donationsService.findById(id);
     if (!donation) throw new NotFoundException('Bağış bulunamadı.');

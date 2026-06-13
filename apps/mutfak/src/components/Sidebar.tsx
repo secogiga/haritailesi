@@ -131,9 +131,23 @@ const Icons = {
         d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
     </svg>
   ),
+  destek: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+    </svg>
+  ),
+  kutuphane: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+    </svg>
+  ),
 };
 
 // ── Nav structure ─────────────────────────────────────────────────────────────
+
+const SAHNE_URL = process.env['NEXT_PUBLIC_SAHNE_URL'] ?? 'https://sahne.haritailesi.org';
 
 export type NavItem = { label: string; href: string; icon: React.ReactNode };
 
@@ -167,6 +181,7 @@ export const NAV_GROUPS: Array<{ id: string; label: string; items: NavItem[] }> 
       { label: 'İlan Panosu', href: '/ilanlar', icon: Icons.ilanlar },
       { label: 'Soru & Cevap', href: '/sorular', icon: Icons.sorular },
       { label: 'Sınavlar', href: '/sinavlar', icon: Icons.sinavlar },
+      { label: 'Meslek Kütüphanesi', href: '/kutuphane', icon: Icons.kutuphane },
       { label: 'Anketler', href: '/anketler', icon: Icons.anketler },
       { label: 'Haberita', href: '/haberita', icon: Icons.haberita },
     ],
@@ -177,7 +192,8 @@ export const NAV_GROUPS: Array<{ id: string; label: string; items: NavItem[] }> 
     items: [
       { label: 'Yeteneğim', href: '/yetenekler', icon: Icons.yetenekler },
       { label: 'Reklam & İşbirliği', href: '/isbirligi', icon: Icons.isbirligi },
-      { label: 'Talep & Görüş', href: '/talep', icon: Icons.talep },
+      { label: 'Çözüm Arıyorum', href: '/talep', icon: Icons.talep },
+      { label: 'Pusula', href: `${SAHNE_URL}/haritailesipusula`, icon: Icons.destek },
     ],
   },
   {
@@ -432,6 +448,7 @@ export function SidebarContent({ user, token, onClose, onLogout }: Props) {
         </div>
         <div className="hidden lg:block">
           <ThemeToggle />
+
           <div className="flex items-center gap-2 mt-2">
             <button
               onClick={onLogout}

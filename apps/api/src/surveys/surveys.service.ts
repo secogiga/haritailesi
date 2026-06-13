@@ -5,12 +5,14 @@ import { InjectDb } from '../database/inject-db.decorator';
 import type { Database } from '@haritailesi/database';
 import { surveys, surveyQuestions, surveyResponses, competitions, competitionApplications, surveyLiveSessions, surveyLiveResponses, users, userProfiles, trainings, talentPoolEntries } from '@haritailesi/database';
 import { EmailService } from '../email/email.service';
+import { OtpService } from '../otp/otp.service';
 
 @Injectable()
 export class SurveysService {
   constructor(
     @InjectDb() private readonly db: Database,
     private readonly emailService: EmailService,
+    private readonly otpService: OtpService,
   ) {}
 
   // SSE subjects: sessionCode → Subject
@@ -33,16 +35,18 @@ export class SurveysService {
     const [anketler, testler, yarismalar] = await Promise.all([
       this.db.select({ id: surveys.id, slug: surveys.slug, title: surveys.title, description: surveys.description,
         coverImageUrl: surveys.coverImageUrl, responseCount: surveys.responseCount, status: surveys.status,
-        viewCount: surveys.viewCount, endsAt: surveys.endsAt, showResults: surveys.showResults })
+        viewCount: surveys.viewCount, endsAt: surveys.endsAt, showResults: surveys.showResults,
+        resultStats: surveys.resultStats })
         .from(surveys)
-        .where(and(eq(surveys.type, 'anket'), eq(surveys.status, 'active')))
-        .orderBy(desc(surveys.createdAt)).limit(6),
+        .where(and(eq(surveys.type, 'anket'), inArray(surveys.status, ['active', 'ended'])))
+        .orderBy(desc(surveys.createdAt)).limit(8),
 
       this.db.select({ id: surveys.id, slug: surveys.slug, title: surveys.title, description: surveys.description,
         coverImageUrl: surveys.coverImageUrl, responseCount: surveys.responseCount, status: surveys.status,
-        viewCount: surveys.viewCount, timeLimit: surveys.timeLimit, passingScore: surveys.passingScore, endsAt: surveys.endsAt })
+        viewCount: surveys.viewCount, timeLimit: surveys.timeLimit, passingScore: surveys.passingScore,
+        endsAt: surveys.endsAt, resultStats: surveys.resultStats })
         .from(surveys)
-        .where(and(eq(surveys.type, 'test'), eq(surveys.status, 'active')))
+        .where(and(eq(surveys.type, 'test'), inArray(surveys.status, ['active', 'ended'])))
         .orderBy(desc(surveys.createdAt)).limit(6),
 
       this.db.select({ id: competitions.id, slug: competitions.slug, title: competitions.title,
@@ -54,7 +58,72 @@ export class SurveysService {
         .orderBy(desc(competitions.createdAt)).limit(6),
     ]);
 
+    // Ended survey'ler için istatistik yoksa arka planda hesapla (fire & forget)
+    const needsStats = [...anketler, ...testler].filter(s => s.status === 'ended' && !s.resultStats);
+    for (const s of needsStats) this.computeSurveyStats(s.id, s as any).catch(() => {});
+
     return { anketler, testler, yarismalar };
+  }
+
+  async computeSurveyStats(surveyId: string, hint?: { type?: string; passingScore?: number }) {
+    const [survey] = hint?.type
+      ? [hint]
+      : await this.db.select({ type: surveys.type, passingScore: surveys.passingScore })
+          .from(surveys).where(eq(surveys.id, surveyId));
+    if (!survey) return;
+
+    let stats: Record<string, unknown> = {};
+
+    if (survey.type === 'test') {
+      const rows = await this.db.execute(sql`
+        SELECT
+          ROUND(AVG(score::float / NULLIF(max_score, 0) * 100))::int AS avg_percent,
+          COUNT(*)::int AS total,
+          COUNT(*) FILTER (
+            WHERE score::float / NULLIF(max_score, 0) * 100 >= ${survey.passingScore ?? 60}
+          )::int AS passed
+        FROM survey_responses
+        WHERE survey_id = ${surveyId}::uuid AND score IS NOT NULL
+      `);
+      const r = rows[0] as any;
+      if (r) stats = {
+        avgPercent: r.avg_percent,
+        passRate: r.total > 0 ? Math.round(r.passed / r.total * 100) : 0,
+        totalResponses: r.total,
+      };
+    } else {
+      const rows = await this.db.execute(sql`
+        WITH fq AS (
+          SELECT DISTINCT ON (survey_id) id::text AS qid
+          FROM survey_questions
+          WHERE survey_id = ${surveyId}::uuid
+          ORDER BY survey_id, sort_order ASC
+        ),
+        ac AS (
+          SELECT sr.answers->>fq.qid AS ans, COUNT(*) AS cnt
+          FROM survey_responses sr, fq
+          WHERE sr.survey_id = ${surveyId}::uuid
+            AND sr.answers ? fq.qid
+          GROUP BY sr.answers->>fq.qid
+        ),
+        tot AS (SELECT SUM(cnt) AS t FROM ac)
+        SELECT ac.ans AS top_answer, ac.cnt::int AS cnt, tot.t::int AS total,
+          ROUND(ac.cnt::float / NULLIF(tot.t::float, 0) * 100)::int AS pct
+        FROM ac, tot
+        ORDER BY cnt DESC LIMIT 1
+      `);
+      const r = rows[0] as any;
+      if (r) stats = {
+        topAnswer: r.top_answer,
+        topAnswerPct: r.pct,
+        topAnswerCount: r.cnt,
+        totalResponses: r.total,
+      };
+    }
+
+    if (Object.keys(stats).length === 0) return;
+    stats.computedAt = new Date().toISOString();
+    await this.db.update(surveys).set({ resultStats: stats }).where(eq(surveys.id, surveyId));
   }
 
   // ── Public: List ──────────────────────────────────────────────────────────
@@ -106,6 +175,7 @@ export class SurveysService {
   async respond(surveyId: string, data: {
     answers: Record<string, string | string[]>;
     respondentEmail?: string;
+    emailToken?: string;
     userId?: string;
     source?: string;
     timeTaken?: number;
@@ -118,6 +188,11 @@ export class SurveysService {
     }
     if (!survey.allowAnonymous && !data.userId && !data.respondentEmail) {
       throw new BadRequestException('Bu içerik için giriş yapmanız gerekiyor.');
+    }
+
+    // Anonim katılımda e-posta doğrulaması zorunlu
+    if (!data.userId && data.respondentEmail) {
+      await this.otpService.consumeToken(data.emailToken, data.respondentEmail);
     }
 
     // Test skorlaması
@@ -261,6 +336,41 @@ export class SurveysService {
     return result;
   }
 
+  // ── Public: Certificate Verification ─────────────────────────────────────
+
+  async getCertificateByCode(code: string) {
+    const [row] = await this.db
+      .select({
+        certCode: surveyResponses.certCode,
+        score: surveyResponses.score,
+        maxScore: surveyResponses.maxScore,
+        timeTaken: surveyResponses.timeTaken,
+        completedAt: surveyResponses.createdAt,
+        displayName: userProfiles.displayName,
+        surveyTitle: surveys.title,
+        surveySlug: surveys.slug,
+        surveyId: surveys.id,
+        passingScore: surveys.passingScore,
+      })
+      .from(surveyResponses)
+      .innerJoin(surveys, eq(surveyResponses.surveyId, surveys.id))
+      .leftJoin(userProfiles, eq(surveyResponses.userId, userProfiles.userId))
+      .where(eq(surveyResponses.certCode, code));
+    if (!row) throw new NotFoundException('Sertifika bulunamadı.');
+    const percent = row.maxScore ? Math.round((row.score! / row.maxScore) * 100) : 0;
+    return {
+      certCode: row.certCode,
+      surveyTitle: row.surveyTitle,
+      surveySlug: row.surveySlug ?? row.surveyId,
+      displayName: row.displayName ?? null,
+      score: row.score,
+      maxScore: row.maxScore,
+      percent,
+      passed: true,
+      completedAt: row.completedAt,
+    };
+  }
+
   // ── Public: Test Leaderboard ──────────────────────────────────────────────
 
   async getTestLeaderboard(surveyId: string) {
@@ -278,10 +388,10 @@ export class SurveysService {
         timeTaken: surveyResponses.timeTaken,
         createdAt: surveyResponses.createdAt,
         respondentEmail: surveyResponses.respondentEmail,
-        displayName: users.displayName,
+        displayName: userProfiles.displayName,
       })
       .from(surveyResponses)
-      .leftJoin(users, eq(surveyResponses.userId, users.id))
+      .leftJoin(userProfiles, eq(surveyResponses.userId, userProfiles.userId))
       .where(and(eq(surveyResponses.surveyId, survey.id), sql`${surveyResponses.score} IS NOT NULL`))
       .orderBy(
         desc(sql`CASE WHEN ${surveyResponses.maxScore} > 0 THEN ${surveyResponses.score}::float / ${surveyResponses.maxScore} ELSE 0 END`),
@@ -449,6 +559,50 @@ export class SurveysService {
 
     const totalPassed = responses.filter(r => r.certCode != null).length;
     return { topics, totalTests: responses.length, totalQuestions, totalPassed };
+  }
+
+  // ── Soru yanlış yapılma istatistikleri (public) ──────────────────────────
+
+  async getWrongStats(surveyId: string) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(surveyId);
+    const [survey] = await this.db
+      .select({ id: surveys.id })
+      .from(surveys)
+      .where(isUuid ? eq(surveys.id, surveyId) : eq(surveys.slug, surveyId));
+    if (!survey) throw new NotFoundException('Bulunamadı.');
+
+    const questions = await this.db
+      .select({ id: surveyQuestions.id, correctOptions: surveyQuestions.correctOptions })
+      .from(surveyQuestions)
+      .where(eq(surveyQuestions.surveyId, survey.id));
+
+    const responses = await this.db
+      .select({ answers: surveyResponses.answers })
+      .from(surveyResponses)
+      .where(eq(surveyResponses.surveyId, survey.id));
+
+    if (!responses.length) return [];
+
+    return questions
+      .filter(q => q.correctOptions?.length)
+      .map(q => {
+        let wrongCount = 0;
+        let totalAnswered = 0;
+        for (const r of responses) {
+          const given = r.answers[q.id];
+          if (!given) continue;
+          totalAnswered++;
+          const givenArr = Array.isArray(given) ? given : [given];
+          const correct = q.correctOptions!;
+          const isCorrect = givenArr.length === correct.length && givenArr.every(g => correct.includes(g));
+          if (!isCorrect) wrongCount++;
+        }
+        return {
+          questionId: q.id,
+          wrongRate: totalAnswered > 0 ? Math.round((wrongCount / totalAnswered) * 100) : 0,
+          totalAnswered,
+        };
+      });
   }
 
   // ── Sertifika doğrulama (public) ─────────────────────────────────────────

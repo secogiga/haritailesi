@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { useSahneAuth } from '@/contexts/SahneAuthContext';
+import { EmailOtpVerifier } from '@/components/EmailOtpVerifier';
 
 const API = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000';
 
@@ -29,21 +30,27 @@ interface Competition {
 function ApplyModal({ comp, onClose, onApplied }: { comp: Competition; onClose: () => void; onApplied: () => void }) {
   const [form, setForm] = useState({ displayName: '', email: '', notes: '' });
   const [file, setFile] = useState<File | null>(null);
-  const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const [showOtp, setShowOtp] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const inp = 'w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#26496b]/30 focus:border-[#26496b]';
+  const inp = (locked?: boolean) => `w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#26496b]/30 focus:border-[#26496b] transition-colors${locked ? ' opacity-60 pointer-events-none select-none' : ''}`;
 
-  async function submit(e: React.FormEvent) {
+  function handleFormSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError('');
+    setShowOtp(true);
+  }
+
+  async function submitWithToken(emailToken: string) {
     setBusy(true);
     setError('');
     try {
       const res = await fetch(`${API}/api/v1/competitions/${comp.id}/apply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, source: 'sahne' }),
+        body: JSON.stringify({ ...form, emailToken, source: 'sahne' }),
       });
       if (!res.ok) throw new Error((await res.json() as { message?: string }).message ?? 'Hata');
       const app = await res.json() as { id: string };
@@ -59,6 +66,7 @@ function ApplyModal({ comp, onClose, onApplied }: { comp: Competition; onClose: 
       onApplied();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Bir hata oluştu.');
+      setShowOtp(false);
     } finally {
       setBusy(false);
     }
@@ -96,20 +104,20 @@ function ApplyModal({ comp, onClose, onApplied }: { comp: Competition; onClose: 
             <button onClick={onClose} className="mt-5 text-sm text-[#26496b] hover:underline font-semibold">Kapat</button>
           </div>
         ) : (
-          <form onSubmit={(e) => void submit(e)} className="space-y-4">
+          <form onSubmit={handleFormSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1.5">Ad Soyad *</label>
-              <input required className={inp} value={form.displayName}
+              <input required className={inp(showOtp)} disabled={showOtp} value={form.displayName}
                 onChange={e => setForm(f => ({ ...f, displayName: e.target.value }))} placeholder="Adınız Soyadınız" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1.5">E-posta *</label>
-              <input required type="email" className={inp} value={form.email}
+              <input required type="email" className={inp(showOtp)} disabled={showOtp} value={form.email}
                 onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="ornek@email.com" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1.5">Notunuz</label>
-              <textarea rows={3} className={inp} value={form.notes}
+              <textarea rows={3} className={inp(showOtp)} disabled={showOtp} value={form.notes}
                 onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                 placeholder="Varsa eklemek istediğiniz bilgiler…" />
             </div>
@@ -123,9 +131,9 @@ function ApplyModal({ comp, onClose, onApplied }: { comp: Competition; onClose: 
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                   </svg>
                   <span className="text-sm text-blue-700 truncate flex-1">{file.name}</span>
-                  <button type="button" onClick={() => setFile(null)} className="text-blue-400 hover:text-blue-600 text-xs">Kaldır</button>
+                  {!showOtp && <button type="button" onClick={() => setFile(null)} className="text-blue-400 hover:text-blue-600 text-xs">Kaldır</button>}
                 </div>
-              ) : (
+              ) : !showOtp ? (
                 <label className="flex items-center gap-3 p-3 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-[#26496b]/40 transition-colors">
                   <svg className="w-5 h-5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -133,13 +141,26 @@ function ApplyModal({ comp, onClose, onApplied }: { comp: Competition; onClose: 
                   <span className="text-sm text-gray-400">Dosya seç veya buraya sürükle</span>
                   <input type="file" className="hidden" onChange={e => setFile(e.target.files?.[0] ?? null)} />
                 </label>
-              )}
+              ) : null}
             </div>
-            {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
-            <button type="submit" disabled={busy}
-              className="w-full bg-[#26496b] text-white font-bold py-3.5 rounded-xl hover:bg-[#1e3a56] transition-colors disabled:opacity-60 text-sm">
-              {busy ? 'Gönderiliyor…' : 'Başvuruyu Gönder'}
-            </button>
+
+            {showOtp ? (
+              <div className="border-t border-gray-100 pt-4">
+                <EmailOtpVerifier
+                  email={form.email}
+                  onVerified={token => void submitWithToken(token)}
+                  onBack={() => { setShowOtp(false); setError(''); }}
+                />
+              </div>
+            ) : (
+              <>
+                {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
+                <button type="submit" disabled={busy}
+                  className="w-full bg-[#26496b] text-white font-bold py-3.5 rounded-xl hover:bg-[#1e3a56] transition-colors text-sm disabled:opacity-50">
+                  Başvuruyu Gönder
+                </button>
+              </>
+            )}
           </form>
         )}
       </div>
@@ -154,10 +175,10 @@ function deadlineInfo(deadline: string | null): { label: string; urgency: 'past'
   const d = new Date(deadline);
   const now = new Date();
   const days = Math.ceil((d.getTime() - now.getTime()) / 86400000);
-  if (days < 0) return { label: 'Süre doldu', urgency: 'past' };
-  if (days === 0) return { label: 'Son gün!', urgency: 'urgent' };
-  if (days <= 7) return { label: `${days} gün kaldı`, urgency: 'urgent' };
-  if (days <= 14) return { label: `${days} gün kaldı`, urgency: 'soon' };
+  if (days < 0) return { label: 'Süre Doldu', urgency: 'past' };
+  if (days === 0) return { label: 'Son Gün!', urgency: 'urgent' };
+  if (days <= 7) return { label: `${days} Gün Kaldı`, urgency: 'urgent' };
+  if (days <= 14) return { label: `${days} Gün Kaldı`, urgency: 'soon' };
   return {
     label: d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }),
     urgency: 'ok',
@@ -191,6 +212,7 @@ export default function YarismaDetayPage() {
   const [applying, setApplying] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
@@ -262,7 +284,7 @@ export default function YarismaDetayPage() {
               </Link>
               <div className="flex flex-wrap gap-2 mb-3">
                 {comp.category && (
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-400/90 text-amber-900">
+                  <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-amber-400/90 text-amber-900">
                     {comp.category}
                   </span>
                 )}
@@ -369,8 +391,8 @@ export default function YarismaDetayPage() {
                 <div className="space-y-3 mb-6">
                   {comp.deadline && (
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400 text-xs">Son başvuru tarihi</span>
-                      <span className={`text-xs font-semibold ${dl.urgency === 'urgent' ? 'text-red-600' : dl.urgency === 'past' ? 'text-gray-400' : 'text-gray-700 dark:text-slate-300'}`}>
+                      <span className="text-[#26496b] text-xs font-semibold">Son Başvuru Tarihi</span>
+                      <span className={`text-xs font-semibold capitalize ${dl.urgency === 'urgent' ? 'text-red-600' : dl.urgency === 'past' ? 'text-gray-400' : 'text-gray-700 dark:text-slate-300'}`}>
                         {dl.urgency === 'ok'
                           ? new Date(comp.deadline).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
                           : dl.label}
@@ -378,13 +400,13 @@ export default function YarismaDetayPage() {
                     </div>
                   )}
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-400 text-xs">Başvuru sayısı</span>
-                    <span className="text-xs font-semibold text-gray-700 dark:text-slate-300">{appCount} başvuru</span>
+                    <span className="text-[#26496b] text-xs font-semibold">Başvuru Sayısı</span>
+                    <span className="text-xs font-semibold text-gray-700 dark:text-slate-300">{appCount} Başvuru</span>
                   </div>
                   {comp.category && (
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400 text-xs">Kategori</span>
-                      <span className="text-xs font-semibold text-[#26496b] dark:text-sky-400">{comp.category}</span>
+                      <span className="text-[#26496b] text-xs font-semibold">Kategori</span>
+                      <span className="text-xs font-normal text-gray-500 capitalize">{comp.category}</span>
                     </div>
                   )}
                 </div>
@@ -426,27 +448,44 @@ export default function YarismaDetayPage() {
 
               {/* Share */}
               <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 p-4">
-                <p className="text-xs text-gray-400 mb-3 font-medium">Paylaş</p>
+                <p className="text-xs text-[#26496b] mb-3 font-semibold">Paylaş</p>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => navigator.clipboard.writeText(window.location.href).catch(() => {})}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl text-xs text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors font-medium"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(window.location.href).then(() => {
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      });
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-lg text-xs font-medium text-gray-600 dark:text-slate-400 hover:border-[#26496b] hover:text-[#26496b] transition-colors"
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    Linki Kopyala
+                    {copied ? (
+                      <>
+                        <svg className="w-3 h-3 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Kopyalandı!
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Linki Kopyala
+                      </>
+                    )}
                   </button>
-                  <a
-                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(comp.title)}&url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center px-3 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+                  <button
+                    onClick={() => {
+                      void navigator.share?.({ title: comp.title, url: window.location.href });
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-lg text-xs font-medium text-gray-600 dark:text-slate-400 hover:border-[#26496b] hover:text-[#26496b] transition-colors"
                   >
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.261 5.634 5.903-5.634zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                    <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                     </svg>
-                  </a>
+                    Paylaş
+                  </button>
                 </div>
               </div>
             </div>

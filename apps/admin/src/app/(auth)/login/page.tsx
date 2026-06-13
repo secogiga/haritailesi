@@ -33,8 +33,8 @@ export default function LoginPage() {
     <main className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
       <div className="max-w-sm w-full">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-[var(--color-mavi)]">Haritailesi Admin</h1>
-          <p className="text-sm text-gray-500 mt-1">Yetkili ekip girişi</p>
+          <h1 className="text-2xl font-bold text-[var(--color-mavi)]">Haritailesi Yönetim</h1>
+          <p className="text-sm text-gray-500 mt-1">Yönetici Girişi</p>
         </div>
         <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-xl shadow-sm p-8 space-y-4">
           {errors.root && (

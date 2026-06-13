@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000';
@@ -36,6 +37,8 @@ interface QaAnswer {
   source: string;
   submitterName: string | null;
   tierLabel: string | null;
+  isAccepted: boolean;
+  upvoteCount: number;
   updatedAt: string;
 }
 
@@ -211,18 +214,36 @@ function QuestionCard({ item }: { item: QaItem }) {
                 C
               </div>
               <div className="flex-1">
-                <div className="bg-gradient-to-br from-[#f4f9f9] to-[#eef6f5] rounded-xl border border-[#66aca9]/20 px-4 py-4">
+                <div className={`rounded-xl border px-4 py-4 ${ans.isAccepted ? 'bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200' : 'bg-gradient-to-br from-[#f4f9f9] to-[#eef6f5] border-[#66aca9]/20'}`}>
+                  {ans.isAccepted && (
+                    <div className="flex items-center gap-1.5 mb-2.5">
+                      <svg className="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                      </svg>
+                      <span className="text-xs font-bold text-emerald-700">Kabul Edildi</span>
+                    </div>
+                  )}
                   <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{ans.body}</p>
                 </div>
-                <p className="text-xs text-gray-400 mt-2 pl-1">
-                  {ans.source === 'admin'
-                    ? 'Haritailesi Uzman Ekibi'
-                    : ans.submitterName
-                      ? `${ans.submitterName} · ${ans.tierLabel ?? 'Sahne Üyesi'}`
-                      : (ans.tierLabel ?? 'Sahne Üyesi')
-                  } •{' '}
-                  {new Date(ans.updatedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
-                </p>
+                <div className="flex items-center justify-between mt-2 pl-1">
+                  <p className="text-xs text-gray-400">
+                    {ans.source === 'admin'
+                      ? 'Haritailesi Uzman Ekibi'
+                      : ans.submitterName
+                        ? `${ans.submitterName} · ${ans.tierLabel ?? 'Sahne Üyesi'}`
+                        : (ans.tierLabel ?? 'Sahne Üyesi')
+                    } •{' '}
+                    {new Date(ans.updatedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </p>
+                  {ans.upvoteCount > 0 && (
+                    <span className="flex items-center gap-1 text-xs text-gray-400">
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                      </svg>
+                      {ans.upvoteCount}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -248,7 +269,7 @@ function QuestionCard({ item }: { item: QaItem }) {
             ) : (
               <button
                 onClick={() => setShowAnswerForm(true)}
-                className="flex items-center gap-1.5 text-sm text-[#26496b] hover:text-[#1d3a57] font-medium"
+                className="flex items-center gap-1.5 text-sm text-[#26496b] hover:text-[#1d3a57] font-medium cursor-pointer"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -468,7 +489,7 @@ function SubmitModal({ onClose }: { onClose: () => void }) {
 
 // ─── Main client component ─────────────────────────────────────────────────────
 
-export default function SoruCevapClient({ initialItems }: { initialItems: QaItem[] }) {
+export default function SoruCevapClient({ initialItems, showBreadcrumb }: { initialItems: QaItem[]; showBreadcrumb?: boolean }) {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -499,6 +520,13 @@ export default function SoruCevapClient({ initialItems }: { initialItems: QaItem
         {/* Hero */}
         <section className="bg-gradient-to-br from-[#26496b] to-[#1d3a57] py-16 px-4">
           <div className="max-w-3xl mx-auto text-center">
+            {showBreadcrumb && (
+              <div className="flex items-center justify-center gap-2 text-xs text-white/50 mb-6">
+                <Link href="/kutuphane" className="hover:text-white/80 transition-colors">Meslek Kütüphanesi</Link>
+                <span>›</span>
+                <span className="text-white/80">Soru &amp; Cevap</span>
+              </div>
+            )}
             <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-5">
               <svg className="w-7 h-7 text-[#66aca9]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
@@ -509,7 +537,7 @@ export default function SoruCevapClient({ initialItems }: { initialItems: QaItem
               Soru & Cevap
             </h1>
             <p className="text-[#a8d4d1] text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
-              Haritacılık, CBS, fotogrametri ve geomatik alanlarında aklınıza takılan soruları sorun.
+              Mesleğimizle ilgili aklınıza takılan soruları sorun.
               Uzman kadromuz inceler ve onaylı cevaplarla burada yayınlar.
             </p>
             <button
@@ -521,25 +549,53 @@ export default function SoruCevapClient({ initialItems }: { initialItems: QaItem
               </svg>
               Soru Sor
             </button>
+
+            {initialItems.length > 0 && (
+              <div className="flex items-center justify-center gap-8 mt-10 pt-8 border-t border-white/10">
+                <div className="text-center">
+                  <p className="text-2xl font-black text-white leading-none">{initialItems.length}</p>
+                  <p className="text-xs text-white/50 mt-1 uppercase tracking-wider font-medium">Soru</p>
+                </div>
+                <div className="w-px h-8 bg-white/10" />
+                <div className="text-center">
+                  <p className="text-2xl font-black text-white leading-none">{categories.length}</p>
+                  <p className="text-xs text-white/50 mt-1 uppercase tracking-wider font-medium">Konu Alanı</p>
+                </div>
+                <div className="w-px h-8 bg-white/10" />
+                <div className="text-center">
+                  <p className="text-2xl font-black text-white leading-none">{featured.length}</p>
+                  <p className="text-xs text-white/50 mt-1 uppercase tracking-wider font-medium">Öne Çıkan</p>
+                </div>
+              </div>
+            )}
           </div>
         </section>
 
-        {/* Stats bar */}
-        {initialItems.length > 0 && (
-          <div className="bg-white border-b border-gray-100">
-            <div className="max-w-5xl mx-auto px-4 py-4 flex flex-wrap items-center gap-6 text-sm text-gray-500">
-              <span>
-                <strong className="text-[#26496b] font-semibold">{initialItems.length}</strong> soru
-              </span>
-              <span>
-                <strong className="text-[#26496b] font-semibold">{categories.length}</strong> konu alanı
-              </span>
-              <span>
-                <strong className="text-[#26496b] font-semibold">{featured.length}</strong> öne çıkan
-              </span>
+        {/* Nasıl Çalışır — yatay adım şeridi */}
+        <div className="bg-white border-b border-gray-100">
+          <div className="max-w-5xl mx-auto px-4 py-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {[
+                { n: '1', t: 'Soruyu Gönderin', d: 'E-posta ve sorunuzu yazın.' },
+                { n: '2', t: 'İnceleme', d: 'Uzman ekibimiz soruyu değerlendirir.' },
+                { n: '3', t: 'Cevap Paylaşın', d: 'Bildiğiniz varsa siz de cevap yazabilirsiniz.' },
+                { n: '4', t: 'Yayına Alınır', d: 'Admin onaylı cevaplar burada görünür.' },
+              ].map((s, i, arr) => (
+                <div key={s.n} className="flex items-start gap-3 relative">
+                  <span className="w-8 h-8 bg-[#26496b] text-white rounded-xl text-xs font-black flex items-center justify-center shrink-0">{s.n}</span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-800 leading-snug">{s.t}</p>
+                    <p className="text-xs text-gray-400 mt-0.5 leading-snug">{s.d}</p>
+                  </div>
+                  {i < arr.length - 1 && (
+                    <div className="hidden sm:block absolute right-0 top-4 w-4 text-gray-200 text-lg font-light select-none">›</div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
-        )}
+        </div>
+
 
         <div className="max-w-5xl mx-auto px-4 py-10">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -563,7 +619,7 @@ export default function SoruCevapClient({ initialItems }: { initialItems: QaItem
                 <select
                   value={categoryFilter}
                   onChange={e => setCategoryFilter(e.target.value)}
-                  className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none"
+                  className="border border-gray-200 rounded-xl pl-3 pr-8 py-2.5 text-sm bg-white focus:outline-none"
                 >
                   <option value="">Tüm konular</option>
                   {categories.map(c => (
@@ -648,7 +704,7 @@ export default function SoruCevapClient({ initialItems }: { initialItems: QaItem
                 </div>
                 <h3 className="font-semibold text-lg mb-2">Sorunuz mu var?</h3>
                 <p className="text-[#a8d4d1] text-sm leading-relaxed mb-4">
-                  Haritacılık, CBS ve geomatik alanlarında aklınıza takılan her şeyi sorun. Uzman ekibimiz cevaplar.
+                  Mesleğimizle ilgili aklınıza takılan her şeyi sorun. Uzman ekibimiz cevaplar.
                 </p>
                 <button
                   onClick={() => setShowForm(true)}
@@ -687,25 +743,41 @@ export default function SoruCevapClient({ initialItems }: { initialItems: QaItem
                 </div>
               )}
 
-              {/* How it works */}
-              <div className="bg-white rounded-2xl border border-gray-100 p-5">
-                <h3 className="font-semibold text-[#26496b] text-sm mb-4">Nasıl Çalışır?</h3>
-                <ol className="space-y-3">
-                  {[
-                    { n: '1', t: 'Soruyu gönderin', d: 'E-posta ve sorunuzu yazın.' },
-                    { n: '2', t: 'İnceleme', d: 'Uzman ekibimiz soruyu değerlendirir.' },
-                    { n: '3', t: 'Cevap paylaşın', d: 'Bildiğiniz varsa siz de cevap yazabilirsiniz.' },
-                    { n: '4', t: 'Yayına alınır', d: 'Admin onaylı cevaplar burada görünür.' },
-                  ].map(s => (
-                    <li key={s.n} className="flex items-start gap-3">
-                      <span className="w-6 h-6 bg-[#26496b]/10 text-[#26496b] rounded-lg text-xs font-bold flex items-center justify-center shrink-0">{s.n}</span>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">{s.t}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">{s.d}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ol>
+            </div>
+          </div>
+        </div>
+
+        {/* Separator */}
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="border-t border-gray-200" />
+        </div>
+
+        {/* Kapanış CTA */}
+        <div className="mt-0">
+          <div className="max-w-5xl mx-auto px-4 py-10">
+            <div className="relative bg-[#0b1829] rounded-3xl px-8 sm:px-12 py-10 overflow-hidden">
+              <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full border border-amber-400/10 pointer-events-none" />
+              <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full border border-amber-400/8 pointer-events-none" />
+              <div className="absolute right-12 bottom-0 w-2 h-2 rounded-full bg-amber-400/40 pointer-events-none" />
+              <div className="absolute right-24 bottom-6 w-1.5 h-1.5 rounded-full bg-white/20 pointer-events-none" />
+              <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+                <div>
+                  <p className="font-black text-white text-xl sm:text-2xl leading-tight tracking-tight">
+                    Siz de cevap üretebilirsiniz
+                  </p>
+                  <p className="text-white/40 text-sm mt-2">Bildiğiniz bir soruyu yanıtlayın, mesleğe katkı sağlayın.</p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <Link href="/kutuphane"
+                    className="bg-white/8 border border-white/15 text-white font-semibold text-sm px-5 py-3 rounded-xl hover:bg-white/15 transition-colors">
+                    Kütüphaneye Git
+                  </Link>
+                  <button
+                    onClick={() => setShowForm(true)}
+                    className="bg-amber-400 hover:bg-amber-300 text-[#0b1829] font-black text-sm px-5 py-3 rounded-xl transition-colors">
+                    Soru Sor →
+                  </button>
+                </div>
               </div>
             </div>
           </div>

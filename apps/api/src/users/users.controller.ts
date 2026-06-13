@@ -16,10 +16,13 @@ import {
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
+import { Public } from '../auth/decorators/public.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { IsArray, IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
+import { Throttle } from '@nestjs/throttler';
 import { UsersService } from './users.service';
+import { VALID_ACTION_IDS } from './level.utils';
 import { REDIS_TOKEN } from '../redis/redis.constants';
 import type Redis from 'ioredis';
 import { StorageService } from '../storage/storage.service';
@@ -73,6 +76,31 @@ export class UsersController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async heartbeat(@CurrentUser() user: RequestUser) {
     await this.redis.set(`presence:${user.id}`, '1', 'EX', 90);
+  }
+
+  @Throttle({ short: { ttl: 60_000, limit: 120 }, medium: { ttl: 600_000, limit: 500 } })
+  @Post('me/actions')
+  async recordAction(
+    @CurrentUser() user: RequestUser,
+    @Body() body: { actionId: string },
+  ) {
+    if (!body.actionId || typeof body.actionId !== 'string') return { completedActionIds: [] };
+    if (!VALID_ACTION_IDS.has(body.actionId)) return { completedActionIds: [] };
+    const completedActionIds = await this.usersService.recordLevelAction(user.id, body.actionId);
+    return { completedActionIds };
+  }
+
+  @Throttle({ short: { ttl: 60_000, limit: 10 }, medium: { ttl: 600_000, limit: 30 } })
+  @Post('me/actions/sync')
+  async syncActions(
+    @CurrentUser() user: RequestUser,
+    @Body() body: { actionIds: string[] },
+  ) {
+    const ids = Array.isArray(body.actionIds)
+      ? body.actionIds.filter((id): id is string => typeof id === 'string' && VALID_ACTION_IDS.has(id))
+      : [];
+    const completedActionIds = await this.usersService.syncLevelActions(user.id, ids);
+    return { completedActionIds };
   }
 
   @Post('me/events')
@@ -263,6 +291,15 @@ export class UsersController {
     return this.usersService.updateProfile(user.id, dto);
   }
 
+  @Patch('me/snd-subscribe')
+  @HttpCode(HttpStatus.OK)
+  toggleSndSubscribe(
+    @CurrentUser() user: RequestUser,
+    @Body('subscribed') subscribed: boolean,
+  ) {
+    return this.usersService.setSndSubscribed(user.id, !!subscribed);
+  }
+
   @Post('me/avatar')
   @RequirePermission('user.profile.update_own')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_BYTES } }))
@@ -283,6 +320,12 @@ export class UsersController {
 
     await this.usersService.updateProfile(user.id, { avatarUrl: url });
     return { avatarUrl: url };
+  }
+
+  @Public()
+  @Get('public/:id')
+  getPublicMember(@Param('id', ParseUUIDPipe) id: string) {
+    return this.usersService.getSndPublicProfile(id);
   }
 
   @Get('members')

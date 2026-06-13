@@ -11,6 +11,7 @@ import { GlobalSearch } from '@/components/GlobalSearch';
 import { useToken } from '@/hooks/useToken';
 import { TIER_LABELS } from '@/lib/constants';
 import { mutfakApi } from '@/lib/api';
+import { FloatingMessenger } from '@/components/FloatingMessenger';
 
 const BOTTOM_NAV_HREFS = ['/akis', '/uyeler', '/mentorluk', '/mesajlar', '/hesabim'];
 const BOTTOM_NAV = BOTTOM_NAV_HREFS.map((href) => NAV.find((n) => n.href === href)!).filter(Boolean);
@@ -227,6 +228,9 @@ export default function MutfakLayout({ children }: { children: React.ReactNode }
       {/* GlobalSearch modal — Cmd+K */}
       <GlobalSearch />
 
+      {/* Floating messenger — desktop only (mobile uses /mesajlar page) */}
+      <FloatingMessenger />
+
       {/* Scroll-to-top button */}
       <ScrollToTop />
     </div>
@@ -249,7 +253,7 @@ function ScrollToTop() {
   return (
     <button
       onClick={() => document.getElementById('main-content')?.scrollTo({ top: 0, behavior: 'smooth' })}
-      className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-40 w-10 h-10 flex items-center justify-center bg-[#26496b] text-white rounded-full shadow-lg hover:bg-[#1e3a56] transition-all"
+      className="fixed bottom-20 right-4 md:bottom-6 md:right-24 z-40 w-10 h-10 flex items-center justify-center bg-[#26496b] text-white rounded-full shadow-lg hover:bg-[#1e3a56] transition-all"
       aria-label="Yukarı çık"
     >
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -1,4 +1,4 @@
-import { ConflictException, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 
 // Hoist bcrypt mock so it's available before imports resolve
@@ -49,37 +49,6 @@ beforeEach(() => {
   jest.clearAllMocks();
   // Restore default returning value
   mockDb.returning.mockResolvedValue([{ id: 'user-1', email: 'test@example.com' }]);
-});
-
-// ── register ─────────────────────────────────────────────────────────────────
-
-describe('AuthService.register', () => {
-  it('throws ConflictException when email already exists', async () => {
-    mockDb.query.users.findFirst.mockResolvedValue({ id: 'existing' });
-
-    const service = makeService();
-    await expect(
-      service.register({ email: 'dup@example.com', password: 'pass123', displayName: 'Test' }),
-    ).rejects.toThrow(ConflictException);
-  });
-
-  it('creates user and returns token pair', async () => {
-    mockDb.query.users.findFirst.mockResolvedValue(null);
-
-    const service = makeService();
-    const result = await service.register({
-      email: 'NEW@EXAMPLE.COM',
-      password: 'securePass',
-      displayName: 'New User',
-    });
-
-    expect(result).toHaveProperty('accessToken', 'mock.jwt.token');
-    expect(result).toHaveProperty('refreshToken');
-    // Email should be lowercased
-    const insertCalls = mockDb.values.mock.calls;
-    const userInsert = insertCalls[0][0] as { email: string };
-    expect(userInsert.email).toBe('new@example.com');
-  });
 });
 
 // ── login ────────────────────────────────────────────────────────────────────

@@ -8,10 +8,16 @@ import type {
   ApplicationType,
 } from '@haritailesi/types';
 
+export interface StatePrerequisite {
+  type: 'requires_admin_notes' | 'requires_payment_amount' | 'requires_donation_record';
+  errorMessage: string;
+}
+
 export interface StateTransition {
   from: string;
   to: string;
   requiredPermission: Permission;
+  prerequisites?: StatePrerequisite[];
   emailTrigger?: EmailJobName;
   push?: { title: string; body: string };
 }
@@ -19,16 +25,16 @@ export interface StateTransition {
 // ─── Individual (Bireysel) ─────────────────────────────────────────────────────
 
 const INDIVIDUAL_TRANSITIONS: StateTransition[] = [
-  { from: 'submitted',          to: 'under_review',         requiredPermission: 'application.review' },
-  { from: 'under_review',       to: 'interview_needed',     requiredPermission: 'application.review',  emailTrigger: 'application_interview_scheduled', push: { title: 'Görüşme Daveti', body: 'Başvurunuz görüşme aşamasına geçti. Detaylar e-postanızda.' } },
-  { from: 'under_review',       to: 'approved',             requiredPermission: 'application.approve', emailTrigger: 'application_approved',            push: { title: 'Başvurunuz Onaylandı 🎉', body: 'Haritailesi\'ne kabul edildiniz! Üyeliğinizi tamamlamak için e-postanızı kontrol edin.' } },
+  { from: 'submitted',          to: 'under_review',         requiredPermission: 'application.review',  emailTrigger: 'application_under_review', push: { title: 'Başvurunuz İnceleniyor', body: 'Başvurunuz ekibimiz tarafından incelemeye alındı.' } },
+  { from: 'under_review',       to: 'interview_needed',     requiredPermission: 'application.review',  prerequisites: [{ type: 'requires_admin_notes', errorMessage: 'Görüşmeye almadan önce inceleme notu eklenmeli.' }], emailTrigger: 'application_interview_scheduled', push: { title: 'Görüşme Daveti', body: 'Başvurunuz görüşme aşamasına geçti. Detaylar e-postanızda.' } },
+  { from: 'under_review',       to: 'approved',             requiredPermission: 'application.approve', prerequisites: [{ type: 'requires_admin_notes', errorMessage: 'Kabul etmeden önce kabul notu eklenmeli.' }], emailTrigger: 'application_approved',            push: { title: 'Başvurunuz Onaylandı 🎉', body: 'Haritailesi\'ne kabul edildiniz! Üyeliğinizi tamamlamak için e-postanızı kontrol edin.' } },
   { from: 'under_review',       to: 'rejected',             requiredPermission: 'application.reject',  emailTrigger: 'application_rejected',            push: { title: 'Başvuru Sonucu', body: 'Başvurunuza ilişkin bilgilendirme e-postanıza gönderildi.' } },
-  { from: 'interview_needed',   to: 'interview_scheduled',  requiredPermission: 'application.review',  emailTrigger: 'application_interview_scheduled', push: { title: 'Görüşme Planlandı', body: 'Görüşme tarihiniz belirlendi. Detaylar e-postanızda.' } },
-  { from: 'interview_scheduled', to: 'approved',            requiredPermission: 'application.approve', emailTrigger: 'application_approved',            push: { title: 'Başvurunuz Onaylandı 🎉', body: 'Haritailesi\'ne kabul edildiniz!' } },
+  { from: 'interview_needed',   to: 'interview_scheduled',  requiredPermission: 'interview.schedule',   emailTrigger: 'application_interview_scheduled', push: { title: 'Görüşme Planlandı', body: 'Görüşme tarihiniz belirlendi. Detaylar e-postanızda.' } },
+  { from: 'interview_scheduled', to: 'approved',            requiredPermission: 'application.approve', prerequisites: [{ type: 'requires_admin_notes', errorMessage: 'Kabul etmeden önce kabul notu eklenmeli.' }], emailTrigger: 'application_approved',            push: { title: 'Başvurunuz Onaylandı 🎉', body: 'Haritailesi\'ne kabul edildiniz!' } },
   { from: 'interview_scheduled', to: 'rejected',            requiredPermission: 'application.reject',  emailTrigger: 'application_rejected',            push: { title: 'Başvuru Sonucu', body: 'Başvurunuza ilişkin bilgilendirme e-postanıza gönderildi.' } },
-  { from: 'approved',           to: 'waiting_payment',      requiredPermission: 'application.approve', emailTrigger: 'payment_reminder',                push: { title: 'Ödeme Adımı', body: 'Üyeliğinizi tamamlamak için ödeme bilgilerini e-postanızdan iletebilirsiniz.' } },
-  { from: 'waiting_payment',    to: 'waiting_verification', requiredPermission: 'application.approve', emailTrigger: 'payment_confirmed',               push: { title: 'Ödeme Alındı', body: 'Ödemeniz alındı, belge doğrulaması bekleniyor.' } },
-  { from: 'waiting_verification', to: 'active',             requiredPermission: 'application.approve' },
+  { from: 'approved',           to: 'waiting_payment',      requiredPermission: 'payment.request',     emailTrigger: 'payment_reminder', push: { title: 'Ödeme Adımı', body: 'Üyeliğinizi tamamlamak için ödeme bilgilerini e-postanızdan iletebilirsiniz.' } },
+  { from: 'waiting_payment',    to: 'waiting_verification', requiredPermission: 'payment.verify',      prerequisites: [{ type: 'requires_payment_amount', errorMessage: 'Ödeme tutarı girilmeden doğrulamaya geçilemez.' }], emailTrigger: 'payment_confirmed', push: { title: 'Ödeme Alındı', body: 'Ödemeniz alındı, belge doğrulaması bekleniyor.' } },
+  { from: 'waiting_verification', to: 'active',             requiredPermission: 'member.activate',     prerequisites: [{ type: 'requires_donation_record', errorMessage: 'Ödeme kaydı bulunamadı. Önce ödeme tutarını girerek doğrulama adımına alın.' }] },
   { from: 'active',             to: 'passive',              requiredPermission: 'user.manage',         emailTrigger: 'membership_paused',               push: { title: 'Üyelik Pasif', body: 'Üyeliğiniz geçici olarak pasif duruma alındı.' } },
   { from: 'passive',            to: 'active',               requiredPermission: 'user.manage',         emailTrigger: 'membership_reactivated',          push: { title: 'Üyelik Aktif', body: 'Üyeliğiniz yeniden aktif edildi. Haritailesi\'ne hoş geldiniz!' } },
 ];
@@ -36,16 +42,16 @@ const INDIVIDUAL_TRANSITIONS: StateTransition[] = [
 // ─── Corporate (Kurumsal) ──────────────────────────────────────────────────────
 
 const CORPORATE_TRANSITIONS: StateTransition[] = [
-  { from: 'submitted',          to: 'under_review',         requiredPermission: 'application.review' },
-  { from: 'under_review',       to: 'interview_needed',     requiredPermission: 'application.review',  emailTrigger: 'application_interview_scheduled', push: { title: 'Görüşme Daveti', body: 'Kurumsal başvurunuz görüşme aşamasına geçti.' } },
-  { from: 'under_review',       to: 'approved',             requiredPermission: 'application.approve', emailTrigger: 'application_approved',            push: { title: 'Başvurunuz Onaylandı 🎉', body: 'Kurumsal üyelik başvurunuz kabul edildi!' } },
+  { from: 'submitted',          to: 'under_review',         requiredPermission: 'application.review',  emailTrigger: 'application_under_review', push: { title: 'Başvurunuz İnceleniyor', body: 'Başvurunuz ekibimiz tarafından incelemeye alındı.' } },
+  { from: 'under_review',       to: 'interview_needed',     requiredPermission: 'application.review',  prerequisites: [{ type: 'requires_admin_notes', errorMessage: 'Görüşmeye almadan önce inceleme notu eklenmeli.' }], emailTrigger: 'application_interview_scheduled', push: { title: 'Görüşme Daveti', body: 'Kurumsal başvurunuz görüşme aşamasına geçti.' } },
+  { from: 'under_review',       to: 'approved',             requiredPermission: 'application.approve', prerequisites: [{ type: 'requires_admin_notes', errorMessage: 'Kabul etmeden önce kabul notu eklenmeli.' }], emailTrigger: 'application_approved',            push: { title: 'Başvurunuz Onaylandı 🎉', body: 'Kurumsal üyelik başvurunuz kabul edildi!' } },
   { from: 'under_review',       to: 'rejected',             requiredPermission: 'application.reject',  emailTrigger: 'application_rejected',            push: { title: 'Başvuru Sonucu', body: 'Başvurunuza ilişkin bilgilendirme e-postanıza gönderildi.' } },
-  { from: 'interview_needed',   to: 'approved',             requiredPermission: 'application.approve', emailTrigger: 'application_approved',            push: { title: 'Başvurunuz Onaylandı 🎉', body: 'Kurumsal üyelik başvurunuz kabul edildi!' } },
+  { from: 'interview_needed',   to: 'approved',             requiredPermission: 'application.approve', prerequisites: [{ type: 'requires_admin_notes', errorMessage: 'Kabul etmeden önce kabul notu eklenmeli.' }], emailTrigger: 'application_approved',            push: { title: 'Başvurunuz Onaylandı 🎉', body: 'Kurumsal üyelik başvurunuz kabul edildi!' } },
   { from: 'interview_needed',   to: 'rejected',             requiredPermission: 'application.reject',  emailTrigger: 'application_rejected',            push: { title: 'Başvuru Sonucu', body: 'Başvurunuza ilişkin bilgilendirme e-postanıza gönderildi.' } },
-  { from: 'approved',           to: 'waiting_payment',      requiredPermission: 'application.approve', emailTrigger: 'payment_reminder',                push: { title: 'Ödeme Adımı', body: 'Üyeliğinizi tamamlamak için ödeme bilgilerini e-postanızdan iletebilirsiniz.' } },
-  { from: 'waiting_payment',    to: 'waiting_verification', requiredPermission: 'application.approve', emailTrigger: 'payment_confirmed',               push: { title: 'Ödeme Alındı', body: 'Ödemeniz alındı, belge doğrulaması bekleniyor.' } },
-  { from: 'waiting_verification', to: 'verified',           requiredPermission: 'verification.review', emailTrigger: 'verification_approved' },
-  { from: 'verified',           to: 'active',               requiredPermission: 'application.approve' },
+  { from: 'approved',           to: 'waiting_payment',      requiredPermission: 'payment.request',     emailTrigger: 'payment_reminder', push: { title: 'Ödeme Adımı', body: 'Üyeliğinizi tamamlamak için ödeme bilgilerini e-postanızdan iletebilirsiniz.' } },
+  { from: 'waiting_payment',    to: 'waiting_verification', requiredPermission: 'payment.verify',      prerequisites: [{ type: 'requires_payment_amount', errorMessage: 'Ödeme tutarı girilmeden doğrulamaya geçilemez.' }], emailTrigger: 'payment_confirmed', push: { title: 'Ödeme Alındı', body: 'Ödemeniz alındı, belge doğrulaması bekleniyor.' } },
+  { from: 'waiting_verification', to: 'verified',           requiredPermission: 'payment.verify',      prerequisites: [{ type: 'requires_donation_record', errorMessage: 'Ödeme kaydı bulunamadı. Önce ödeme tutarını girerek doğrulama adımına alın.' }], emailTrigger: 'verification_approved' },
+  { from: 'verified',           to: 'active',               requiredPermission: 'member.activate' },
   { from: 'active',             to: 'passive',              requiredPermission: 'user.manage',         emailTrigger: 'membership_paused',               push: { title: 'Üyelik Pasif', body: 'Üyeliğiniz geçici olarak pasif duruma alındı.' } },
   { from: 'passive',            to: 'active',               requiredPermission: 'user.manage',         emailTrigger: 'membership_reactivated',          push: { title: 'Üyelik Aktif', body: 'Üyeliğiniz yeniden aktif edildi.' } },
 ];
@@ -53,29 +59,29 @@ const CORPORATE_TRANSITIONS: StateTransition[] = [
 // ─── Mesleğin Gelecekleri ──────────────────────────────────────────────────────
 
 const MG_TRANSITIONS: StateTransition[] = [
-  { from: 'submitted',                  to: 'under_review',               requiredPermission: 'application.review' },
+  { from: 'submitted',                  to: 'under_review',               requiredPermission: 'application.review',  emailTrigger: 'application_under_review', push: { title: 'Başvurunuz İnceleniyor', body: 'Başvurunuz ekibimiz tarafından incelemeye alındı.' } },
   { from: 'under_review',              to: 'shortlisted',                 requiredPermission: 'application.review',  push: { title: 'Ön Elemeyi Geçtiniz!', body: 'Mesleğin Gelecekleri programında ön elemeyi geçtiniz.' } },
   { from: 'under_review',              to: 'rejected',                    requiredPermission: 'application.reject',  emailTrigger: 'application_rejected', push: { title: 'Başvuru Sonucu', body: 'Başvurunuza ilişkin bilgilendirme e-postanıza gönderildi.' } },
   { from: 'shortlisted',               to: 'interview_needed',            requiredPermission: 'application.review',  emailTrigger: 'application_interview_scheduled', push: { title: 'Mülakat Daveti', body: 'Mesleğin Gelecekleri için mülakat aşamasındasınız!' } },
   { from: 'shortlisted',               to: 'rejected',                    requiredPermission: 'application.reject',  emailTrigger: 'application_rejected', push: { title: 'Başvuru Sonucu', body: 'Başvurunuza ilişkin bilgilendirme e-postanıza gönderildi.' } },
   { from: 'interview_needed',          to: 'interview_completed',         requiredPermission: 'application.review' },
-  { from: 'interview_completed',       to: 'accepted',                    requiredPermission: 'application.approve', emailTrigger: 'application_approved', push: { title: 'Kabul Edildiniz! 🎉', body: 'Mesleğin Gelecekleri programına kabul edildiniz!' } },
+  { from: 'interview_completed',       to: 'accepted',                    requiredPermission: 'application.approve', prerequisites: [{ type: 'requires_admin_notes', errorMessage: 'Kabul etmeden önce kabul notu eklenmeli.' }], emailTrigger: 'application_approved', push: { title: 'Kabul Edildiniz! 🎉', body: 'Mesleğin Gelecekleri programına kabul edildiniz!' } },
   { from: 'interview_completed',       to: 'waitlisted',                  requiredPermission: 'application.review',  push: { title: 'Yedek Listede', body: 'Şu an yedek listedesiniz, yer açıldığında bilgilendirileceksiniz.' } },
   { from: 'interview_completed',       to: 'rejected',                    requiredPermission: 'application.reject',  emailTrigger: 'application_rejected', push: { title: 'Başvuru Sonucu', body: 'Başvurunuza ilişkin bilgilendirme e-postanıza gönderildi.' } },
-  { from: 'waitlisted',                to: 'accepted',                    requiredPermission: 'application.approve', emailTrigger: 'application_approved', push: { title: 'Kabul Edildiniz! 🎉', body: 'Yedek listeden programa alındınız!' } },
+  { from: 'waitlisted',                to: 'accepted',                    requiredPermission: 'application.approve', prerequisites: [{ type: 'requires_admin_notes', errorMessage: 'Kabul etmeden önce kabul notu eklenmeli.' }], emailTrigger: 'application_approved', push: { title: 'Kabul Edildiniz! 🎉', body: 'Yedek listeden programa alındınız!' } },
   { from: 'accepted',                  to: 'waiting_student_verification', requiredPermission: 'application.approve', push: { title: 'Öğrenci Belgesi', body: 'Kayıt için öğrenci belgenizi sisteme yüklemeniz gerekiyor.' } },
-  { from: 'waiting_student_verification', to: 'active_program_member',   requiredPermission: 'application.approve', push: { title: 'Program Üyeliği Aktif', body: 'Mesleğin Gelecekleri programı üyeliğiniz aktif oldu!' } },
-  { from: 'active_program_member',     to: 'program_completed',           requiredPermission: 'application.approve', push: { title: 'Program Tamamlandı', body: 'Mesleğin Gelecekleri programını başarıyla tamamladınız.' } },
+  { from: 'waiting_student_verification', to: 'active_program_member',   requiredPermission: 'member.activate',     push: { title: 'Program Üyeliği Aktif', body: 'Mesleğin Gelecekleri programı üyeliğiniz aktif oldu!' } },
+  { from: 'active_program_member',     to: 'program_completed',           requiredPermission: 'member.activate',     push: { title: 'Program Tamamlandı', body: 'Mesleğin Gelecekleri programını başarıyla tamamladınız.' } },
 ];
 
 // ─── Haritailesi Genç ──────────────────────────────────────────────────────────
 // Ödeme adımı yok — basit onay akışı
 
 const GENC_TRANSITIONS: StateTransition[] = [
-  { from: 'submitted',  to: 'under_review', requiredPermission: 'application.review' },
-  { from: 'under_review', to: 'approved',   requiredPermission: 'application.approve', emailTrigger: 'application_approved',   push: { title: 'Başvurunuz Onaylandı 🎉', body: 'Haritailesi Genç üyeliğiniz onaylandı! Hesabınızı oluşturmak için e-postanızı kontrol edin.' } },
+  { from: 'submitted',  to: 'under_review', requiredPermission: 'application.review',  emailTrigger: 'application_under_review', push: { title: 'Başvurunuz İnceleniyor', body: 'Başvurunuz ekibimiz tarafından incelemeye alındı.' } },
+  { from: 'under_review', to: 'approved',   requiredPermission: 'application.approve', prerequisites: [{ type: 'requires_admin_notes', errorMessage: 'Kabul etmeden önce kabul notu eklenmeli.' }], emailTrigger: 'application_approved',   push: { title: 'Başvurunuz Onaylandı 🎉', body: 'Haritailesi Genç üyeliğiniz onaylandı! Hesabınızı oluşturmak için e-postanızı kontrol edin.' } },
   { from: 'under_review', to: 'rejected',   requiredPermission: 'application.reject',  emailTrigger: 'application_rejected',   push: { title: 'Başvuru Sonucu', body: 'Başvurunuza ilişkin bilgilendirme e-postanıza gönderildi.' } },
-  { from: 'approved',   to: 'active',       requiredPermission: 'application.approve' },
+  { from: 'approved',   to: 'active',       requiredPermission: 'member.activate' },
   { from: 'active',     to: 'passive',      requiredPermission: 'user.manage',         emailTrigger: 'membership_paused',      push: { title: 'Üyelik Pasif', body: 'Üyeliğiniz geçici olarak pasif duruma alındı.' } },
   { from: 'passive',    to: 'active',       requiredPermission: 'user.manage',         emailTrigger: 'membership_reactivated', push: { title: 'Üyelik Aktif', body: 'Üyeliğiniz yeniden aktif edildi.' } },
 ];

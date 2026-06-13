@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query, Redirect } from '@nestjs/common';
 import { IsArray, IsEmail, IsIn, IsOptional, IsString, MinLength } from 'class-validator';
 import { Public } from '../auth/decorators/public.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -10,7 +10,7 @@ class CreateContentRequestDto {
   @IsEmail() email!: string;
   @IsString() @MinLength(2) displayName!: string;
   @IsIn(['sahne', 'mutfak']) source!: 'sahne' | 'mutfak';
-  @IsIn(['magaza', 'etkinlik', 'egitim', 'ilan']) type!: 'magaza' | 'etkinlik' | 'egitim' | 'ilan';
+  @IsIn(['magaza', 'etkinlik', 'egitim', 'ilan', 'sponsorluk']) type!: 'magaza' | 'etkinlik' | 'egitim' | 'ilan' | 'sponsorluk';
   @IsString() @MinLength(3) title!: string;
   @IsString() @MinLength(10) description!: string;
   @IsOptional() @IsString() contactInfo?: string;
@@ -26,6 +26,28 @@ class UpdateContentRequestDto {
   @IsOptional() @IsString() @MinLength(3) title?: string;
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsString() contactInfo?: string;
+}
+
+class UpdateMyListingDto {
+  @IsOptional() @IsString() @MinLength(3) title?: string;
+  @IsOptional() @IsString() description?: string;
+  @IsOptional() @IsString() location?: string;
+  @IsOptional() @IsString() price?: string;
+  @IsOptional() @IsEmail() applyEmail?: string;
+  @IsOptional() @IsString() applyUrl?: string;
+  @IsOptional() @IsString() contactPhone?: string;
+  @IsOptional() @IsArray() tags?: string[];
+}
+
+class SubscribeAlertDto {
+  @IsEmail() email!: string;
+  @IsString() type!: string;
+}
+
+class ContactJobListingDto {
+  @IsString() @MinLength(2) senderName!: string;
+  @IsEmail() senderEmail!: string;
+  @IsString() @MinLength(10) message!: string;
 }
 
 const ALL_LISTING_TYPES = [
@@ -88,6 +110,63 @@ export class MarketplaceController {
   }
 
   // ─── Job Listings (Herkese açık) ─────────────────────────────────────────────
+
+  @Public()
+  @Get('job-listings/:id')
+  getJobListing(@Param('id', ParseUUIDPipe) id: string) {
+    return this.marketplaceService.getJobListingById(id);
+  }
+
+  // ─── My Listings (Authenticated) ─────────────────────────────────────────────
+
+  @Get('my-listings')
+  getMyListings(@CurrentUser() user: RequestUser) {
+    return this.marketplaceService.getMyListings(user.id);
+  }
+
+  @Patch('my-listings/:id')
+  updateMyListing(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateMyListingDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.marketplaceService.updateMyListing(user.id, id, dto);
+  }
+
+  @Post('my-listings/:id/close')
+  @HttpCode(200)
+  closeMyListing(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.marketplaceService.closeMyListing(user.id, id);
+  }
+
+  @Public()
+  @Post('listing-alerts/subscribe')
+  @HttpCode(200)
+  subscribeAlert(@Body() dto: SubscribeAlertDto) {
+    return this.marketplaceService.subscribeListingAlert(dto.email, dto.type);
+  }
+
+  @Public()
+  @Get('listing-alerts/unsubscribe')
+  @Redirect()
+  async unsubscribeAlert(@Query('token') token: string) {
+    await this.marketplaceService.unsubscribeListingAlert(token);
+    const sahneUrl = process.env['SAHNE_URL'] ?? 'https://sahne.haritailesi.org';
+    return { url: `${sahneUrl}/ilanlar?unsubscribed=1` };
+  }
+
+  @Public()
+  @Post('job-listings/:id/contact')
+  @HttpCode(200)
+  contactJobListing(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ContactJobListingDto,
+  ) {
+    return this.marketplaceService.contactJobListing(id, dto);
+  }
 
   @Public()
   @Get('job-listings')

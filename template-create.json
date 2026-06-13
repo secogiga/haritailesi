@@ -1,0 +1,1 @@
+{"name":"basvuru_durum_bildir","language":"tr","category":"UTILITY","components":[{"type":"BODY","text":"Merhaba {{1}}, Haritailesi Vakfı başvurunuzun durumu güncellendi: {{2}}. İyi günler dileriz.","example":{"body_text":[["Ahmet Yılmaz","Başvurunuz incelemeye alındı"]]}}]}

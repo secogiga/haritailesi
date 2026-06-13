@@ -126,6 +126,11 @@ const IcoPusula = () => (
     <path strokeLinecap="round" d="M12 3v6M12 15v6M3 12h6M15 12h6" />
   </svg>
 );
+const IcoLibrary = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+  </svg>
+);
 
 // ─── Özgür keşif kategorileri ─────────────────────────────────────────────────
 
@@ -135,7 +140,8 @@ const FREE_CATEGORIES: {
   title: string; desc: string; href: string;
   icon: React.ReactNode; gradient: string; pulse?: string; note?: string; external?: boolean;
 }[] = [
-  { title: 'Soru & Cevap',           desc: 'Sorular sor, cevapları birlikte bulalım.',                   href: '/soru-cevap',   icon: <IcoPencil />,    gradient: 'from-sky-500 to-blue-600',          pulse: '200+ içerik' },
+  { title: 'Soru & Cevap',           desc: 'Sorular sor, cevapları birlikte bulalım.',                   href: '/kutuphane/soru-cevap', icon: <IcoPencil />, gradient: 'from-sky-500 to-blue-600', pulse: '200+ içerik' },
+  { title: 'Meslek Kütüphanesi',     desc: 'Mesleğin ortak hafızası. Sözlük, rehber, mevzuat ve sınav merkezi.', href: '/kutuphane', icon: <IcoLibrary />, gradient: 'from-[#26496b] to-[#1d3a57]', pulse: 'Açık Erişim' },
   { title: 'Etkinlikler',            desc: 'Mesleki etkinlikleri keşfet, katıl ve paylaş.',              href: '/etkinlikler',  icon: <IcoCalendar />,  gradient: 'from-emerald-500 to-teal-600',       pulse: '25+ etkinlik' },
   { title: 'Mentörlük',              desc: 'Deneyimli profesyonellerden birebir rehberlik.',              href: '/mentorluk',    icon: <IcoBrain />,     gradient: 'from-amber-500 to-orange-600',       pulse: '14 aktif mentor' },
   { title: 'Projeler',               desc: 'Topluluğun projelerini keşfet, katkı ver, kendi projeni paylaş.', href: '/projeler', icon: <IcoMap />,       gradient: 'from-blue-500 to-indigo-600',        pulse: '3 aktif proje' },

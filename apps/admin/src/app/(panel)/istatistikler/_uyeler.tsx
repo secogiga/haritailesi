@@ -7,7 +7,7 @@ import { Card, BarRow } from './_shared';
 
 const TIER_CFG: Record<string, { label: string; color: string; bg: string }> = {
   visitor:             { label: 'Ziyaretçi',              color: '#9ca3af', bg: 'bg-gray-400' },
-  registered_user:     { label: 'Sahne Üyesi',            color: '#64748b', bg: 'bg-slate-500' },
+  registered_user:     { label: 'Kayıtlı',                color: '#64748b', bg: 'bg-slate-500' },
   haritailesi_genc:    { label: 'Haritailesi Genç',       color: '#0d9488', bg: 'bg-teal-600' },
   new_graduate_member: { label: 'Mesleğin Geleceği',      color: '#f97316', bg: 'bg-orange-500' },
   individual_member:   { label: 'Mesleğin Değer Ortağı',  color: '#3b82f6', bg: 'bg-blue-500' },

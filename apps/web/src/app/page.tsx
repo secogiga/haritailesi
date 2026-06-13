@@ -94,6 +94,9 @@ export default async function HomePage() {
   const mgTeaser = {
     title: s?.mgTeaser?.title ?? 'Mesleğin Gelecekleri',
     description: s?.mgTeaser?.description ?? 'Harita ve geomatik sektörünün geleceğini şekillendirecek öğrencilere özel gelişim programı. Mentorluk, proje geliştirme ve topluluk katkısı bir arada.',
+    items: (s?.mgTeaser?.items as { label: string }[] | undefined) ?? [
+      { label: 'Mentorluk' }, { label: 'Proje Geliştirme' }, { label: 'Network' }, { label: 'Eğitim' },
+    ],
   };
   const newsletter = {
     title: s?.newsletter?.title ?? 'Haberdar Olun',
@@ -102,6 +105,14 @@ export default async function HomePage() {
   const uyelikBolumu = {
     title: s?.uyelikBolumu?.title ?? 'Haritailesi Topluluğuna Katılın',
     subtitle: s?.uyelikBolumu?.subtitle ?? 'Sektörün her kesiminden profesyonel, öğrenci ve kurumla güçlü bir ağ kurun.',
+  };
+  const bagis = {
+    badge: s?.bagis?.badge ?? 'Yıllık Destek Programı',
+    title: s?.bagis?.title ?? 'Mesleğimize Değer',
+    titleHighlight: s?.bagis?.titleHighlight ?? 'Birlikte Katıyoruz',
+    description: s?.bagis?.description ?? 'Bireysel veya kurumsal desteğinizle Mesleğin Gelecekleri programını, mentorluk ağını ve dijital ekosistemi ayakta tutuyoruz.',
+    ctaPrimary: s?.bagis?.ctaPrimary ?? 'Bağış Yap',
+    ctaSecondary: s?.bagis?.ctaSecondary ?? 'Kurumsal Destek',
   };
 
   return (
@@ -258,9 +269,9 @@ export default async function HomePage() {
               </div>
               <div className="hidden lg:flex items-center justify-center p-14">
                 <div className="grid grid-cols-2 gap-4 w-full max-w-xs">
-                  {['Mentorluk', 'Proje Geliştirme', 'Network', 'Eğitim'].map((item) => (
-                    <div key={item} className="bg-white/10 rounded-xl p-4 text-center">
-                      <span className="text-white text-sm font-medium">{item}</span>
+                  {mgTeaser.items.map((item) => (
+                    <div key={item.label} className="bg-white/10 rounded-xl p-4 text-center">
+                      <span className="text-white text-sm font-medium">{item.label}</span>
                     </div>
                   ))}
                 </div>
@@ -318,6 +329,7 @@ export default async function HomePage() {
       </section>
 
       {/* ─── BAĞIŞ ───────────────────────────────────────────────────────────── */}
+      <EditableSection sectionKey="homepage:bagis" label="Bağış Bölümü" initialData={bagis}>
       <section className="bg-[var(--color-mavi)] py-20 overflow-hidden relative">
         <div className="absolute inset-0 opacity-[0.04] pointer-events-none">
           <svg className="w-full h-full" aria-hidden="true">
@@ -336,27 +348,21 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <span className="inline-block bg-[var(--color-altin)] text-white text-xs font-bold px-3 py-1 rounded-full mb-6">
-                Yıllık Destek Programı
+                {bagis.badge}
               </span>
               <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 leading-tight">
-                Mesleğimize Değer<br />
-                <span className="text-[#66aca9]">Birlikte Katıyoruz</span>
+                {bagis.title}<br />
+                <span className="text-[#66aca9]">{bagis.titleHighlight}</span>
               </h2>
               <p className="text-white/70 text-lg leading-relaxed mb-8 max-w-lg">
-                Bireysel veya kurumsal desteğinizle Mesleğin Gelecekleri programını, mentorluk ağını ve dijital ekosistemi ayakta tutuyoruz.
+                {bagis.description}
               </p>
               <div className="flex flex-wrap gap-4">
-                <Link
-                  href="/bagis"
-                  className="px-8 py-4 bg-[var(--color-altin)] hover:bg-yellow-600 text-white font-bold rounded-xl transition-colors text-sm"
-                >
-                  Bağış Yap
+                <Link href="/bagis" className="px-8 py-4 bg-[var(--color-altin)] hover:bg-yellow-600 text-white font-bold rounded-xl transition-colors text-sm">
+                  {bagis.ctaPrimary}
                 </Link>
-                <Link
-                  href="/bagis#kurumsal"
-                  className="px-8 py-4 border-2 border-white/30 hover:border-white/60 text-white font-semibold rounded-xl transition-colors text-sm"
-                >
-                  Kurumsal Destek
+                <Link href="/bagis#kurumsal" className="px-8 py-4 border-2 border-white/30 hover:border-white/60 text-white font-semibold rounded-xl transition-colors text-sm">
+                  {bagis.ctaSecondary}
                 </Link>
               </div>
             </div>
@@ -377,6 +383,7 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      </EditableSection>
 
       {/* ─── BÜLTEN ──────────────────────────────────────────────────────────── */}
       <EditableSection sectionKey="homepage:newsletter" label="Bülten" initialData={newsletter}>

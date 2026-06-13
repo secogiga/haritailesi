@@ -6,6 +6,8 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import type { Route } from 'next';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdminMode } from '@/contexts/AdminMode';
+import { SectionDrawer } from './SectionDrawer';
 
 export type NavSubItem = { label: string; href: string };
 export type NavItem = { label: string; href: string; sub: NavSubItem[] | null };
@@ -68,6 +70,8 @@ export default function Navbar({ navItems }: { navItems?: NavItem[] }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { isAdmin } = useAdminMode();
+  const [menuDrawerOpen, setMenuDrawerOpen] = useState(false);
 
   const items = navItems ?? DEFAULT_NAV_ITEMS;
 
@@ -77,7 +81,27 @@ export default function Navbar({ navItems }: { navItems?: NavItem[] }) {
   }
 
   return (
+    <>
+    {menuDrawerOpen && (
+      <SectionDrawer
+        sectionKey="navbar:menu"
+        label="Navigasyon Menüsü"
+        initialData={items}
+        onClose={() => setMenuDrawerOpen(false)}
+      />
+    )}
     <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
+      {isAdmin && (
+        <div className="bg-[#26496b]/10 border-b border-[#26496b]/20 px-4 py-1.5 flex items-center justify-between">
+          <span className="text-xs font-medium text-[#26496b]">✏️ Düzenleme modu aktif</span>
+          <button
+            onClick={() => setMenuDrawerOpen(true)}
+            className="text-xs font-semibold text-[#26496b] hover:underline"
+          >
+            Menü Öğelerini Düzenle →
+          </button>
+        </div>
+      )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -263,5 +287,6 @@ export default function Navbar({ navItems }: { navItems?: NavItem[] }) {
         </div>
       )}
     </header>
+    </>
   );
 }

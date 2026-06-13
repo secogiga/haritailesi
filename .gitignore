@@ -46,3 +46,8 @@ infra/postgres-data
 # temp files
 .logo-datauri.txt
 *.tsbuildinfo
+
+# Compiled TS output accidentally emitted into src/ directories
+apps/*/src/**/*.js
+apps/*/src/**/*.js.map
+apps/*/src/**/*.d.ts
