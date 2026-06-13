@@ -274,7 +274,7 @@ export default function SozlukClient({ initialTerms }: { initialTerms: Term[] })
             <div className="absolute inset-0"
               style={{ background: 'linear-gradient(to right, #0b1829 0%, #0b1829 4%, rgba(11,24,41,0.85) 40%, rgba(11,24,41,0.2) 100%)' }} />
           </div>
-          <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div className="flex items-center gap-1.5 text-xs mb-7">
               <Link href="/kutuphane" className="text-white/40 hover:text-white/70 transition-colors">Meslek Kütüphanesi</Link>
               <span className="text-white/20">›</span>
@@ -323,7 +323,7 @@ export default function SozlukClient({ initialTerms }: { initialTerms: Term[] })
 
         {/* ── Alan Filtreleri ────────────────────────────────────────────── */}
         <div className="bg-white border-b border-gray-200 sticky top-16 z-20 shadow-sm">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center gap-1">
               <button onClick={() => scrollFilter('left')}
                 className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors cursor-pointer">
@@ -350,7 +350,7 @@ export default function SozlukClient({ initialTerms }: { initialTerms: Term[] })
         </div>
 
         {/* ── İçerik ────────────────────────────────────────────────────── */}
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
           {isFiltered ? (
             /* Arama / alan filtresi sonuçları */
@@ -376,7 +376,7 @@ export default function SozlukClient({ initialTerms }: { initialTerms: Term[] })
             </div>
           ) : (
             /* Editorial ana görünüm */
-            <div className="grid grid-cols-1 xl:grid-cols-[1fr_240px] gap-8 items-start">
+            <div className="grid grid-cols-1 xl:grid-cols-[75%_1fr] gap-8 items-start">
 
               {/* Sol: içerik kolonu */}
               <div className="flex flex-col gap-8">

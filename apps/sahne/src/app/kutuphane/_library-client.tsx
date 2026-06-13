@@ -640,9 +640,10 @@ interface Comment {
 interface CommentSectionProps {
   contentType: 'term' | 'guide' | 'regulation' | 'document';
   contentId: string;
+  hideHeader?: boolean;
 }
 
-export function CommentSection({ contentType, contentId }: CommentSectionProps) {
+export function CommentSection({ contentType, contentId, hideHeader }: CommentSectionProps) {
   const { user, isLoading } = useSahneAuth();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = useState(true);
@@ -689,16 +690,23 @@ export function CommentSection({ contentType, contentId }: CommentSectionProps) 
   const sorted = [...pinned, ...regular];
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-      <div className="flex items-center gap-2 mb-5">
-        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3v-3z" />
-        </svg>
-        <h3 className="text-sm font-bold text-gray-800">Yorumlar</h3>
-        {comments.length > 0 && (
-          <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{comments.length}</span>
-        )}
-      </div>
+    <div className="bg-white rounded-2xl border border-[#e9eaec] shadow-[0_1px_3px_rgba(0,0,0,0.05)] p-6">
+      {!hideHeader && (
+        <div className="flex items-center gap-2 mb-5">
+          <div className="w-[30px] h-[30px] rounded-lg bg-[#0b1829] flex items-center justify-center shrink-0">
+            <svg className="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-[13px] font-black text-[#0b1829]">Yorumlar</h3>
+            <p className="text-[11px] text-gray-400 mt-0.5">Topluluk üyelerinin yorumları</p>
+          </div>
+          {comments.length > 0 && (
+            <span className="ml-auto text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{comments.length}</span>
+          )}
+        </div>
+      )}
 
       {loadingComments && (
         <div className="space-y-3">
@@ -707,7 +715,10 @@ export function CommentSection({ contentType, contentId }: CommentSectionProps) 
       )}
 
       {!loadingComments && sorted.length === 0 && (
-        <p className="text-sm text-gray-400 text-center py-4">Henüz yorum yok. İlk yorumu siz yapın!</p>
+        <div className="text-center py-6">
+          <span className="text-4xl block mb-3">💬</span>
+          <p className="text-sm text-gray-400 mb-4">Henüz yorum yok. İlk yorumu siz yapın!</p>
+        </div>
       )}
 
       {!loadingComments && sorted.length > 0 && (
@@ -738,9 +749,13 @@ export function CommentSection({ contentType, contentId }: CommentSectionProps) 
       )}
 
       {!isLoading && !user && (
-        <a href="/giris" className="flex items-center justify-center gap-2 text-sm text-gray-500 border border-dashed border-gray-200 rounded-xl py-3 hover:border-[#26496b]/40 hover:text-[#26496b] transition-colors">
-          Yorum yapmak için giriş yapın
-        </a>
+        <div className="text-center -mt-[25px]">
+          <a href="/giris"
+            className="inline-flex items-center gap-2 text-sm font-black text-white rounded-xl px-8 py-2.5 transition-opacity hover:opacity-90"
+            style={{ background: '#0b1829' }}>
+            Yorum Yap
+          </a>
+        </div>
       )}
 
       {user && (

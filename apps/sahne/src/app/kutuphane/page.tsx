@@ -204,7 +204,7 @@ export default async function KutuphaneHub({ searchParams }: { searchParams: Pro
               style={{ background: 'linear-gradient(to right, #0b1829 0%, #0b1829 6%, rgba(11,24,41,0.80) 42%, rgba(11,24,41,0.15) 100%)' }} />
           </div>
 
-          <div className="relative max-w-[1100px] mx-auto px-8 pt-12 grid grid-cols-[1fr_380px] items-end">
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 grid grid-cols-[1fr_380px] items-end">
             {/* Sol */}
             <div className="pb-10">
               <div className="flex items-center gap-1.5 mb-6 text-xs">
@@ -233,32 +233,32 @@ export default async function KutuphaneHub({ searchParams }: { searchParams: Pro
             </div>
 
             {/* Sağ — Bugün Kütüphanede */}
-            <div className="pb-7 flex items-start justify-end -translate-y-[60px]">
-              <div className="w-[210px] rounded-[14px] border border-white/[0.13] p-4 backdrop-blur-[14px]"
+            <div className="pb-7 flex items-start justify-end -translate-y-[50px]">
+              <div className="w-[260px] rounded-[16px] border border-white/[0.13] p-5 backdrop-blur-[14px] mr-5"
                 style={{ background: 'rgba(8,18,34,0.80)' }}>
-                <p className="text-[9px] font-extrabold tracking-[0.18em] uppercase text-white/40 mb-3">Bugün Kütüphanede</p>
+                <p className="text-[11px] font-extrabold tracking-[0.18em] uppercase text-white/40 mb-4">Bugün Kütüphanede</p>
                 {([
                   { bg: 'rgba(99,102,241,0.2)', icon: '🔷', num: '+12', label: 'Yeni Terim' },
                   { bg: 'rgba(34,197,94,0.2)', icon: '🟩', num: '+4', label: 'Yeni Rehber' },
                   { bg: 'rgba(239,68,68,0.2)', icon: '⚖️', num: '+2', label: 'Yeni Mevzuat' },
                   { bg: 'rgba(234,179,8,0.2)', icon: '📄', num: '+5', label: 'Yeni Doküman' },
                 ] as { bg: string; icon: string; num: string; label: string }[]).map((r) => (
-                  <div key={r.label} className="flex items-center gap-2.5 py-1.5 border-b border-white/[0.06] last:border-0">
-                    <div className="w-[26px] h-[26px] rounded-[7px] flex items-center justify-center text-[13px] shrink-0" style={{ background: r.bg }}>{r.icon}</div>
+                  <div key={r.label} className="flex items-center gap-3 py-2 border-b border-white/[0.06] last:border-0">
+                    <div className="w-[32px] h-[32px] rounded-[8px] flex items-center justify-center text-[16px] shrink-0" style={{ background: r.bg }}>{r.icon}</div>
                     <div>
-                      <span className="text-sm font-black text-white">{r.num} </span>
-                      <span className="text-xs text-white/50">{r.label}</span>
+                      <span className="text-base font-black text-white">{r.num} </span>
+                      <span className="text-[13px] text-white/50">{r.label}</span>
                     </div>
                   </div>
                 ))}
-                <div className="h-px bg-white/[0.08] my-2.5" />
+                <div className="h-px bg-white/[0.08] my-3" />
                 <div className="flex items-center gap-1.5">
                   <div className="flex">
                     {['A', 'B', 'C', '+'].map((l) => (
-                      <span key={l} className="w-5 h-5 rounded-full bg-white/15 border-2 flex items-center justify-center text-[8px] text-white/70 font-bold -mr-1.5 last:mr-0" style={{ borderColor: 'rgba(8,18,34,0.8)' }}>{l}</span>
+                      <span key={l} className="w-6 h-6 rounded-full bg-white/15 border-2 flex items-center justify-center text-[10px] text-white/70 font-bold -mr-1.5 last:mr-0" style={{ borderColor: 'rgba(8,18,34,0.8)' }}>{l}</span>
                     ))}
                   </div>
-                  <span className="text-[10px] text-white/40 ml-2 leading-tight">
+                  <span className="text-[12px] text-white/40 ml-2 leading-tight">
                     <strong className="text-white/80 font-extrabold">43</strong> meslektaş katkı sağladı
                   </span>
                 </div>
@@ -269,7 +269,7 @@ export default async function KutuphaneHub({ searchParams }: { searchParams: Pro
 
         {/* ── Kütüphane Bölümleri ──────────────────────────────────────────── */}
         <div className="bg-white">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
 
             {/* Bölüm başlığı */}
             <div className="flex items-center gap-3 mb-10">
@@ -339,7 +339,7 @@ export default async function KutuphaneHub({ searchParams }: { searchParams: Pro
         {/* ── Günün Terimi — v6-C koyu lacivert, ince amber sol çizgi ────── */}
         {dailyTerm && (
           <div className="bg-white">
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
               <Link href={`/kutuphane/sozluk/${dailyTerm.slug ?? dailyTerm.id}`}
                 className="group flex items-center rounded-[20px] overflow-hidden shadow-[0_8px_40px_rgba(11,24,41,0.3)] hover:shadow-[0_16px_56px_rgba(11,24,41,0.4)] hover:-translate-y-0.5 transition-all duration-200"
                 style={{ background: 'linear-gradient(135deg, #0b1829 0%, #1a3350 100%)' }}>
@@ -391,7 +391,7 @@ export default async function KutuphaneHub({ searchParams }: { searchParams: Pro
         {/* ── Editörden ────────────────────────────────────────────────────── */}
         {featuredTotal > 0 && (
           <div className="bg-white border-t border-gray-100">
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
               <div className="flex items-center gap-3 mb-8">
                 <div className="w-[3px] h-7 bg-amber-400 rounded-full shrink-0" />
                 <div>
@@ -454,13 +454,13 @@ export default async function KutuphaneHub({ searchParams }: { searchParams: Pro
         )}
 
         {/* ── Kaydedilenler ─────────────────────────────────────────────────── */}
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SavedSection />
         </div>
 
         {/* ── Footer CTA ───────────────────────────────────────────────────── */}
         <div className="border-t border-gray-100 mt-6">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
             <div className="relative bg-[#0b1829] rounded-3xl px-8 sm:px-12 py-10 overflow-hidden">
               {/* Dekoratif amber halka */}
               <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full border border-amber-400/10 pointer-events-none" />

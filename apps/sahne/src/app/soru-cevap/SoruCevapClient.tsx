@@ -518,62 +518,77 @@ export default function SoruCevapClient({ initialItems, showBreadcrumb }: { init
       <main className="min-h-screen bg-[#f4f7fa]">
 
         {/* Hero */}
-        <section className="bg-gradient-to-br from-[#26496b] to-[#1d3a57] py-16 px-4">
-          <div className="max-w-3xl mx-auto text-center">
-            {showBreadcrumb && (
-              <div className="flex items-center justify-center gap-2 text-xs text-white/50 mb-6">
-                <Link href="/kutuphane" className="hover:text-white/80 transition-colors">Meslek Kütüphanesi</Link>
-                <span>›</span>
-                <span className="text-white/80">Soru &amp; Cevap</span>
-              </div>
-            )}
-            <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-5">
-              <svg className="w-7 h-7 text-[#66aca9]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                  d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Soru & Cevap
-            </h1>
-            <p className="text-[#a8d4d1] text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
-              Mesleğimizle ilgili aklınıza takılan soruları sorun.
-              Uzman kadromuz inceler ve onaylı cevaplarla burada yayınlar.
-            </p>
-            <button
-              onClick={() => setShowForm(true)}
-              className="mt-8 inline-flex items-center gap-2 px-6 py-3 bg-[#66aca9] text-white font-medium rounded-xl hover:bg-[#4d8f8c] transition-colors shadow-lg"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Soru Sor
-            </button>
-
-            {initialItems.length > 0 && (
-              <div className="flex items-center justify-center gap-8 mt-10 pt-8 border-t border-white/10">
-                <div className="text-center">
-                  <p className="text-2xl font-black text-white leading-none">{initialItems.length}</p>
-                  <p className="text-xs text-white/50 mt-1 uppercase tracking-wider font-medium">Soru</p>
-                </div>
-                <div className="w-px h-8 bg-white/10" />
-                <div className="text-center">
-                  <p className="text-2xl font-black text-white leading-none">{categories.length}</p>
-                  <p className="text-xs text-white/50 mt-1 uppercase tracking-wider font-medium">Konu Alanı</p>
-                </div>
-                <div className="w-px h-8 bg-white/10" />
-                <div className="text-center">
-                  <p className="text-2xl font-black text-white leading-none">{featured.length}</p>
-                  <p className="text-xs text-white/50 mt-1 uppercase tracking-wider font-medium">Öne Çıkan</p>
-                </div>
-              </div>
-            )}
+        <div className="bg-[#0b1829] text-white relative overflow-hidden" style={{ padding: '65px 0 0' }}>
+          {/* Arka plan görseli — sağ taraf */}
+          <div className="absolute inset-0" style={{ left: '42%', backgroundImage: "url('/soru.jpg')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, #0b1829 0%, #0b1829 4%, rgba(11,24,41,0.88) 38%, rgba(11,24,41,0.18) 100%)' }} />
           </div>
-        </section>
+
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid items-end" style={{ gridTemplateColumns: '1fr 340px' }}>
+
+            {/* Sol — içerik */}
+            <div>
+              {/* Breadcrumb */}
+              <div className="flex items-center gap-1.5 mb-6" style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)' }}>
+                <Link href="/kutuphane" className="hover:opacity-70 transition-opacity">Meslek Kütüphanesi</Link>
+                <span style={{ color: 'rgba(255,255,255,0.2)' }}>›</span>
+                <span style={{ color: 'rgba(255,255,255,0.65)' }}>Soru &amp; Cevap</span>
+              </div>
+
+              <h1 className="text-[52px] font-black leading-none tracking-[-1.5px] mb-3.5">
+                <span className="text-amber-400">Soru</span> &amp; Cevap
+              </h1>
+
+              <p className="text-white/[0.48] text-sm leading-relaxed max-w-[400px] mb-6">
+                Mesleğimizle ilgili aklınıza takılan soruları sorun. Uzman kadromuz inceler ve onaylı cevaplarla burada yayınlar.
+              </p>
+
+              {/* Stats + Buton */}
+              <div className="flex items-center gap-2 flex-wrap" style={{ borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: '28px', paddingTop: '16px', paddingBottom: '32px' }}>
+                {[
+                  { value: String(initialItems.length), label: 'Soru' },
+                  { value: String(categories.length),   label: 'Konu Alanı' },
+                  { value: String(featured.length),      label: 'Öne Çıkan' },
+                ].map(s => (
+                  <div key={s.label}
+                    className="flex flex-col items-center gap-1 px-3.5 py-2.5 rounded-[10px] bg-black/25 border border-white/[0.06]"
+                    style={{ boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.45), inset 0 1px 2px rgba(0,0,0,0.3), 0 1px 0 rgba(255,255,255,0.06)', minWidth: '72px' }}>
+                    <span className="text-[18px] font-black text-white leading-none">{s.value}</span>
+                    <span className="text-[8.5px] text-white/30 font-bold uppercase tracking-[0.10em] whitespace-nowrap">{s.label}</span>
+                  </div>
+                ))}
+                <button
+                  onClick={() => setShowForm(true)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#F59E0B', color: '#0b1829', fontSize: '14px', fontWeight: 900, padding: '10px 20px', borderRadius: '10px', border: 'none', cursor: 'pointer', flexShrink: 0, marginLeft: '6px' }}
+                >
+                  <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Soru Sor
+                </button>
+              </div>
+            </div>
+
+            {/* Sağ — Alıntı */}
+            <div className="pb-10 pl-8 flex flex-col justify-end">
+              <div style={{ position: 'relative', paddingLeft: '20px' }}>
+                <div style={{ position: 'absolute', left: 0, top: '4px', bottom: '38px', width: '3px', background: '#F59E0B', borderRadius: '2px' }} />
+                <p style={{ fontSize: '17px', fontWeight: 600, color: 'rgba(255,255,255,0.85)', lineHeight: 1.55, fontStyle: 'italic', letterSpacing: '-0.2px' }}>
+                  Cevap, sorunun açtığı pencereden görünür.
+                </p>
+                <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '24px', height: '1px', background: '#F59E0B', opacity: 0.5 }} />
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.06em' }}>Ali Suad</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
 
         {/* Nasıl Çalışır — yatay adım şeridi */}
         <div className="bg-white border-b border-gray-100">
-          <div className="max-w-5xl mx-auto px-4 py-6">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[
                 { n: '1', t: 'Soruyu Gönderin', d: 'E-posta ve sorunuzu yazın.' },
@@ -597,7 +612,7 @@ export default function SoruCevapClient({ initialItems, showBreadcrumb }: { init
         </div>
 
 
-        <div className="max-w-5xl mx-auto px-4 py-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
             {/* Left: Q&A list */}
@@ -748,13 +763,13 @@ export default function SoruCevapClient({ initialItems, showBreadcrumb }: { init
         </div>
 
         {/* Separator */}
-        <div className="max-w-5xl mx-auto px-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="border-t border-gray-200" />
         </div>
 
         {/* Kapanış CTA */}
         <div className="mt-0">
-          <div className="max-w-5xl mx-auto px-4 py-10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
             <div className="relative bg-[#0b1829] rounded-3xl px-8 sm:px-12 py-10 overflow-hidden">
               <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full border border-amber-400/10 pointer-events-none" />
               <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full border border-amber-400/8 pointer-events-none" />
