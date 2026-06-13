@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Hero Mockup — Meslek Kütüphanesi</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, 'Inter', sans-serif; background: #0b1829; }
+
+  .hero {
+    position: relative;
+    color: white;
+    min-height: 380px;
+  }
+  .hero-image {
+    position: absolute;
+    inset: 0; left: 38%;
+    background: url('/kutuphane.jpg') center/cover no-repeat;
+  }
+  .hero-image::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(to right, #0b1829 0%, #0b1829 6%, rgba(11,24,41,0.80) 42%, rgba(11,24,41,0.15) 100%);
+  }
+
+  .hero-inner {
+    position: relative;
+    max-width: 1100px; margin: 0 auto;
+    padding: 48px 32px 0;
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    align-items: end;
+  }
+
+  .hero-left { padding-bottom: 40px; }
+
+  .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 12px; margin-bottom: 22px; }
+  .breadcrumb a { color: rgba(255,255,255,0.35); text-decoration: none; }
+  .breadcrumb span { color: rgba(255,255,255,0.5); }
+  .breadcrumb .sep { color: rgba(255,255,255,0.2); }
+
+  .amber-rule { width: 32px; height: 3px; background: #f59e0b; border-radius: 9999px; margin-bottom: 18px; }
+
+  h1 { font-size: 52px; font-weight: 900; line-height: 1.0; letter-spacing: -1.5px; margin-bottom: 14px; }
+
+  .desc { color: rgba(255,255,255,0.48); font-size: 14px; line-height: 1.65; max-width: 400px; margin-bottom: 24px; }
+
+  .search-row { display: flex; gap: 8px; max-width: 440px; }
+  .search-wrap { position: relative; flex: 1; }
+  .search-wrap svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: rgba(255,255,255,0.25); }
+  .search-wrap input {
+    width: 100%; padding: 12px 16px 12px 40px;
+    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px; color: white; font-size: 13px; outline: none;
+  }
+  .search-wrap input::placeholder { color: rgba(255,255,255,0.25); }
+  .search-btn {
+    padding: 12px 20px; background: #F59E0B; border: 1px solid #F59E0B;
+    border-radius: 10px; color: #0b1829; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+
+  .hero-right {
+    padding-bottom: 28px;
+    display: flex; align-items: flex-start; justify-content: flex-end;
+    transform: translateY(-60px);
+  }
+  .today-widget {
+    background: rgba(8,18,34,0.80);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.13);
+    border-radius: 14px;
+    padding: 16px 18px;
+    width: 210px;
+  }
+  .today-title { font-size: 9px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.4); margin-bottom: 12px; }
+  .today-row { display: flex; align-items: center; gap: 9px; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .today-row:last-of-type { border-bottom: none; }
+  .today-icon { width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+  .today-num { font-size: 14px; font-weight: 900; color: white; }
+  .today-label { font-size: 12px; color: rgba(255,255,255,0.5); }
+  .today-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 10px 0; }
+  .contrib-row { display: flex; align-items: center; gap: 6px; }
+  .contrib-avatars { display: flex; }
+  .contrib-avatars span { width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,0.15); border: 2px solid rgba(8,18,34,0.8); margin-right: -5px; display: flex; align-items: center; justify-content: center; font-size: 8px; color: rgba(255,255,255,0.7); font-weight: 700; }
+  .contrib-text { font-size: 10px; color: rgba(255,255,255,0.4); margin-left: 8px; line-height: 1.3; }
+  .contrib-text strong { color: rgba(255,255,255,0.8); font-weight: 800; }
+
+  /* ── Dropdown ── */
+  .dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: -2px; right: -2px;
+    border-radius: 14px;
+    overflow: hidden;
+    z-index: 50;
+    background: rgba(6,14,28,0.97);
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow: 0 24px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(245,158,11,0.12);
+  }
+  .dropdown::before {
+    content: '';
+    display: block;
+    height: 3px;
+    background: linear-gradient(to right, #F59E0B, rgba(245,158,11,0.2));
+  }
+  .dropdown-section-label {
+    font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+    color: rgba(255,255,255,0.25); padding: 10px 14px 4px;
+  }
+  .dropdown-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 14px; text-decoration: none;
+    transition: background 0.12s;
+  }
+  .dropdown-item:hover, .dropdown-item.active { background: rgba(255,255,255,0.06); }
+  .di-icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; shrink: 0; flex-shrink: 0; }
+  .di-title { flex: 1; font-size: 13px; color: rgba(255,255,255,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .di-title strong { color: #F59E0B; font-weight: 800; }
+  .di-badge { font-size: 9px; font-weight: 700; letter-spacing: 0.10em; text-transform: uppercase; color: rgba(255,255,255,0.25); flex-shrink: 0; }
+  .dropdown-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 6px 0; }
+  .dropdown-footer {
+    display: flex; align-items: center; gap: 6px;
+    padding: 9px 14px; font-size: 12px; color: #F59E0B;
+    text-decoration: none; transition: background 0.12s;
+  }
+  .dropdown-footer:hover { background: rgba(245,158,11,0.06); }
+
+  /* ── Stats — hero içi 3D inset ── */
+  .stats-row {
+    display: flex; gap: 8px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    margin-top: 24px;
+  }
+  .stat-item {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow:
+      inset 0 2px 6px rgba(0,0,0,0.45),
+      inset 0 1px 2px rgba(0,0,0,0.3),
+      0 1px 0 rgba(255,255,255,0.06);
+  }
+  .stat-val { font-size: 18px; font-weight: 900; color: white; line-height: 1; }
+  .stat-lbl { font-size: 8.5px; color: rgba(255,255,255,0.30); font-weight: 700; text-transform: uppercase; letter-spacing: 0.10em; white-space: nowrap; text-align: center; }
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero-image"></div>
+  <div class="hero-inner">
+    <div class="hero-left">
+      <nav class="breadcrumb">
+        <a href="#">Sahne</a><span class="sep">›</span><span>Meslek Kütüphanesi</span>
+      </nav>
+<h1><span style="color:#F59E0B">Meslek</span><br>Kütüphanesi</h1>
+      <p class="desc">Mesleğimizde üretilen bilginin toplandığı, geliştirildiği ve aktarıldığı yaşayan bilgi platformu.</p>
+      <div class="search-row">
+        <div class="search-wrap">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0118 0z"/></svg>
+          <input type="text" value="fo" />
+
+          <!-- Dropdown -->
+          <div class="dropdown">
+            <div class="dropdown-section-label">Terimler</div>
+            <a class="dropdown-item active" href="#">
+              <span class="di-icon" style="background:rgba(99,102,241,0.15)">🏷️</span>
+              <span class="di-title"><strong>Fo</strong>togrametri</span>
+              <span class="di-badge">Terim</span>
+            </a>
+            <a class="dropdown-item" href="#">
+              <span class="di-icon" style="background:rgba(99,102,241,0.15)">🏷️</span>
+              <span class="di-title"><strong>Fo</strong>togrametrik Nokta Bulutu</span>
+              <span class="di-badge">Terim</span>
+            </a>
+            <div class="dropdown-section-label" style="margin-top:6px">Rehberler</div>
+            <a class="dropdown-item" href="#">
+              <span class="di-icon" style="background:rgba(34,197,94,0.15)">📖</span>
+              <span class="di-title"><strong>Fo</strong>togrametri ile 3B Model Üretimi</span>
+              <span class="di-badge" style="color:rgba(34,197,94,0.8)">Rehber</span>
+            </a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-footer" href="#">
+              <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0118 0z"/></svg>
+              "fo" için tüm sonuçları gör
+            </a>
+          </div>
+        </div>
+        <button class="search-btn">Ara</button>
+      </div>
+      <div class="stats-row">
+        <div class="stat-item"><span class="stat-val">10</span><span class="stat-lbl">Soru Cevap</span></div>
+        <div class="stat-item"><span class="stat-val">208</span><span class="stat-lbl">Terim</span></div>
+        <div class="stat-item"><span class="stat-val">20</span><span class="stat-lbl">Rehber</span></div>
+        <div class="stat-item"><span class="stat-val">35</span><span class="stat-lbl">Mevzuat</span></div>
+        <div class="stat-item"><span class="stat-val">18</span><span class="stat-lbl">Doküman</span></div>
+        <div class="stat-item"><span class="stat-val">3.400+</span><span class="stat-lbl">Sınav Sorusu</span></div>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="today-widget">
+        <p class="today-title">Bugün Kütüphanede</p>
+        <div class="today-row"><div class="today-icon" style="background:rgba(99,102,241,0.2)">🔷</div><div><span class="today-num">+12 </span><span class="today-label">Yeni Terim</span></div></div>
+        <div class="today-row"><div class="today-icon" style="background:rgba(34,197,94,0.2)">🟩</div><div><span class="today-num">+4 </span><span class="today-label">Yeni Rehber</span></div></div>
+        <div class="today-row"><div class="today-icon" style="background:rgba(239,68,68,0.2)">⚖️</div><div><span class="today-num">+2 </span><span class="today-label">Yeni Mevzuat</span></div></div>
+        <div class="today-row"><div class="today-icon" style="background:rgba(234,179,8,0.2)">📄</div><div><span class="today-num">+5 </span><span class="today-label">Yeni Doküman</span></div></div>
+        <div class="today-divider"></div>
+        <div class="contrib-row">
+          <div class="contrib-avatars"><span>A</span><span>B</span><span>C</span><span>+</span></div>
+          <span class="contrib-text"><strong>43</strong> meslektaş katkı sağladı</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Günün Terimi v2 ── -->
+<div class="daily-wrap" style="margin-top: 64px;">
+  <a href="#" class="dv2-card">
+    <!-- Amber sol panel -->
+    <div class="dv2-left">
+      <div class="dv2-cal">
+        <span class="dv2-cal-day">13</span>
+        <span class="dv2-cal-mon">HAZ</span>
+      </div>
+      <div class="dv2-avatar">T</div>
+      <div class="dv2-streak">
+        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/></svg>
+        13 günlük seri
+      </div>
+    </div>
+
+    <!-- İçerik -->
+    <div class="dv2-body">
+      <div class="dv2-eyebrow">
+        <span class="dv2-dot"></span>
+        Bugünün Terimi
+      </div>
+      <h2 class="dv2-title">Termal Kızılötesi</h2>
+      <p class="dv2-sub">Thermal Infrared (TIR)</p>
+      <p class="dv2-desc">8–14 μm dalga boyunda yüzey sıcaklığı bilgisi kaydeden pasif uzaktan algılama bandı; kentsel ısı adası ve orman yangını izlemesinde kullanılır.</p>
+
+      <div class="dv2-footer">
+        <div class="dv2-chips">
+          <span>uzaktan algılama</span>
+          <span>fotogrametri</span>
+        </div>
+        <span class="dv2-read">Tam tanımı oku →</span>
+      </div>
+    </div>
+
+    <!-- Sağ dekor -->
+    <div class="dv2-deco">"</div>
+  </a>
+</div>
+
+<style>
+  .dv2-card {
+    display: flex; align-items: stretch;
+    border-radius: 20px; overflow: hidden;
+    text-decoration: none;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.06);
+    transition: box-shadow 0.2s, transform 0.2s;
+    background: #fff;
+  }
+  .dv2-card:hover { box-shadow: 0 12px 40px rgba(0,0,0,0.13); transform: translateY(-2px); }
+
+  .dv2-left {
+    width: 120px; flex-shrink: 0;
+    background: linear-gradient(180deg, #F59E0B 0%, #d97706 100%);
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 16px; padding: 28px 16px;
+  }
+  .dv2-cal { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .dv2-cal-day { font-size: 36px; font-weight: 900; color: white; line-height: 1; }
+  .dv2-cal-mon { font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.7); letter-spacing: 0.15em; }
+  .dv2-avatar {
+    width: 52px; height: 52px; border-radius: 14px;
+    background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; font-weight: 900; color: white;
+  }
+  .dv2-streak {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.75);
+    text-align: center; line-height: 1.3;
+  }
+  .dv2-streak svg { color: white; }
+
+  .dv2-body { flex: 1; padding: 28px 32px; position: relative; }
+  .dv2-eyebrow {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 9px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase;
+    color: #d97706; margin-bottom: 10px;
+  }
+  .dv2-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: #F59E0B;
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  .dv2-title { font-size: 26px; font-weight: 900; color: #0b1829; letter-spacing: -0.5px; line-height: 1.1; margin-bottom: 4px; }
+  .dv2-sub { font-size: 12px; color: #9ca3af; font-weight: 500; margin-bottom: 12px; }
+  .dv2-desc { font-size: 13.5px; color: #4b5563; line-height: 1.7; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  .dv2-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; }
+  .dv2-chips { display: flex; gap: 6px; }
+  .dv2-chips span {
+    font-size: 10px; font-weight: 600; color: #92400e;
+    background: #fef3c7; border: 1px solid #fde68a;
+    border-radius: 999px; padding: 3px 10px;
+  }
+  .dv2-read { font-size: 12px; font-weight: 800; color: #d97706; white-space: nowrap; }
+
+  .dv2-deco {
+    font-size: 180px; font-weight: 900; color: #fef3c7;
+    position: absolute; right: 24px; bottom: -20px; line-height: 1;
+    pointer-events: none; select: none;
+    font-family: Georgia, serif;
+  }
+</style>
+
+<!-- ── Günün Terimi v1 ── -->
+<div class="daily-wrap" style="margin-top:32px">
+  <a href="#" class="daily-card">
+
+    <!-- Sol: tarih + büyük harf -->
+    <div class="daily-left">
+      <div class="daily-date-badge">
+        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        13 Haziran · Bugünün Terimi
+      </div>
+      <div class="daily-avatar">T</div>
+    </div>
+
+    <!-- Orta: içerik -->
+    <div class="daily-body">
+      <div class="daily-tag">
+        <span class="daily-pulse"></span>
+        Günün Terimi
+      </div>
+      <h2 class="daily-title">Termal Kızılötesi</h2>
+      <p class="daily-fullform">Thermal Infrared (TIR)</p>
+      <p class="daily-desc">8–14 μm dalga boyunda yüzey sıcaklığı bilgisi kaydeden pasif uzaktan algılama bandı; kentsel ısı adası ve orman yangını izlemesinde kullanılır.</p>
+      <div class="daily-tags">
+        <span>uzaktan algılama</span>
+        <span>fotogrametri</span>
+      </div>
+    </div>
+
+    <!-- Sağ: CTA -->
+    <div class="daily-cta">
+      <div class="daily-cta-inner">
+        <span class="daily-cta-label">Tam tanımı oku</span>
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+      </div>
+      <p class="daily-cta-sub">Her gün yeni bir terim</p>
+    </div>
+
+    <!-- Dekoratif büyük harf arka plan -->
+    <div class="daily-bg-letter">T</div>
+  </a>
+</div>
+
+<style>
+  .daily-wrap {
+    background: #fff;
+    padding: 0 32px;
+    max-width: 1100px;
+    margin: 32px auto;
+  }
+  .daily-card {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #0b1829 0%, #1a3350 60%, #26496b 100%);
+    border-radius: 20px;
+    padding: 32px 36px;
+    text-decoration: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 8px 32px rgba(11,24,41,0.18);
+  }
+  .daily-card:hover { transform: translateY(-2px); box-shadow: 0 16px 48px rgba(11,24,41,0.24); }
+
+  .daily-left { display: flex; flex-direction: column; align-items: center; gap: 12px; flex-shrink: 0; }
+  .daily-date-badge {
+    display: flex; align-items: center; gap: 5px;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 999px; padding: 5px 10px;
+    font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.55);
+    white-space: nowrap;
+  }
+  .daily-avatar {
+    width: 72px; height: 72px; border-radius: 18px;
+    background: linear-gradient(135deg, #F59E0B, #d97706);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px; font-weight: 900; color: white;
+    box-shadow: 0 8px 24px rgba(245,158,11,0.4);
+  }
+
+  .daily-body { flex: 1; min-width: 0; }
+  .daily-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 9px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase;
+    color: #F59E0B; margin-bottom: 8px;
+  }
+  .daily-pulse {
+    width: 6px; height: 6px; border-radius: 50%; background: #F59E0B;
+    animation: pulse 1.8s ease-in-out infinite;
+    box-shadow: 0 0 0 0 rgba(245,158,11,0.6);
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(245,158,11,0.6); }
+    70% { box-shadow: 0 0 0 8px rgba(245,158,11,0); }
+    100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); }
+  }
+  .daily-title { font-size: 28px; font-weight: 900; color: white; line-height: 1.1; margin-bottom: 4px; letter-spacing: -0.5px; }
+  .daily-fullform { font-size: 12px; color: rgba(255,255,255,0.4); font-weight: 500; margin-bottom: 10px; }
+  .daily-desc { font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.65; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .daily-tags { display: flex; gap: 6px; margin-top: 14px; }
+  .daily-tags span {
+    font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.45);
+    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 999px; padding: 4px 10px;
+  }
+
+  .daily-cta { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  .daily-cta-inner {
+    display: flex; align-items: center; gap: 6px;
+    background: #F59E0B; color: #0b1829;
+    font-size: 13px; font-weight: 800;
+    padding: 10px 18px; border-radius: 12px;
+    transition: background 0.15s;
+  }
+  .daily-card:hover .daily-cta-inner { background: #fbbf24; }
+  .daily-cta-sub { font-size: 10px; color: rgba(255,255,255,0.3); font-weight: 600; }
+
+  .daily-bg-letter {
+    position: absolute; right: 160px; top: 50%; transform: translateY(-50%);
+    font-size: 160px; font-weight: 900; color: rgba(255,255,255,0.03);
+    line-height: 1; pointer-events: none; select: none; letter-spacing: -8px;
+  }
+</style>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- v6 — Koyu lacivert, hero font & back stili           -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div style="max-width:1100px;margin:64px auto 0;padding:0 32px">
+  <a href="#" class="dv6-card">
+    <!-- Sol: takvim -->
+    <div class="dv6-cal">
+      <div class="dv6-cal-inner">
+        <span class="dv6-cal-num">13</span>
+        <div class="dv6-cal-bar"></div>
+        <span class="dv6-cal-mon">HAZİRAN</span>
+      </div>
+    </div>
+    <!-- Dikey ayırıcı -->
+    <div class="dv6-sep"></div>
+    <!-- İçerik -->
+    <div class="dv6-body">
+      <p class="dv6-eyebrow"><span class="dv6-dot"></span> Günün Terimi</p>
+      <h2 class="dv6-title">Termal Kızılötesi</h2>
+      <p class="dv6-sub">Thermal Infrared (TIR)</p>
+      <p class="dv6-def">8–14 μm dalga boyunda yüzey sıcaklığı bilgisi kaydeden pasif uzaktan algılama bandı; kentsel ısı adası ve orman yangını izlemesinde kullanılır.</p>
+      <div class="dv6-footer">
+        <span class="dv6-chip">uzaktan algılama</span>
+        <span class="dv6-chip">fotogrametri</span>
+        <span class="dv6-cta">Tam tanımı oku →</span>
+      </div>
+    </div>
+  </a>
+</div>
+<style>
+.dv6-card {
+  display:flex; align-items:center; gap:0;
+  background:linear-gradient(135deg,#0b1829 0%,#1a3350 100%);
+  border-radius:20px; overflow:hidden; text-decoration:none;
+  box-shadow:0 8px 40px rgba(11,24,41,0.3);
+  transition:all .2s; padding:36px 40px; gap:36px;
+}
+.dv6-card:hover { transform:translateY(-2px); box-shadow:0 16px 56px rgba(11,24,41,0.4); }
+.dv6-cal { flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+.dv6-cal-inner { display:flex; flex-direction:column; align-items:center; gap:6px; }
+.dv6-cal-num { font-size:72px; font-weight:900; color:white; line-height:1; letter-spacing:-3px; }
+.dv6-cal-bar { width:40px; height:3px; background:#F59E0B; border-radius:999px; }
+.dv6-cal-mon { font-size:11px; font-weight:800; color:#F59E0B; letter-spacing:0.2em; text-transform:uppercase; }
+.dv6-sep { width:1px; height:100px; background:rgba(255,255,255,0.1); flex-shrink:0; }
+.dv6-body { flex:1; min-width:0; }
+.dv6-eyebrow { display:flex; align-items:center; gap:6px; font-size:9px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F59E0B; margin-bottom:10px; }
+.dv6-dot { width:6px; height:6px; border-radius:50%; background:#F59E0B; animation:pulse 1.8s ease-in-out infinite; flex-shrink:0; }
+.dv6-title { font-size:36px; font-weight:900; color:white; line-height:1.0; letter-spacing:-1px; margin-bottom:6px; }
+.dv6-sub { font-size:12px; color:rgba(255,255,255,0.4); font-weight:500; margin-bottom:12px; }
+.dv6-def { font-size:13.5px; color:rgba(255,255,255,0.6); line-height:1.7; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.dv6-footer { display:flex; align-items:center; gap:8px; margin-top:16px; flex-wrap:wrap; }
+.dv6-chip { font-size:10px; font-weight:600; color:rgba(255,255,255,0.5); background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12); border-radius:999px; padding:4px 12px; }
+.dv6-cta { margin-left:auto; font-size:12px; font-weight:800; color:#F59E0B; }
+</style>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- v6-A — Amber sol şerit (no card-within-card)         -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div style="max-width:1100px;margin:40px auto 0;padding:0 32px">
+  <p style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px">v6-A · Amber sol şerit</p>
+  <a href="#" class="dv6a-card">
+    <div class="dv6a-cal">
+      <span class="dv6a-num">13</span>
+      <span class="dv6a-mon">HAZİRAN</span>
+    </div>
+    <div class="dv6a-sep"></div>
+    <div class="dv6a-body">
+      <p class="dv6a-eyebrow"><span class="dv6a-dot"></span> Günün Terimi</p>
+      <h2 class="dv6a-title">Termal Kızılötesi</h2>
+      <p class="dv6a-sub">Thermal Infrared (TIR)</p>
+      <p class="dv6a-def">8–14 μm dalga boyunda yüzey sıcaklığı bilgisi kaydeden pasif uzaktan algılama bandı; kentsel ısı adası ve orman yangını izlemesinde kullanılır.</p>
+      <div class="dv6a-footer">
+        <span class="dv6a-chip">uzaktan algılama</span>
+        <span class="dv6a-chip">fotogrametri</span>
+        <span class="dv6a-cta">Tam tanımı oku →</span>
+      </div>
+    </div>
+  </a>
+</div>
+<style>
+.dv6a-card { display:flex; align-items:stretch; background:linear-gradient(135deg,#0b1829 0%,#1a3350 100%); border-radius:20px; overflow:hidden; text-decoration:none; box-shadow:0 8px 40px rgba(11,24,41,0.3); transition:all .2s; }
+.dv6a-card:hover { transform:translateY(-2px); box-shadow:0 16px 56px rgba(11,24,41,0.4); }
+.dv6a-cal { flex-shrink:0; width:110px; background:#F59E0B; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
+.dv6a-num { font-size:56px; font-weight:900; color:white; line-height:1; letter-spacing:-2px; }
+.dv6a-mon { font-size:10px; font-weight:800; color:rgba(255,255,255,0.85); letter-spacing:0.2em; text-transform:uppercase; }
+.dv6a-sep { width:1px; background:rgba(255,255,255,0.08); flex-shrink:0; }
+.dv6a-body { flex:1; min-width:0; padding:32px 40px; }
+.dv6a-eyebrow { display:flex; align-items:center; gap:6px; font-size:9px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F59E0B; margin-bottom:10px; }
+.dv6a-dot { width:6px; height:6px; border-radius:50%; background:#F59E0B; animation:pulse 1.8s ease-in-out infinite; flex-shrink:0; }
+.dv6a-title { font-size:36px; font-weight:900; color:white; line-height:1.0; letter-spacing:-1px; margin-bottom:6px; }
+.dv6a-sub { font-size:12px; color:rgba(255,255,255,0.4); font-weight:500; margin-bottom:12px; }
+.dv6a-def { font-size:13.5px; color:rgba(255,255,255,0.6); line-height:1.7; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.dv6a-footer { display:flex; align-items:center; gap:8px; margin-top:16px; flex-wrap:wrap; }
+.dv6a-chip { font-size:10px; font-weight:600; color:rgba(255,255,255,0.5); background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12); border-radius:999px; padding:4px 12px; }
+.dv6a-cta { margin-left:auto; font-size:12px; font-weight:800; color:#F59E0B; }
+</style>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- v6-B — Tarih eyebrow'a entegre, sol kolon yok        -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div style="max-width:1100px;margin:40px auto 0;padding:0 32px">
+  <p style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px">v6-B · Tarih eyebrow'da, minimal</p>
+  <a href="#" class="dv6b-card">
+    <div class="dv6b-body">
+      <p class="dv6b-eyebrow">
+        <span class="dv6b-dot"></span>
+        <span class="dv6b-date">13 Haziran</span>
+        <span class="dv6b-sep-dot">·</span>
+        Günün Terimi
+      </p>
+      <h2 class="dv6b-title">Termal Kızılötesi</h2>
+      <p class="dv6b-sub">Thermal Infrared (TIR)</p>
+      <p class="dv6b-def">8–14 μm dalga boyunda yüzey sıcaklığı bilgisi kaydeden pasif uzaktan algılama bandı; kentsel ısı adası ve orman yangını izlemesinde kullanılır.</p>
+      <div class="dv6b-footer">
+        <span class="dv6b-chip">uzaktan algılama</span>
+        <span class="dv6b-chip">fotogrametri</span>
+        <span class="dv6b-cta">Tam tanımı oku →</span>
+      </div>
+    </div>
+    <div class="dv6b-right">
+      <div class="dv6b-day-badge">
+        <span class="dv6b-day-num">13</span>
+        <span class="dv6b-day-mon">HAZ</span>
+      </div>
+    </div>
+  </a>
+</div>
+<style>
+.dv6b-card { display:flex; align-items:center; gap:32px; background:linear-gradient(135deg,#0b1829 0%,#1a3350 100%); border-radius:20px; overflow:hidden; text-decoration:none; box-shadow:0 8px 40px rgba(11,24,41,0.3); transition:all .2s; padding:36px 40px; }
+.dv6b-card:hover { transform:translateY(-2px); box-shadow:0 16px 56px rgba(11,24,41,0.4); }
+.dv6b-body { flex:1; min-width:0; }
+.dv6b-eyebrow { display:flex; align-items:center; gap:8px; font-size:9px; font-weight:800; letter-spacing:0.15em; text-transform:uppercase; color:#F59E0B; margin-bottom:12px; }
+.dv6b-dot { width:6px; height:6px; border-radius:50%; background:#F59E0B; animation:pulse 1.8s ease-in-out infinite; flex-shrink:0; }
+.dv6b-date { color:rgba(255,255,255,0.5); }
+.dv6b-sep-dot { color:rgba(255,255,255,0.2); }
+.dv6b-title { font-size:36px; font-weight:900; color:white; line-height:1.0; letter-spacing:-1px; margin-bottom:6px; }
+.dv6b-sub { font-size:12px; color:rgba(255,255,255,0.4); font-weight:500; margin-bottom:12px; }
+.dv6b-def { font-size:13.5px; color:rgba(255,255,255,0.6); line-height:1.7; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.dv6b-footer { display:flex; align-items:center; gap:8px; margin-top:16px; flex-wrap:wrap; }
+.dv6b-chip { font-size:10px; font-weight:600; color:rgba(255,255,255,0.5); background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12); border-radius:999px; padding:4px 12px; }
+.dv6b-cta { margin-left:auto; font-size:12px; font-weight:800; color:#F59E0B; }
+.dv6b-right { flex-shrink:0; }
+.dv6b-day-badge { display:flex; flex-direction:column; align-items:center; justify-content:center; width:72px; height:72px; border-radius:16px; border:1px solid rgba(245,158,11,0.3); background:rgba(245,158,11,0.08); }
+.dv6b-day-num { font-size:30px; font-weight:900; color:#F59E0B; line-height:1; letter-spacing:-1px; }
+.dv6b-day-mon { font-size:9px; font-weight:800; color:rgba(245,158,11,0.7); letter-spacing:0.15em; text-transform:uppercase; margin-top:2px; }
+</style>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- v6-C — İnce sol amber çizgi + sadece sayı            -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div style="max-width:1100px;margin:40px auto 0;padding:0 32px">
+  <p style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px">v6-C · İnce amber sol çizgi</p>
+  <a href="#" class="dv6c-card">
+    <div class="dv6c-accent-bar"></div>
+    <div class="dv6c-cal">
+      <span class="dv6c-num">13</span>
+      <span class="dv6c-mon">HAZİRAN</span>
+    </div>
+    <div class="dv6c-body">
+      <p class="dv6c-eyebrow"><span class="dv6c-dot"></span> Günün Terimi</p>
+      <h2 class="dv6c-title">Termal Kızılötesi</h2>
+      <p class="dv6c-sub">Thermal Infrared (TIR)</p>
+      <p class="dv6c-def">8–14 μm dalga boyunda yüzey sıcaklığı bilgisi kaydeden pasif uzaktan algılama bandı; kentsel ısı adası ve orman yangını izlemesinde kullanılır.</p>
+      <div class="dv6c-footer">
+        <span class="dv6c-chip">uzaktan algılama</span>
+        <span class="dv6c-chip">fotogrametri</span>
+        <span class="dv6c-cta">Tam tanımı oku →</span>
+      </div>
+    </div>
+  </a>
+</div>
+<style>
+.dv6c-card { display:flex; align-items:center; gap:0; background:linear-gradient(135deg,#0b1829 0%,#1a3350 100%); border-radius:20px; overflow:hidden; text-decoration:none; box-shadow:0 8px 40px rgba(11,24,41,0.3); transition:all .2s; }
+.dv6c-card:hover { transform:translateY(-2px); box-shadow:0 16px 56px rgba(11,24,41,0.4); }
+.dv6c-accent-bar { width:5px; background:linear-gradient(to bottom,#F59E0B,#f97316); flex-shrink:0; align-self:stretch; }
+.dv6c-cal { flex-shrink:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:36px 32px; }
+.dv6c-num { font-size:64px; font-weight:900; color:white; line-height:1; letter-spacing:-3px; }
+.dv6c-mon { font-size:10px; font-weight:800; color:#F59E0B; letter-spacing:0.22em; text-transform:uppercase; }
+.dv6c-body { flex:1; min-width:0; padding:32px 36px 32px 0; }
+.dv6c-eyebrow { display:flex; align-items:center; gap:6px; font-size:9px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F59E0B; margin-bottom:10px; }
+.dv6c-dot { width:6px; height:6px; border-radius:50%; background:#F59E0B; animation:pulse 1.8s ease-in-out infinite; flex-shrink:0; }
+.dv6c-title { font-size:36px; font-weight:900; color:white; line-height:1.0; letter-spacing:-1px; margin-bottom:6px; }
+.dv6c-sub { font-size:12px; color:rgba(255,255,255,0.4); font-weight:500; margin-bottom:12px; }
+.dv6c-def { font-size:13.5px; color:rgba(255,255,255,0.6); line-height:1.7; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.dv6c-footer { display:flex; align-items:center; gap:8px; margin-top:16px; flex-wrap:wrap; }
+.dv6c-chip { font-size:10px; font-weight:600; color:rgba(255,255,255,0.5); background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12); border-radius:999px; padding:4px 12px; }
+.dv6c-cta { margin-left:auto; font-size:12px; font-weight:800; color:#F59E0B; }
+</style>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- v3 — Büyük tipografi, gazete/sözlük editöryal stili  -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div style="max-width:1100px;margin:64px auto 0;padding:0 32px">
+  <a href="#" class="dv3-card">
+    <div class="dv3-top-bar"></div>
+    <div class="dv3-inner">
+      <div class="dv3-left-col">
+        <p class="dv3-eyebrow"><span class="dv3-pulse"></span>Günün Terimi</p>
+        <p class="dv3-date">13 Haziran 2026</p>
+        <div class="dv3-divider"></div>
+        <div class="dv3-num">13</div>
+        <p class="dv3-streak-txt">günlük takip serisi 🔥</p>
+      </div>
+      <div class="dv3-main">
+        <p class="dv3-pos">isim · uzaktan algılama</p>
+        <h2 class="dv3-title">Termal<br>Kızılötesi</h2>
+        <p class="dv3-latin">Thermal Infrared (TIR)</p>
+        <p class="dv3-def">8–14 μm dalga boyunda yüzey sıcaklığı bilgisi kaydeden pasif uzaktan algılama bandı; kentsel ısı adası ve orman yangını izlemesinde kullanılır.</p>
+        <div class="dv3-footer">
+          <span class="dv3-chip">fotogrametri</span>
+          <span class="dv3-chip">uzaktan algılama</span>
+          <span class="dv3-cta">Tam tanımı oku →</span>
+        </div>
+      </div>
+    </div>
+  </a>
+</div>
+
+<style>
+.dv3-card { display:block; background:#fff; border-radius:20px; overflow:hidden; text-decoration:none; box-shadow:0 4px 32px rgba(0,0,0,0.08),0 0 0 1px rgba(0,0,0,0.06); transition:all .2s; }
+.dv3-card:hover { transform:translateY(-2px); box-shadow:0 12px 48px rgba(0,0,0,0.12); }
+.dv3-top-bar { height:4px; background:linear-gradient(to right,#F59E0B,#f97316,#ec4899); }
+.dv3-inner { display:flex; align-items:stretch; }
+.dv3-left-col { width:160px; flex-shrink:0; background:#fafafa; border-right:1px solid #f0f0f0; padding:28px 20px; display:flex; flex-direction:column; align-items:center; gap:8px; }
+.dv3-eyebrow { font-size:9px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:#d97706; display:flex; align-items:center; gap:5px; }
+.dv3-pulse { width:6px; height:6px; border-radius:50%; background:#F59E0B; animation:pulse 1.8s ease-in-out infinite; flex-shrink:0; }
+.dv3-date { font-size:10px; color:#9ca3af; font-weight:600; text-align:center; }
+.dv3-divider { width:32px; height:2px; background:#F59E0B; border-radius:999px; margin:8px 0; }
+.dv3-num { font-size:72px; font-weight:900; color:#0b1829; line-height:1; letter-spacing:-3px; }
+.dv3-streak-txt { font-size:10px; color:#6b7280; font-weight:600; text-align:center; }
+.dv3-main { flex:1; padding:28px 36px; }
+.dv3-pos { font-size:10px; color:#9ca3af; font-weight:700; text-transform:uppercase; letter-spacing:.12em; margin-bottom:8px; }
+.dv3-title { font-size:42px; font-weight:900; color:#0b1829; line-height:1.0; letter-spacing:-1.5px; margin-bottom:8px; }
+.dv3-latin { font-size:12px; color:#d97706; font-weight:600; margin-bottom:14px; font-style:italic; }
+.dv3-def { font-size:14px; color:#4b5563; line-height:1.7; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.dv3-footer { display:flex; align-items:center; gap:8px; margin-top:18px; flex-wrap:wrap; }
+.dv3-chip { font-size:10px; font-weight:600; color:#92400e; background:#fef3c7; border:1px solid #fde68a; border-radius:999px; padding:3px 10px; }
+.dv3-cta { margin-left:auto; font-size:13px; font-weight:800; color:#d97706; }
+</style>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- v4 — Cam/glassmorphism, mor-mavi gradient              -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div style="max-width:1100px;margin:32px auto 0;padding:0 32px">
+  <a href="#" class="dv4-card">
+    <!-- Arka plan dekor -->
+    <div class="dv4-circle dv4-c1"></div>
+    <div class="dv4-circle dv4-c2"></div>
+
+    <div class="dv4-inner">
+      <div class="dv4-left">
+        <div class="dv4-badge">
+          <span class="dv4-live"></span> Bugün güncellendi
+        </div>
+        <div class="dv4-avatar">T</div>
+        <p class="dv4-counter">208. terim</p>
+      </div>
+      <div class="dv4-body">
+        <p class="dv4-eyebrow">✦ Günün Terimi · 13 Haziran</p>
+        <h2 class="dv4-title">Termal Kızılötesi</h2>
+        <p class="dv4-sub">Thermal Infrared (TIR)</p>
+        <p class="dv4-def">8–14 μm dalga boyunda yüzey sıcaklığı bilgisi kaydeden pasif uzaktan algılama bandı.</p>
+        <div class="dv4-bottom">
+          <div class="dv4-chips">
+            <span>uzaktan algılama</span><span>fotogrametri</span>
+          </div>
+          <span class="dv4-btn">Tanımı Oku →</span>
+        </div>
+      </div>
+    </div>
+  </a>
+</div>
+
+<style>
+.dv4-card { display:block; position:relative; overflow:hidden; border-radius:20px; text-decoration:none; background:linear-gradient(135deg,#312e81,#1e3a5f 50%,#0f766e); padding:36px; transition:all .2s; box-shadow:0 8px 40px rgba(49,46,129,0.3); }
+.dv4-card:hover { transform:translateY(-2px); box-shadow:0 16px 56px rgba(49,46,129,0.4); }
+.dv4-circle { position:absolute; border-radius:50%; }
+.dv4-c1 { width:300px; height:300px; background:rgba(245,158,11,0.12); top:-80px; right:80px; }
+.dv4-c2 { width:200px; height:200px; background:rgba(99,102,241,0.15); bottom:-60px; right:200px; }
+.dv4-inner { position:relative; display:flex; align-items:center; gap:36px; }
+.dv4-left { flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:12px; }
+.dv4-badge { display:flex; align-items:center; gap:5px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15); backdrop-filter:blur(10px); border-radius:999px; padding:5px 12px; font-size:10px; font-weight:700; color:rgba(255,255,255,0.7); white-space:nowrap; }
+.dv4-live { width:7px; height:7px; border-radius:50%; background:#4ade80; box-shadow:0 0 0 3px rgba(74,222,128,0.3); animation:pulse 1.5s ease-in-out infinite; flex-shrink:0; }
+.dv4-avatar { width:80px; height:80px; border-radius:20px; background:rgba(245,158,11,0.9); display:flex; align-items:center; justify-content:center; font-size:40px; font-weight:900; color:white; box-shadow:0 8px 32px rgba(245,158,11,0.4),inset 0 1px 0 rgba(255,255,255,0.2); }
+.dv4-counter { font-size:10px; color:rgba(255,255,255,0.35); font-weight:700; }
+.dv4-body { flex:1; }
+.dv4-eyebrow { font-size:10px; font-weight:800; letter-spacing:.14em; color:rgba(245,158,11,0.9); margin-bottom:10px; text-transform:uppercase; }
+.dv4-title { font-size:36px; font-weight:900; color:white; line-height:1.0; letter-spacing:-1px; margin-bottom:6px; }
+.dv4-sub { font-size:12px; color:rgba(255,255,255,0.4); font-weight:500; margin-bottom:12px; font-style:italic; }
+.dv4-def { font-size:13px; color:rgba(255,255,255,0.65); line-height:1.65; }
+.dv4-bottom { display:flex; align-items:center; justify-content:space-between; margin-top:18px; }
+.dv4-chips { display:flex; gap:6px; }
+.dv4-chips span { font-size:10px; font-weight:600; color:rgba(255,255,255,0.5); background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12); border-radius:999px; padding:4px 10px; }
+.dv4-btn { background:#F59E0B; color:#0b1829; font-size:12px; font-weight:800; border-radius:10px; padding:9px 16px; }
+</style>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- v5 — Minimal kart, sol büyük harf, sağ içerik         -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div style="max-width:1100px;margin:32px auto 64px;padding:0 32px">
+  <a href="#" class="dv5-card">
+    <div class="dv5-letter-col">
+      <span class="dv5-big-letter">T</span>
+    </div>
+    <div class="dv5-content">
+      <div class="dv5-header">
+        <div class="dv5-left-meta">
+          <span class="dv5-tag"><span class="dv5-dot"></span>Günün Terimi</span>
+          <span class="dv5-slash">·</span>
+          <span class="dv5-meta-date">13 Haziran 2026</span>
+        </div>
+        <div class="dv5-right-meta">🔥 13 günlük seri</div>
+      </div>
+      <h2 class="dv5-title">Termal Kızılötesi</h2>
+      <p class="dv5-sub">Thermal Infrared (TIR)</p>
+      <p class="dv5-def">8–14 μm dalga boyunda yüzey sıcaklığı bilgisi kaydeden pasif uzaktan algılama bandı; kentsel ısı adası ve orman yangını izlemesinde kullanılır.</p>
+      <div class="dv5-bar">
+        <div class="dv5-bar-fill"></div>
+      </div>
+      <div class="dv5-footer">
+        <div class="dv5-chips">
+          <span>uzaktan algılama</span>
+          <span>fotogrametri</span>
+        </div>
+        <button class="dv5-btn">Tam tanımı oku <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg></button>
+      </div>
+    </div>
+  </a>
+</div>
+
+<style>
+.dv5-card { display:flex; align-items:stretch; background:#fff; border-radius:20px; overflow:hidden; text-decoration:none; box-shadow:0 2px 16px rgba(0,0,0,0.07),0 0 0 1px rgba(0,0,0,0.06); transition:all .2s; }
+.dv5-card:hover { box-shadow:0 10px 40px rgba(0,0,0,0.12); transform:translateY(-2px); }
+.dv5-letter-col { width:100px; flex-shrink:0; background:linear-gradient(180deg,#fef3c7 0%,#fde68a 100%); display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+.dv5-big-letter { font-size:96px; font-weight:900; color:#F59E0B; line-height:1; opacity:.7; }
+.dv5-content { flex:1; padding:24px 32px; }
+.dv5-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.dv5-left-meta { display:flex; align-items:center; gap:8px; }
+.dv5-tag { display:flex; align-items:center; gap:5px; font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.15em; color:#d97706; }
+.dv5-dot { width:6px; height:6px; border-radius:50%; background:#F59E0B; animation:pulse 1.8s ease-in-out infinite; flex-shrink:0; }
+.dv5-slash { color:#d1d5db; font-size:12px; }
+.dv5-meta-date { font-size:11px; color:#9ca3af; font-weight:600; }
+.dv5-right-meta { font-size:11px; font-weight:700; color:#6b7280; background:#f9fafb; border:1px solid #e5e7eb; border-radius:999px; padding:4px 10px; }
+.dv5-title { font-size:30px; font-weight:900; color:#0b1829; letter-spacing:-0.8px; line-height:1.1; margin-bottom:4px; }
+.dv5-sub { font-size:11px; color:#d97706; font-weight:600; font-style:italic; margin-bottom:12px; }
+.dv5-def { font-size:13.5px; color:#4b5563; line-height:1.7; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:16px; }
+.dv5-bar { height:3px; background:#f0f0f0; border-radius:999px; overflow:hidden; margin-bottom:16px; }
+.dv5-bar-fill { height:100%; width:43%; background:linear-gradient(to right,#F59E0B,#f97316); border-radius:999px; }
+.dv5-footer { display:flex; align-items:center; justify-content:space-between; }
+.dv5-chips { display:flex; gap:6px; }
+.dv5-chips span { font-size:10px; font-weight:600; color:#92400e; background:#fef3c7; border:1px solid #fde68a; border-radius:999px; padding:3px 10px; }
+.dv5-btn { display:flex; align-items:center; gap:4px; background:#0b1829; color:white; font-size:12px; font-weight:700; border:none; border-radius:10px; padding:9px 16px; cursor:pointer; }
+</style>
+
+</body>
+</html>
