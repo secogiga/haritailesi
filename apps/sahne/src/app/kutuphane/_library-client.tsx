@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSahneAuth } from '@/contexts/SahneAuthContext';
 
 const API = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000';
+const MUTFAK_URL = process.env['NEXT_PUBLIC_MUTFAK_URL'] ?? 'http://localhost:3003';
 
 const FIELD_OPTIONS: {
   value: string; label: string; emoji: string; desc: string;
@@ -586,7 +587,7 @@ export function FollowButton({ regulationSlug, className }: FollowButtonProps) {
   if (!user) {
     return (
       <a
-        href="/giris"
+        href={`${MUTFAK_URL}/giris`}
         className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-sm font-medium hover:bg-rose-100 transition-colors ${className ?? ''}`}
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -689,21 +690,36 @@ export function CommentSection({ contentType, contentId, hideHeader }: CommentSe
   const regular = comments.filter(c => !c.is_pinned);
   const sorted = [...pinned, ...regular];
 
+  const displayComments = sorted;
+
   return (
     <div className="bg-white rounded-2xl border border-[#e9eaec] shadow-[0_1px_3px_rgba(0,0,0,0.05)] p-6">
       {!hideHeader && (
-        <div className="flex items-center gap-2 mb-5">
+        <div className="flex items-center gap-2.5 mb-5">
           <div className="w-[30px] h-[30px] rounded-lg bg-[#0b1829] flex items-center justify-center shrink-0">
             <svg className="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
           </div>
-          <div>
-            <h3 className="text-[13px] font-black text-[#0b1829]">Yorumlar</h3>
+          <div className="flex-1">
+            <div className="flex items-baseline gap-1.5">
+              <h3 className="text-[13px] font-black text-[#0b1829]">Yorumlar</h3>
+              {displayComments.length > 0 && (
+                <span className="text-[11px] font-semibold text-gray-400">{displayComments.length}</span>
+              )}
+            </div>
             <p className="text-[11px] text-gray-400 mt-0.5">Topluluk üyelerinin yorumları</p>
           </div>
-          {comments.length > 0 && (
-            <span className="ml-auto text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{comments.length}</span>
+          {!isLoading && !user && (
+            <a href={`${MUTFAK_URL}/giris`}
+              className="inline-flex items-center gap-2 text-[12px] font-bold text-white hover:opacity-90 rounded-xl px-4 py-2 transition-all shrink-0"
+              style={{ background: '#0b1829' }}
+            >
+              <svg className="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+              </svg>
+              Yorum Yap
+            </a>
           )}
         </div>
       )}
@@ -714,49 +730,56 @@ export function CommentSection({ contentType, contentId, hideHeader }: CommentSe
         </div>
       )}
 
-      {!loadingComments && sorted.length === 0 && (
-        <div className="text-center py-6">
-          <span className="text-4xl block mb-3">💬</span>
-          <p className="text-sm text-gray-400 mb-4">Henüz yorum yok. İlk yorumu siz yapın!</p>
+      {!loadingComments && displayComments.length === 0 && (
+        <div className="text-center py-5">
+          <p className="text-sm text-gray-400">Henüz yorum yok. İlk yorumu siz yapın!</p>
         </div>
       )}
 
-      {!loadingComments && sorted.length > 0 && (
-        <div className="space-y-3 mb-5">
-          {sorted.map(c => (
-            <div key={c.id} className={`rounded-xl p-3.5 ${c.is_pinned ? 'bg-amber-50 border border-amber-100' : 'bg-gray-50'}`}>
-              <div className="flex items-center justify-between gap-2 mb-1.5">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-gray-700">{c.user.display_name}</span>
-                  {c.is_pinned && <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-1.5 py-0.5 rounded">Sabitlendi</span>}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-gray-400">
-                    {new Date(c.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
-                  </span>
-                  {user?.id === c.user.id && (
-                    <button onClick={() => void deleteComment(c.id)}
-                      className="text-gray-300 hover:text-rose-400 transition-colors text-xs" title="Sil">
-                      ×
-                    </button>
-                  )}
+      {!loadingComments && displayComments.length > 0 && (
+        <div className="space-y-0 mb-5 divide-y divide-[#f0f1f3]">
+          {displayComments.map((c, idx) => {
+            const initials = c.user.display_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+            const AVATAR_COLORS = [
+              { bg: '#0b1829', text: '#F59E0B' },
+              { bg: '#1a3a5c', text: '#fff' },
+              { bg: '#1e3a5f', text: '#60a5fa' },
+              { bg: '#3b0764', text: '#e879f9' },
+            ];
+            const ac = AVATAR_COLORS[idx % AVATAR_COLORS.length]!;
+            return (
+              <div key={c.id} className={`py-4 ${idx === 0 ? 'pt-1' : ''}`}>
+                <div className="flex gap-3">
+                  <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: ac.bg, color: ac.text, fontSize: '11px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, letterSpacing: '0.02em' }}>
+                    {initials}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[13px] font-bold text-[#0b1829]">{c.user.display_name}</span>
+                        {c.is_pinned && <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-1.5 py-0.5 rounded-full">Sabitlendi</span>}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[11px] text-gray-400">
+                          {new Date(c.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
+                        </span>
+                        {user?.id === c.user.id && (
+                          <button onClick={() => void deleteComment(c.id)}
+                            className="text-gray-300 hover:text-rose-400 transition-colors text-xs" title="Sil">
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-[13px] text-gray-600 leading-[1.65]">{c.body}</p>
+                  </div>
                 </div>
               </div>
-              <p className="text-sm text-gray-700 leading-relaxed">{c.body}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
-      {!isLoading && !user && (
-        <div className="text-center -mt-[25px]">
-          <a href="/giris"
-            className="inline-flex items-center gap-2 text-sm font-black text-white rounded-xl px-8 py-2.5 transition-opacity hover:opacity-90"
-            style={{ background: '#0b1829' }}>
-            Yorum Yap
-          </a>
-        </div>
-      )}
 
       {user && (
         <div>
@@ -1148,37 +1171,44 @@ export function HelpfulButton({ slug }: { slug: string }) {
   if (!mounted) return null;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mt-4">
-      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Bu rehber yardımcı oldu mu?</p>
-      <div className="flex gap-2">
-        <button
-          onClick={() => vote('yes')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
-            state === 'yes' ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-white border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50'
-          }`}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-          </svg>
-          Evet
-        </button>
-        <button
-          onClick={() => vote('no')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
-            state === 'no' ? 'bg-rose-50 border-rose-300 text-rose-700' : 'bg-white border-gray-200 text-gray-600 hover:border-rose-300 hover:text-rose-700 hover:bg-rose-50'
-          }`}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
-          </svg>
-          Hayır
-        </button>
+    <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e8e9ec', overflow: 'hidden' }}>
+      <div style={{ padding: '14px 16px 0' }}>
+        <p style={{ fontSize: 11, fontWeight: 900, color: '#6b7280', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 12px' }}>Bu Rehber Yardımcı Oldu mu?</p>
       </div>
-      {state !== 'idle' && (
-        <p className="text-xs text-gray-400 mt-2">
-          {state === 'yes' ? 'Geri bildiriminiz için teşekkürler!' : 'Geliştirilmesi için not aldık.'}
-        </p>
-      )}
+      <div style={{ padding: '0 16px 14px' }}>
+        <p style={{ fontSize: 12, color: '#9ca3af', marginBottom: 12 }}>Görüşlerinizi bizimle paylaşın.</p>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => vote('yes')}
+            style={{
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              padding: '9px 12px', borderRadius: 10, border: `1px solid ${state === 'yes' ? '#86efac' : '#e5e7eb'}`,
+              background: state === 'yes' ? '#f0fdf4' : '#fff',
+              color: state === 'yes' ? '#15803d' : '#374151',
+              fontSize: 13, fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            👍 Evet
+          </button>
+          <button
+            onClick={() => vote('no')}
+            style={{
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              padding: '9px 12px', borderRadius: 10, border: `1px solid ${state === 'no' ? '#fca5a5' : '#e5e7eb'}`,
+              background: state === 'no' ? '#fff1f2' : '#fff',
+              color: state === 'no' ? '#b91c1c' : '#374151',
+              fontSize: 13, fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            👎 Hayır
+          </button>
+        </div>
+        {state !== 'idle' && (
+          <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 8 }}>
+            {state === 'yes' ? 'Geri bildiriminiz için teşekkürler!' : 'Geliştirilmesi için not aldık.'}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
@@ -1629,7 +1659,7 @@ export function ExamAuthGate({ children }: { children: ReactNode }) {
         <a href="/uye-ol" className="block text-xs font-bold text-[#26496b] bg-white rounded-xl px-4 py-2 hover:bg-white/90 transition-colors mb-2">
           Ücretsiz Üye Ol →
         </a>
-        <a href="/giris" className="block text-xs text-white/60 hover:text-white/90 transition-colors">
+        <a href={`${MUTFAK_URL}/giris`} className="block text-xs text-white/60 hover:text-white/90 transition-colors">
           Zaten üyeyim, giriş yap
         </a>
       </div>
@@ -1640,8 +1670,6 @@ export function ExamAuthGate({ children }: { children: ReactNode }) {
 }
 
 // ─── MembershipCTACard ────────────────────────────────────────────────────────
-
-const MUTFAK_URL = process.env['NEXT_PUBLIC_MUTFAK_URL'] ?? 'http://localhost:3003';
 
 export function MembershipCTACard() {
   const { user, isLoading } = useSahneAuth();
@@ -1684,7 +1712,7 @@ export function MembershipCTACard() {
       >
         Ücretsiz Üye Ol →
       </a>
-      <a href="/giris" className="block text-center text-[10px] text-white/50 mt-2 hover:text-white/80 transition-colors">
+      <a href={`${MUTFAK_URL}/giris`} className="block text-center text-[10px] text-white/50 mt-2 hover:text-white/80 transition-colors">
         Zaten üyeyim, giriş yap
       </a>
     </div>
