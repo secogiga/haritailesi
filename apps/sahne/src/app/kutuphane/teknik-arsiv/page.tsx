@@ -1,5 +1,72 @@
+'use client';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
+import { useState } from 'react';
+
+const MEVZUAT_ITEMS = ['3194 Sayılı İmar Kanunu', 'Deprem Yönetmeliği', 'Resmi Gazete Tebliğleri', 'Mekânsal Planlar Yapım Yönetmeliği', 'CBS Genelgesi (2024/1)'];
+const TEKNIK_ITEMS  = ['TKGM Teknik Şartnamesi 2023', 'ISO 19115: Coğrafi Bilgi Standardı', 'Montaj Kılavuzu', 'TSE Standart Belgeleri', 'EPSG Koordinat Referans Sistemleri'];
+const AKADEMIK_ITEMS = ['Harita Genel Müd. Teknik Raporları', 'CBS Uygulamaları: Akademik Derleme', 'Arazi Örtüsü Sınıflandırma Yöntemleri', 'Yüksek Lisans Tezleri', 'Uzaktan Algılama Uygulamaları'];
+
+function TalepModal({ onClose }: { onClose: () => void }) {
+  const [form, setForm] = useState({ name: '', email: '', kaynak: '', aciklama: '' });
+  const [sent, setSent] = useState(false);
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 460, boxShadow: '0 20px 60px rgba(0,0,0,0.18)', overflow: 'hidden' }}>
+        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #f0f1f3', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 900, color: '#0b1829' }}>Kaynak Talep Et</div>
+            <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>Aradığınız kaynağı ekibimize bildirin</div>
+          </div>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280', fontSize: 16, fontWeight: 700 }}>×</button>
+        </div>
+        {sent ? (
+          <div style={{ padding: '40px 24px', textAlign: 'center' }}>
+            <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <svg width="24" height="24" fill="none" stroke="#16a34a" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="20,6 9,17 4,12"/></svg>
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1829', marginBottom: 6 }}>Talebiniz alındı!</div>
+            <div style={{ fontSize: 13, color: '#6b7280' }}>En kısa sürede size dönüş yapacağız.</div>
+            <button onClick={onClose} style={{ marginTop: 20, padding: '10px 24px', borderRadius: 10, background: '#16a34a', color: '#fff', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer' }}>Tamam</button>
+          </div>
+        ) : (
+          <div style={{ padding: '20px 24px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {[
+              { key: 'name',      label: 'Adınız',             placeholder: 'Ad Soyad' },
+              { key: 'email',     label: 'E-posta',            placeholder: 'ornek@mail.com' },
+              { key: 'kaynak',    label: 'Talep Edilen Kaynak', placeholder: 'Kaynak adı veya türü' },
+            ].map(({ key, label, placeholder }) => (
+              <div key={key}>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: '#374151', marginBottom: 5 }}>{label}</div>
+                <input
+                  type={key === 'email' ? 'email' : 'text'}
+                  placeholder={placeholder}
+                  value={form[key as keyof typeof form]}
+                  onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 9, border: '1.5px solid #e5e7eb', fontSize: 13, color: '#0b1829', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+            ))}
+            <div>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: '#374151', marginBottom: 5 }}>Açıklama</div>
+              <textarea
+                placeholder="Kaynakla ilgili ek bilgi..."
+                value={form.aciklama}
+                onChange={e => setForm(f => ({ ...f, aciklama: e.target.value }))}
+                rows={3}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 9, border: '1.5px solid #e5e7eb', fontSize: 13, color: '#0b1829', outline: 'none', resize: 'none', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+              <button onClick={onClose} style={{ flex: 1, padding: '10px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', fontSize: 13, fontWeight: 700, color: '#6b7280', cursor: 'pointer' }}>İptal</button>
+              <button onClick={() => form.name && form.email && form.kaynak ? setSent(true) : null} style={{ flex: 2, padding: '10px', borderRadius: 10, border: 'none', background: '#16a34a', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer' }}>Gönder</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const DocIcon = ({ size = 14, stroke = 'currentColor' }: { size?: number; stroke?: string }) => (
   <svg width={size} height={size} fill="none" stroke={stroke} strokeWidth="2" viewBox="0 0 24 24">
@@ -9,9 +76,15 @@ const DocIcon = ({ size = 14, stroke = 'currentColor' }: { size?: number; stroke
 );
 
 export default function TeknikArsivPage() {
+  const [query, setQuery] = useState('');
+  const [showTalep, setShowTalep] = useState(false);
+  const q = query.toLowerCase();
+  const filtered = (items: string[]) => items.filter(i => i.toLowerCase().includes(q));
+
   return (
     <>
       <Navbar />
+      {showTalep && <TalepModal onClose={() => setShowTalep(false)} />}
       <main className="min-h-screen" style={{ background: '#f5f6f8', color: '#0b1829' }}>
 
         {/* ── Hero ─────────────────────────────────────────────────────────── */}
@@ -33,29 +106,48 @@ export default function TeknikArsivPage() {
               <span className="text-white/50">Teknik Arşiv</span>
             </div>
 
-            <h1 className="text-[52px] font-black leading-none tracking-[-1.5px] mb-3.5">
-              <span className="text-amber-400">Teknik</span> Arşiv
-            </h1>
-
-            <p className="text-white/[0.48] text-sm leading-relaxed max-w-[400px] mb-7">
-              Mevzuat, teknik kaynaklar ve akademik yayınlar tek yerde. Güvenilir, güncel ve kapsamlı bilgiye hızlı erişin.
-            </p>
-
-            {/* Stats */}
-            <div className="flex items-stretch gap-2.5">
-              {[
-                { value: '520+', label: 'Mevzuat' },
-                { value: '380+', label: 'Doküman' },
-                { value: '240+', label: 'Yayın' },
-                { value: '8', label: 'Kategori' },
-              ].map(s => (
-                <div key={s.label}
-                  className="flex flex-col items-center justify-center gap-2 rounded-[12px] bg-black/25 border border-white/[0.06]"
-                  style={{ width: 100, padding: '14px 12px', boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.45), inset 0 1px 2px rgba(0,0,0,0.3), 0 1px 0 rgba(255,255,255,0.06)' }}>
-                  <span className="text-[26px] font-black text-white leading-none">{s.value}</span>
-                  <span className="text-[9.5px] text-white/35 font-bold uppercase tracking-[0.12em] text-center leading-[1.3]" style={{ whiteSpace: 'pre-line' }}>{s.label}</span>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 48 }}>
+              {/* Sol */}
+              <div style={{ flex: 1, maxWidth: 520 }}>
+                <h1 className="text-[52px] font-black leading-none tracking-[-1.5px] mb-3.5">
+                  <span className="text-amber-400">Teknik</span> Arşiv
+                </h1>
+                <p className="text-white/[0.48] text-sm leading-relaxed max-w-[400px] mb-6">
+                  Mevzuat, teknik kaynaklar ve akademik yayınlar tek yerde. Güvenilir, güncel ve kapsamlı bilgiye hızlı erişin.
+                </p>
+                <div className="flex gap-2 max-w-[460px]">
+                  <div className="relative flex-1">
+                    <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[15px] h-[15px] pointer-events-none" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input
+                      type="search"
+                      value={query}
+                      onChange={e => setQuery(e.target.value)}
+                      placeholder="Mevzuat, standart, makale ara…"
+                      className="w-full pl-10 pr-4 py-3 bg-white/[0.07] border border-white/10 rounded-[10px] text-sm text-white placeholder-white/25 focus:outline-none focus:bg-white/10 transition-all"
+                    />
+                  </div>
+                  <button onClick={() => setQuery('')} className="px-5 py-3 bg-amber-500 hover:bg-amber-600 transition-colors rounded-[10px] text-sm text-white font-bold shrink-0 flex items-center cursor-pointer">
+                    {query ? 'Temizle' : 'Ara'}
+                  </button>
                 </div>
-              ))}
+              </div>
+
+              {/* Sağ: Stats Panel */}
+              <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'row', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 16, overflow: 'hidden', backdropFilter: 'blur(6px)', transform: 'translateY(17px)' }}>
+                {[
+                  { value: '520+', label: 'Mevzuat' },
+                  { value: '380+', label: 'Doküman' },
+                  { value: '240+', label: 'Yayın' },
+                  { value: '8',    label: 'Kategori' },
+                ].map((s, i, arr) => (
+                  <div key={s.label} style={{ padding: '18px 24px', borderRight: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.07)' : 'none' }}>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px', lineHeight: 1 }}>{s.value}</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', marginTop: 3, fontWeight: 500 }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -112,7 +204,7 @@ export default function TeknikArsivPage() {
                     <span key={t} style={{ fontSize: 11, fontWeight: 700, padding: '4px 11px', borderRadius: 20, border: '1px solid #bbf7d0', background: '#f0fdf4', color: '#16a34a' }}>{t}</span>
                   ))}
                 </div>
-                <Link href="/kutuphane/mevzuat" style={{ borderRadius: 12, padding: '12px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, background: '#f0fdf4', cursor: 'pointer', textDecoration: 'none' }}>
+                <Link href="/kutuphane/teknik-arsiv/mevzuat" style={{ borderRadius: 12, padding: '12px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, background: '#f0fdf4', cursor: 'pointer', textDecoration: 'none' }}>
                   <div style={{ width: 32, height: 32, borderRadius: 8, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
                     <DocIcon stroke="#16a34a" />
                   </div>
@@ -146,15 +238,17 @@ export default function TeknikArsivPage() {
               <div style={{ padding: '20px 22px' }}>
                 <div style={{ fontSize: 10.5, fontWeight: 800, color: '#16a34a', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 12 }}>Popüler İçerikler</div>
                 <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', marginBottom: 14 }}>
-                  {['3194 Sayılı İmar Kanunu', 'Deprem Yönetmeliği', 'Resmi Gazete Tebliğleri', 'Mekânsal Planlar Yapım Yönetmeliği', 'CBS Genelgesi (2024/1)'].map(item => (
-                    <li key={item} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 6px', borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }}>
+                  {filtered(MEVZUAT_ITEMS).length === 0
+                    ? <li style={{ fontSize: 12, color: '#9ca3af', padding: '10px 6px' }}>Sonuç bulunamadı</li>
+                    : filtered(MEVZUAT_ITEMS).map(item => (
+                    <Link key={item} href="/kutuphane/teknik-arsiv/mevzuat" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 6px', borderBottom: '1px solid #f3f4f6', textDecoration: 'none' }}>
                       <div style={{ width: 28, height: 28, borderRadius: 7, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#16a34a' }}><DocIcon /></div>
                       <span style={{ fontSize: 13, fontWeight: 600, color: '#0b1829', flex: 1, lineHeight: 1.35 }}>{item}</span>
                       <span style={{ color: '#c8cdd6', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>›</span>
-                    </li>
+                    </Link>
                   ))}
                 </ul>
-                <Link href="/kutuphane/mevzuat" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%', padding: 11, borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #16a34a', color: '#16a34a', background: 'transparent', textDecoration: 'none' }}>
+                <Link href="/kutuphane/teknik-arsiv/mevzuat" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%', padding: 11, borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #16a34a', color: '#16a34a', background: 'transparent', textDecoration: 'none' }}>
                   Tüm Mevzuatı Gör →
                 </Link>
               </div>
@@ -182,7 +276,7 @@ export default function TeknikArsivPage() {
                     <span key={t} style={{ fontSize: 11, fontWeight: 700, padding: '4px 11px', borderRadius: 20, border: '1px solid #bfdbfe', background: '#eff6ff', color: '#2563eb' }}>{t}</span>
                   ))}
                 </div>
-                <Link href="/kutuphane/dokumanlar" style={{ borderRadius: 12, padding: '12px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, background: '#eff6ff', cursor: 'pointer', textDecoration: 'none' }}>
+                <Link href="/kutuphane/teknik-arsiv/teknik-kaynaklar" style={{ borderRadius: 12, padding: '12px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, background: '#eff6ff', cursor: 'pointer', textDecoration: 'none' }}>
                   <div style={{ width: 32, height: 32, borderRadius: 8, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
                     <DocIcon stroke="#2563eb" />
                   </div>
@@ -216,15 +310,17 @@ export default function TeknikArsivPage() {
               <div style={{ padding: '20px 22px' }}>
                 <div style={{ fontSize: 10.5, fontWeight: 800, color: '#2563eb', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 12 }}>Popüler İçerikler</div>
                 <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', marginBottom: 14 }}>
-                  {['TKGM Teknik Şartnamesi 2023', 'ISO 19115: Coğrafi Bilgi Standardı', 'Montaj Kılavuzu', 'TSE Standart Belgeleri', 'EPSG Koordinat Referans Sistemleri'].map(item => (
-                    <li key={item} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 6px', borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }}>
+                  {filtered(TEKNIK_ITEMS).length === 0
+                    ? <li style={{ fontSize: 12, color: '#9ca3af', padding: '10px 6px' }}>Sonuç bulunamadı</li>
+                    : filtered(TEKNIK_ITEMS).map(item => (
+                    <Link key={item} href="/kutuphane/teknik-arsiv/teknik-kaynaklar" className="hover:bg-blue-50/60 transition-colors" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 6px', borderBottom: '1px solid #f3f4f6', textDecoration: 'none' }}>
                       <div style={{ width: 28, height: 28, borderRadius: 7, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#2563eb' }}><DocIcon /></div>
                       <span style={{ fontSize: 13, fontWeight: 600, color: '#0b1829', flex: 1, lineHeight: 1.35 }}>{item}</span>
                       <span style={{ color: '#c8cdd6', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>›</span>
-                    </li>
+                    </Link>
                   ))}
                 </ul>
-                <Link href="/kutuphane/dokumanlar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%', padding: 11, borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #2563eb', color: '#2563eb', background: 'transparent', textDecoration: 'none' }}>
+                <Link href="/kutuphane/teknik-arsiv/teknik-kaynaklar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%', padding: 11, borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #2563eb', color: '#2563eb', background: 'transparent', textDecoration: 'none' }}>
                   Tüm Teknik Kaynakları Gör →
                 </Link>
               </div>
@@ -234,8 +330,8 @@ export default function TeknikArsivPage() {
             <div style={{ background: '#fff', border: '1px solid #e8e9ec', borderRadius: 18, overflow: 'hidden', display: 'grid', gridTemplateColumns: '390px 1fr' }}>
               <div style={{ padding: '22px 20px 20px', borderRight: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10 }}>
-                  <div style={{ width: 56, height: 56, borderRadius: 14, background: '#faf5ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <svg width="26" height="26" fill="none" stroke="#7c3aed" strokeWidth="1.7" viewBox="0 0 24 24">
+                  <div style={{ width: 56, height: 56, borderRadius: 14, background: '#fffbeb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <svg width="26" height="26" fill="none" stroke="#d97706" strokeWidth="1.7" viewBox="0 0 24 24">
                       <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
                       <path d="M6 12v5c3 3 9 3 12 0v-5" />
                     </svg>
@@ -247,19 +343,19 @@ export default function TeknikArsivPage() {
                 </p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 18 }}>
                   {['Makale', 'Rapor', 'Tez', 'Bildiri', 'Araştırma'].map(t => (
-                    <span key={t} style={{ fontSize: 11, fontWeight: 700, padding: '4px 11px', borderRadius: 20, border: '1px solid #e9d5ff', background: '#faf5ff', color: '#7c3aed' }}>{t}</span>
+                    <span key={t} style={{ fontSize: 11, fontWeight: 700, padding: '4px 11px', borderRadius: 20, border: '1px solid #fde68a', background: '#fffbeb', color: '#d97706' }}>{t}</span>
                   ))}
                 </div>
-                <div style={{ borderRadius: 12, padding: '12px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, background: '#faf5ff', cursor: 'pointer' }}>
+                <Link href="/kutuphane/teknik-arsiv/akademik-yayinlar" style={{ borderRadius: 12, padding: '12px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, background: '#fffbeb', cursor: 'pointer', textDecoration: 'none' }}>
                   <div style={{ width: 32, height: 32, borderRadius: 8, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-                    <DocIcon stroke="#7c3aed" />
+                    <DocIcon stroke="#d97706" />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 2, color: '#7c3aed' }}>Öne Çıkan</div>
+                    <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 2, color: '#d97706' }}>Öne Çıkan</div>
                     <div style={{ fontSize: 12, fontWeight: 700, color: '#0b1829', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>CBS Uygulamaları: Akademik Derleme</div>
                   </div>
                   <span style={{ fontSize: 13, color: '#9ca3af', flexShrink: 0 }}>›</span>
-                </div>
+                </Link>
                 <div style={{ display: 'flex', gap: 16, borderTop: '1px solid #f3f4f6', paddingTop: 14, marginTop: 'auto' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div style={{ width: 30, height: 30, borderRadius: 8, background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -282,19 +378,21 @@ export default function TeknikArsivPage() {
                 </div>
               </div>
               <div style={{ padding: '20px 22px' }}>
-                <div style={{ fontSize: 10.5, fontWeight: 800, color: '#7c3aed', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 12 }}>Popüler İçerikler</div>
+                <div style={{ fontSize: 10.5, fontWeight: 800, color: '#d97706', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 12 }}>Popüler İçerikler</div>
                 <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', marginBottom: 14 }}>
-                  {['Harita Genel Müd. Teknik Raporları', 'CBS Uygulamaları: Akademik Derleme', 'Arazi Örtüsü Sınıflandırma Yöntemleri', 'Yüksek Lisans Tezleri', 'Uzaktan Algılama Uygulamaları'].map(item => (
-                    <li key={item} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 6px', borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }}>
-                      <div style={{ width: 28, height: 28, borderRadius: 7, background: '#faf5ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#7c3aed' }}><DocIcon /></div>
+                  {filtered(AKADEMIK_ITEMS).length === 0
+                    ? <li style={{ fontSize: 12, color: '#9ca3af', padding: '10px 6px' }}>Sonuç bulunamadı</li>
+                    : filtered(AKADEMIK_ITEMS).map(item => (
+                    <Link key={item} href="/kutuphane/teknik-arsiv/akademik-yayinlar" className="hover:bg-amber-50/60 transition-colors" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 6px', borderBottom: '1px solid #f3f4f6', textDecoration: 'none' }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 7, background: '#fffbeb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#d97706' }}><DocIcon /></div>
                       <span style={{ fontSize: 13, fontWeight: 600, color: '#0b1829', flex: 1, lineHeight: 1.35 }}>{item}</span>
                       <span style={{ color: '#c8cdd6', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>›</span>
-                    </li>
+                    </Link>
                   ))}
                 </ul>
-                <button style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%', padding: 11, borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #7c3aed', color: '#7c3aed', background: 'transparent' }}>
+                <Link href="/kutuphane/teknik-arsiv/akademik-yayinlar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%', padding: 11, borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #d97706', color: '#d97706', background: 'transparent', textDecoration: 'none' }}>
                   Tüm Akademik Yayınları Gör →
-                </button>
+                </Link>
               </div>
             </div>
 
@@ -359,7 +457,7 @@ export default function TeknikArsivPage() {
                 </div>
                 <div style={{ fontSize: 12, fontWeight: 800, color: '#0b1829', marginBottom: 5, paddingRight: 48, lineHeight: 1.4 }}>Aradığınız kaynağı mı bulamadınız?</div>
                 <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.6, marginBottom: 12 }}>Ekibimize talebinizi iletin, size en kısa sürede dönüş yapalım.</p>
-                <button style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: 9, borderRadius: 10, fontSize: 11.5, fontWeight: 700, color: '#16a34a', border: '1.5px solid #16a34a', background: 'transparent', cursor: 'pointer' }}>
+                <button onClick={() => setShowTalep(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: 9, borderRadius: 10, fontSize: 11.5, fontWeight: 700, color: '#16a34a', border: '1.5px solid #16a34a', background: 'transparent', cursor: 'pointer' }}>
                   Kaynak Talep Et
                 </button>
               </div>
@@ -436,7 +534,7 @@ export default function TeknikArsivPage() {
 
             {/* Buton */}
             <div style={{ flexShrink: 0, padding: '0 48px 0 0' }}>
-              <button style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '16px 36px', background: '#F59E0B', color: '#fff', border: 'none', borderRadius: 14, fontSize: 14, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 4px 20px rgba(245,158,11,0.4)' }}>
+              <button onClick={() => setShowTalep(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '16px 36px', background: '#F59E0B', color: '#fff', border: 'none', borderRadius: 14, fontSize: 14, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 4px 20px rgba(245,158,11,0.4)' }}>
                 Kaynak Talep Et →
               </button>
             </div>
