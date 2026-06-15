@@ -103,38 +103,21 @@ const SECTION_DEFS = [
     badge: 'bg-emerald-100 text-emerald-700',
   },
   {
-    href: '/kutuphane/dokumanlar',
+    href: '/kutuphane/teknik-arsiv',
     icon: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
       </svg>
     ),
-    label: 'Doküman Merkezi',
-    desc: 'Teknik şartnameler, raporlar ve akademik yayınlar.',
+    label: 'Teknik Arşiv',
+    desc: 'Mevzuat, teknik kaynaklar ve akademik yayınlar tek yerde.',
     statKey: 'documents' as const,
-    statLabel: 'doküman',
-    color: 'from-amber-500 to-orange-600',
-    bg: 'bg-amber-50 hover:bg-amber-100/80',
-    border: 'border-amber-200 hover:border-amber-400',
-    iconBg: 'bg-amber-100 text-amber-600',
-    badge: 'bg-amber-100 text-amber-700',
-  },
-  {
-    href: '/kutuphane/mevzuat',
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-      </svg>
-    ),
-    label: 'Mevzuat Merkezi',
-    desc: 'Kanunlar, yönetmelikler ve teknik tebliğler.',
-    statKey: 'regulations' as const,
-    statLabel: 'mevzuat',
-    color: 'from-rose-500 to-pink-600',
-    bg: 'bg-rose-50 hover:bg-rose-100/80',
-    border: 'border-rose-200 hover:border-rose-400',
-    iconBg: 'bg-rose-100 text-rose-600',
-    badge: 'bg-rose-100 text-rose-700',
+    statLabel: 'kaynak',
+    color: 'from-emerald-600 to-teal-700',
+    bg: 'bg-emerald-50 hover:bg-emerald-100/80',
+    border: 'border-emerald-200 hover:border-emerald-400',
+    iconBg: 'bg-emerald-100 text-emerald-700',
+    badge: 'bg-emerald-100 text-emerald-700',
   },
   {
     href: '/kutuphane/sinavlar',
@@ -315,8 +298,8 @@ export default async function KutuphaneHub({ searchParams }: { searchParams: Pro
               ))}
             </div>
 
-            {/* İkincil 4 kompakt kart */}
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* İkincil 3 kompakt kart */}
+            <div className="grid sm:grid-cols-3 gap-3">
               {SECTION_DEFS.slice(3).map((s) => (
                 <Link key={s.href} href={s.href}
                   className="group flex items-center gap-3.5 p-4 rounded-2xl bg-white border border-gray-100 hover:border-gray-200 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
