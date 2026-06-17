@@ -136,23 +136,6 @@ const SECTION_DEFS = [
     iconBg: 'bg-[#26496b]/10 text-[#26496b]',
     badge: 'bg-[#26496b]/10 text-[#26496b]',
   },
-  {
-    href: '/kutuphane/yollar',
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-      </svg>
-    ),
-    label: 'Öğrenme Yolları',
-    desc: 'Kuratif adım adım yollar ile alanında sistemli ilerle.',
-    statKey: 'yollar' as const,
-    statLabel: 'yol',
-    color: 'from-teal-500 to-cyan-600',
-    bg: 'bg-teal-50 hover:bg-teal-100/80',
-    border: 'border-teal-200 hover:border-teal-400',
-    iconBg: 'bg-teal-100 text-teal-600',
-    badge: 'bg-teal-100 text-teal-700',
-  },
 ];
 
 export default async function KutuphaneHub({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
@@ -168,7 +151,6 @@ export default async function KutuphaneHub({ searchParams }: { searchParams: Pro
     documents: fmt(counts.documents),
     regulations: fmt(counts.regulations),
     exams: '3.400+',
-    yollar: '—',
   };
 
   const featuredTotal = featured.terms.length + featured.guides.length + featured.regulations.length;
@@ -252,7 +234,7 @@ export default async function KutuphaneHub({ searchParams }: { searchParams: Pro
 
         {/* ── Kütüphane Bölümleri ──────────────────────────────────────────── */}
         <div className="bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-9">
 
             {/* Bölüm başlığı */}
             <div className="flex items-center gap-3 mb-10">
@@ -268,7 +250,6 @@ export default async function KutuphaneHub({ searchParams }: { searchParams: Pro
               {SECTION_DEFS.slice(0, 3).map((s, i) => (
                 <Link key={s.href} href={s.href}
                   className="group relative flex flex-col rounded-2xl border border-gray-100 hover:border-gray-200 bg-white overflow-hidden hover:shadow-[0_16px_48px_rgba(0,0,0,0.09)] hover:-translate-y-1.5 transition-all duration-300">
-                  {/* Dekoratif numara */}
                   <span className="absolute right-2 top-0 text-[88px] font-black text-gray-100 leading-none select-none pointer-events-none transition-colors duration-300 group-hover:text-gray-100/80">
                     {String(i + 1).padStart(2, '0')}
                   </span>
@@ -292,27 +273,40 @@ export default async function KutuphaneHub({ searchParams }: { searchParams: Pro
                       </span>
                     </div>
                   </div>
-                  {/* Hover'da ortaya çıkan alt renkli çizgi */}
                   <div className={`h-[3px] bg-gradient-to-r ${s.color} scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left`} />
                 </Link>
               ))}
             </div>
 
-            {/* İkincil 3 kompakt kart */}
-            <div className="grid sm:grid-cols-3 gap-3">
-              {SECTION_DEFS.slice(3).map((s) => (
+            {/* İkincil 2 kart — 6 kolonlu grid, ortada 2x(2/6) = üsttekiyle aynı genişlik */}
+            <div className="grid sm:grid-cols-6 gap-4">
+              {SECTION_DEFS.slice(3).map((s, i) => (
                 <Link key={s.href} href={s.href}
-                  className="group flex items-center gap-3.5 p-4 rounded-2xl bg-white border border-gray-100 hover:border-gray-200 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${s.iconBg} group-hover:scale-105 transition-transform duration-200`}>
-                    {s.icon}
+                  className={`group relative flex flex-col rounded-2xl border border-gray-100 hover:border-gray-200 bg-white overflow-hidden hover:shadow-[0_16px_48px_rgba(0,0,0,0.09)] hover:-translate-y-1.5 transition-all duration-300 sm:col-span-2 ${i === 0 ? 'sm:col-start-2' : 'sm:col-start-4'}`}>
+                  <span className="absolute right-2 top-0 text-[88px] font-black text-gray-100 leading-none select-none pointer-events-none transition-colors duration-300 group-hover:text-gray-100/80">
+                    {String(i + 4).padStart(2, '0')}
+                  </span>
+                  <div className="p-6 flex flex-col gap-5 flex-1 relative">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${s.iconBg} transition-transform duration-300 group-hover:scale-110`}>
+                      {s.icon}
+                    </div>
+                    <div className="flex flex-col gap-2 flex-1">
+                      <h3 className="font-black text-gray-900 text-base leading-snug">{s.label}</h3>
+                      <p className="text-xs text-gray-400 leading-relaxed flex-1">{s.desc}</p>
+                    </div>
+                    <div className="flex items-center justify-between pt-1">
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${s.badge}`}>
+                        {statMap[s.statKey]} {s.statLabel}
+                      </span>
+                      <span className="text-xs font-bold text-gray-300 group-hover:text-gray-500 transition-all duration-200 group-hover:translate-x-0.5 inline-flex items-center gap-1">
+                        Keşfet
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </span>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-bold text-gray-900 text-[13px] leading-snug">{s.label}</p>
-                    <p className="text-[11px] text-gray-400 mt-0.5 font-medium">{statMap[s.statKey]} {s.statLabel}</p>
-                  </div>
-                  <svg className="w-4 h-4 text-gray-200 group-hover:text-gray-400 shrink-0 group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
+                  <div className={`h-[3px] bg-gradient-to-r ${s.color} scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left`} />
                 </Link>
               ))}
             </div>
