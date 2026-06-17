@@ -2808,6 +2808,7 @@ export interface LibraryGuide {
   authorName: string | null;
   status: 'draft' | 'published' | 'archived';
   isFeatured: boolean;
+  featuredOnSinavMerkezi: boolean;
   readingTimeMinutes: number | null;
   viewCount: number;
   publishedAt: string | null;
@@ -2828,6 +2829,7 @@ export interface LibraryDocument {
   publishYear: number | null;
   status: 'draft' | 'published' | 'archived';
   isFeatured: boolean;
+  featuredOnSinavMerkezi: boolean;
   downloadCount: number;
   createdAt: string;
   updatedAt: string;
@@ -2849,6 +2851,7 @@ export interface LibraryRegulation {
   externalUrl: string | null;
   status: 'draft' | 'published' | 'archived';
   isFeatured: boolean;
+  featuredOnSinavMerkezi: boolean;
   viewCount: number;
   createdAt: string;
   updatedAt: string;

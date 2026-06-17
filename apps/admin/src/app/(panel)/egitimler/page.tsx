@@ -54,6 +54,8 @@ const EMPTY_FORM = {
   format: 'Online', level: 'Orta', duration: '', price: '', memberPrice: '',
   description: '', registrationUrl: '', startDate: '', isPublished: true,
   coverImageKey: '',
+  featuredOnSinavMerkezi: false,
+  sinavKey: '',
 };
 
 const CONTENT_TYPE_LABELS: Record<string, string> = {
@@ -839,6 +841,8 @@ export default function EgitimlerPage() {
         startDate: item.startDate ? item.startDate.slice(0, 10) : '',
         isPublished: item.isPublished,
         coverImageKey: item.coverImageKey ?? '',
+        featuredOnSinavMerkezi: (item as TrainingItem & { featuredOnSinavMerkezi?: boolean }).featuredOnSinavMerkezi ?? false,
+        sinavKey: (item as TrainingItem & { sinavKey?: string }).sinavKey ?? '',
       });
     } else {
       setEditItem(null);
@@ -1273,9 +1277,23 @@ export default function EgitimlerPage() {
                   <div><label className="block text-xs font-semibold text-gray-500 mb-1">Üye Fiyatı</label><input className={inp} placeholder="1100 TL" value={form.memberPrice} onChange={e => setForm(f => ({ ...f, memberPrice: e.target.value }))} /></div>
                   <div><label className="block text-xs font-semibold text-gray-500 mb-1">Başlangıç Tarihi</label><input type="date" className={inp} value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} /></div>
                   <div><label className="block text-xs font-semibold text-gray-500 mb-1">Kayıt URL</label><input className={inp} value={form.registrationUrl} onChange={e => setForm(f => ({ ...f, registrationUrl: e.target.value }))} /></div>
-                  <div className="flex items-center gap-2 pt-4">
-                    <input type="checkbox" id="published" checked={form.isPublished} onChange={e => setForm(f => ({ ...f, isPublished: e.target.checked }))} className="rounded" />
-                    <label htmlFor="published" className="text-sm text-gray-700">Yayında</label>
+                  <div className="flex flex-col gap-2 pt-4">
+                    <div className="flex items-center gap-2">
+                      <input type="checkbox" id="published" checked={form.isPublished} onChange={e => setForm(f => ({ ...f, isPublished: e.target.checked }))} className="rounded" />
+                      <label htmlFor="published" className="text-sm text-gray-700">Yayında</label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input type="checkbox" id="sinavMerkezi" checked={form.featuredOnSinavMerkezi} onChange={e => setForm(f => ({ ...f, featuredOnSinavMerkezi: e.target.checked }))} className="rounded" />
+                      <label htmlFor="sinavMerkezi" className="text-sm text-gray-700">Sınav Merkezinde Göster</label>
+                    </div>
+                    {form.featuredOnSinavMerkezi && (
+                      <select className={inp} value={form.sinavKey} onChange={e => setForm(f => ({ ...f, sinavKey: e.target.value }))}>
+                        <option value="">Tüm Sınavlar (genel)</option>
+                        <option value="kpss">KPSS</option>
+                        <option value="gayrimenkul">Gayrimenkul Değerleme</option>
+                        <option value="iha">İHA Sertifikası</option>
+                      </select>
+                    )}
                   </div>
                 </div>
                 {/* Kapak Görseli */}

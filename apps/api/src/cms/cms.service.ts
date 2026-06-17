@@ -1577,11 +1577,16 @@ Seçenekler için kılavuz:
     });
   }
 
-  async listTrainings(publishedOnly = true) {
+  async listTrainings(publishedOnly = true, opts?: { sinavMerkezi?: boolean; sinavKey?: string }) {
+    const conditions: Parameters<typeof and>[0][] = [];
+    if (publishedOnly) conditions.push(eq(trainings.isPublished, true));
+    if (opts?.sinavMerkezi) conditions.push(eq(trainings.featuredOnSinavMerkezi, true));
+    if (opts?.sinavKey) conditions.push(eq(trainings.sinavKey, opts.sinavKey));
+
     const rows = await this.db
       .select()
       .from(trainings)
-      .where(publishedOnly ? eq(trainings.isPublished, true) : undefined)
+      .where(conditions.length ? and(...conditions) : undefined)
       .orderBy(desc(trainings.createdAt));
 
     const withCounts = await Promise.all(rows.map(async (t) => {
@@ -1743,7 +1748,8 @@ Seçenekler için kılavuz:
     const set: Record<string, unknown> = { updatedAt: new Date() };
     const fields = ['slug','title','instructor','instructorTitle','instructorBio','instructorAvatarKey',
       'format','level','duration','price','memberPrice','description','body','coverImageKey',
-      'accessLevel','certificateThreshold','tags','prerequisites','isPublished','registrationUrl','source'];
+      'accessLevel','certificateThreshold','tags','prerequisites','isPublished','registrationUrl','source',
+      'featuredOnSinavMerkezi','sinavKey'];
     for (const f of fields) {
       if (dto[f] !== undefined) set[f] = dto[f];
     }

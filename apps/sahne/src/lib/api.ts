@@ -266,6 +266,8 @@ export interface Training {
   registrationUrl: string | null;
   startDate: string | null;
   mutfakPostId: string | null;
+  featuredOnSinavMerkezi: boolean;
+  sinavKey: string | null;
   createdAt: string;
   // computed
   lessonCount?: number;
@@ -336,8 +338,12 @@ export interface CourseBadge {
   awardedAt: string;
 }
 
-async function trainingsGet(): Promise<Training[]> {
-  const result = await cmsGet<Training[]>('/trainings');
+async function trainingsGet(opts?: { sinavMerkezi?: boolean; sinavKey?: string }): Promise<Training[]> {
+  const params = new URLSearchParams();
+  if (opts?.sinavMerkezi) params.set('sinavMerkezi', 'true');
+  if (opts?.sinavKey) params.set('sinavKey', opts.sinavKey);
+  const qs = params.toString();
+  const result = await cmsGet<Training[]>(`/trainings${qs ? `?${qs}` : ''}`);
   return result ?? [];
 }
 
@@ -388,6 +394,33 @@ export interface HaberitaWidget {
   sideLinks?: Array<{ title?: string; url?: string }>;
 }
 
+export interface SinavMerkeziKaynak {
+  id: string;
+  title: string;
+  summary?: string | null;
+  description?: string | null;
+  type: string;
+  source: 'guide' | 'document' | 'regulation';
+  externalUrl?: string | null;
+  fileUrl?: string | null;
+  slug?: string | null;
+  authorName?: string | null;
+  publishYear?: number | null;
+  publishDate?: string | null;
+}
+
+async function sinavMerkeziKaynaklarGet(): Promise<SinavMerkeziKaynak[]> {
+  try {
+    const res = await fetch(`${API_URL}/api/v1/library/sinav-merkezi/kaynaklar`, {
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) return [];
+    return res.json() as Promise<SinavMerkeziKaynak[]>;
+  } catch {
+    return [];
+  }
+}
+
 export const cms = {
   events: (type?: string) =>
     cmsGet<CmsEvent[]>(`/events${type ? `?type=${type}` : ''}`),
@@ -416,4 +449,5 @@ export const cms = {
   trainingLeaderboard: trainingLeaderboardGet,
   examResources: examResourcesGet,
   talents: talentsGet,
+  sinavMerkeziKaynaklar: sinavMerkeziKaynaklarGet,
 };

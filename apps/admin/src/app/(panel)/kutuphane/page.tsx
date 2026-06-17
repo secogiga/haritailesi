@@ -409,12 +409,12 @@ function TermsTab() {
 interface GuideForm {
   slug: string; title: string; summary: string; body: string; type: string;
   fields: string; tags: string; authorName: string; readingTimeMinutes: string;
-  status: string; isFeatured: boolean;
+  status: string; isFeatured: boolean; featuredOnSinavMerkezi: boolean;
 }
 
 const EMPTY_GUIDE: GuideForm = {
   slug: '', title: '', summary: '', body: '', type: 'guide',
-  fields: '', tags: '', authorName: '', readingTimeMinutes: '', status: 'draft', isFeatured: false,
+  fields: '', tags: '', authorName: '', readingTimeMinutes: '', status: 'draft', isFeatured: false, featuredOnSinavMerkezi: false,
 };
 
 function GuidesTab() {
@@ -446,7 +446,7 @@ function GuidesTab() {
       slug: item.slug, title: item.title, summary: item.summary, body: item.body ?? '',
       type: item.type, fields: tagsToStr(item.fields), tags: tagsToStr(item.tags),
       authorName: item.authorName ?? '', readingTimeMinutes: item.readingTimeMinutes?.toString() ?? '',
-      status: item.status, isFeatured: item.isFeatured,
+      status: item.status, isFeatured: item.isFeatured, featuredOnSinavMerkezi: item.featuredOnSinavMerkezi,
     });
     setError(''); setShowModal(true);
   }
@@ -458,7 +458,7 @@ function GuidesTab() {
       const base: Record<string, unknown> = {
         title: form.title.trim(), summary: form.summary.trim(),
         type: form.type, fields: tagsFromStr(form.fields), tags: tagsFromStr(form.tags),
-        isFeatured: form.isFeatured,
+        isFeatured: form.isFeatured, featuredOnSinavMerkezi: form.featuredOnSinavMerkezi,
       };
       if (form.body.trim()) base['body'] = form.body.trim();
       if (form.authorName.trim()) base['authorName'] = form.authorName.trim();
@@ -600,10 +600,16 @@ function GuidesTab() {
                   <input value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))} className={inp} />
                 </div>
               </div>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={form.isFeatured} onChange={e => setForm(f => ({ ...f, isFeatured: e.target.checked }))} className="rounded border-gray-300 text-[#26496b]" />
-                <span className="text-sm text-gray-700">⭐ Öne çıkar</span>
-              </label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={form.isFeatured} onChange={e => setForm(f => ({ ...f, isFeatured: e.target.checked }))} className="rounded border-gray-300 text-[#26496b]" />
+                  <span className="text-sm text-gray-700">⭐ Öne çıkar</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={form.featuredOnSinavMerkezi} onChange={e => setForm(f => ({ ...f, featuredOnSinavMerkezi: e.target.checked }))} className="rounded border-gray-300 text-emerald-600" />
+                  <span className="text-sm text-gray-700">📚 Sınav Merkezi'nde göster</span>
+                </label>
+              </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm text-gray-500 hover:bg-gray-50 rounded-xl border">İptal</button>
                 <button onClick={save} disabled={saving} className="px-5 py-2 text-sm font-medium bg-[#26496b] text-white rounded-xl hover:bg-[#1d3a57] disabled:opacity-50">
@@ -623,12 +629,12 @@ function GuidesTab() {
 interface DocForm {
   title: string; description: string; type: string; fields: string; tags: string;
   authorName: string; publishYear: string; fileUrl: string; externalUrl: string;
-  status: string; isFeatured: boolean;
+  status: string; isFeatured: boolean; featuredOnSinavMerkezi: boolean;
 }
 
 const EMPTY_DOC: DocForm = {
   title: '', description: '', type: 'pdf', fields: '', tags: '',
-  authorName: '', publishYear: '', fileUrl: '', externalUrl: '', status: 'draft', isFeatured: false,
+  authorName: '', publishYear: '', fileUrl: '', externalUrl: '', status: 'draft', isFeatured: false, featuredOnSinavMerkezi: false,
 };
 
 function DocumentsTab() {
@@ -659,7 +665,7 @@ function DocumentsTab() {
       fields: tagsToStr(item.fields), tags: tagsToStr(item.tags),
       authorName: item.authorName ?? '', publishYear: item.publishYear?.toString() ?? '',
       fileUrl: item.fileUrl ?? '', externalUrl: item.externalUrl ?? '',
-      status: item.status, isFeatured: item.isFeatured,
+      status: item.status, isFeatured: item.isFeatured, featuredOnSinavMerkezi: item.featuredOnSinavMerkezi,
     });
     setError(''); setShowModal(true);
   }
@@ -671,7 +677,7 @@ function DocumentsTab() {
       const base: Record<string, unknown> = {
         title: form.title.trim(), type: form.type,
         fields: tagsFromStr(form.fields), tags: tagsFromStr(form.tags),
-        isFeatured: form.isFeatured,
+        isFeatured: form.isFeatured, featuredOnSinavMerkezi: form.featuredOnSinavMerkezi,
       };
       if (form.description.trim()) base['description'] = form.description.trim();
       if (form.authorName.trim()) base['authorName'] = form.authorName.trim();
@@ -813,10 +819,16 @@ function DocumentsTab() {
                   </select>
                 </div>
               </div>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={form.isFeatured} onChange={e => setForm(f => ({ ...f, isFeatured: e.target.checked }))} className="rounded border-gray-300 text-[#26496b]" />
-                <span className="text-sm text-gray-700">⭐ Öne çıkar</span>
-              </label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={form.isFeatured} onChange={e => setForm(f => ({ ...f, isFeatured: e.target.checked }))} className="rounded border-gray-300 text-[#26496b]" />
+                  <span className="text-sm text-gray-700">⭐ Öne çıkar</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={form.featuredOnSinavMerkezi} onChange={e => setForm(f => ({ ...f, featuredOnSinavMerkezi: e.target.checked }))} className="rounded border-gray-300 text-emerald-600" />
+                  <span className="text-sm text-gray-700">📚 Sınav Merkezi'nde göster</span>
+                </label>
+              </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm text-gray-500 hover:bg-gray-50 rounded-xl border">İptal</button>
                 <button onClick={save} disabled={saving} className="px-5 py-2 text-sm font-medium bg-[#26496b] text-white rounded-xl hover:bg-[#1d3a57] disabled:opacity-50">
@@ -837,14 +849,14 @@ interface RegForm {
   slug: string; title: string; shortTitle: string; type: string; fields: string;
   issuingBody: string; referenceNumber: string; publishDate: string;
   summary: string; fullText: string; aiSummary: string; externalUrl: string;
-  status: string; isFeatured: boolean; changeNote: string;
+  status: string; isFeatured: boolean; featuredOnSinavMerkezi: boolean; changeNote: string;
 }
 
 const EMPTY_REG: RegForm = {
   slug: '', title: '', shortTitle: '', type: 'yonetmelik', fields: '',
   issuingBody: '', referenceNumber: '', publishDate: '',
   summary: '', fullText: '', aiSummary: '', externalUrl: '',
-  status: 'draft', isFeatured: false, changeNote: '',
+  status: 'draft', isFeatured: false, featuredOnSinavMerkezi: false, changeNote: '',
 };
 
 function RegulationsTab() {
@@ -877,7 +889,7 @@ function RegulationsTab() {
       publishDate: item.publishDate ?? '', summary: item.summary ?? '',
       fullText: item.fullText ?? '', aiSummary: item.aiSummary ?? '',
       externalUrl: item.externalUrl ?? '', status: item.status, isFeatured: item.isFeatured,
-      changeNote: '',
+      featuredOnSinavMerkezi: item.featuredOnSinavMerkezi, changeNote: '',
     });
     setError(''); setShowModal(true);
   }
@@ -889,6 +901,7 @@ function RegulationsTab() {
       const base: Record<string, unknown> = {
         title: form.title.trim(), type: form.type,
         fields: tagsFromStr(form.fields), isFeatured: form.isFeatured,
+        featuredOnSinavMerkezi: form.featuredOnSinavMerkezi,
       };
       if (form.shortTitle.trim()) base['shortTitle'] = form.shortTitle.trim();
       if (form.issuingBody.trim()) base['issuingBody'] = form.issuingBody.trim();
@@ -1076,10 +1089,16 @@ function RegulationsTab() {
                 <label className="text-xs font-medium text-gray-500 block mb-1">Alanlar (virgülle)</label>
                 <input value={form.fields} onChange={e => setForm(f => ({ ...f, fields: e.target.value }))} className={inp} placeholder="kadastro, kamu" />
               </div>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={form.isFeatured} onChange={e => setForm(f => ({ ...f, isFeatured: e.target.checked }))} className="rounded border-gray-300 text-[#26496b]" />
-                <span className="text-sm text-gray-700">⭐ Öne çıkar</span>
-              </label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={form.isFeatured} onChange={e => setForm(f => ({ ...f, isFeatured: e.target.checked }))} className="rounded border-gray-300 text-[#26496b]" />
+                  <span className="text-sm text-gray-700">⭐ Öne çıkar</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={form.featuredOnSinavMerkezi} onChange={e => setForm(f => ({ ...f, featuredOnSinavMerkezi: e.target.checked }))} className="rounded border-gray-300 text-emerald-600" />
+                  <span className="text-sm text-gray-700">📚 Sınav Merkezi'nde göster</span>
+                </label>
+              </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm text-gray-500 hover:bg-gray-50 rounded-xl border">İptal</button>
                 <button onClick={save} disabled={saving} className="px-5 py-2 text-sm font-medium bg-[#26496b] text-white rounded-xl hover:bg-[#1d3a57] disabled:opacity-50">
@@ -1375,7 +1394,7 @@ function PathsTab() {
     if (next < 0 || next >= pathItems.length) return;
     setPathItems(prev => {
       const arr = [...prev];
-      [arr[idx]!, arr[next]!] = [arr[next]!, arr[idx]!];
+      const tmp = arr[idx]; arr[idx] = arr[next]; arr[next] = tmp;
       return arr.map((it, i) => ({ ...it, order: i }));
     });
   }

@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Meslek Sözlüğü Detay — Mockup</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; color: #111; }
+  a { text-decoration: none; color: inherit; }
+
+  /* ── Navbar ── */
+  .navbar {
+    height: 56px; background: #fff; border-bottom: 1px solid #e5e7eb;
+    display: flex; align-items: center; padding: 0 32px;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .navbar-logo { font-size: 15px; font-weight: 900; color: #0b1829; margin-right: 40px; }
+  .navbar-links { display: flex; gap: 28px; }
+  .navbar-links a { font-size: 13px; font-weight: 600; color: #6b7280; }
+  .navbar-links a.active { color: #0b1829; border-bottom: 2px solid #F59E0B; padding-bottom: 2px; }
+
+  /* ── Hero ── */
+  .hero {
+    background: #0b1829; color: #fff;
+    position: relative; overflow: hidden;
+    padding: 40px 0 0;
+  }
+  .hero-inner { max-width: 960px; margin: 0 auto; padding: 0 32px; position: relative; z-index: 1; }
+  .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 11px; color: rgba(255,255,255,0.35); margin-bottom: 24px; }
+  .breadcrumb span { color: rgba(255,255,255,0.2); }
+  .breadcrumb a:hover { color: rgba(255,255,255,0.65); }
+
+  .hero-body { display: flex; flex-direction: column; padding-bottom: 32px; }
+  .hero-bottom { display: flex; align-items: center; justify-content: space-between; gap: 32px; border-top: 1px solid rgba(255,255,255,0.07); margin-top: 24px; padding-top: 16px; }
+  .hero-field-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .badge-field {
+    font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 99px;
+    background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.65);
+    border: 1px solid rgba(255,255,255,0.12); cursor: pointer;
+    transition: background .15s;
+  }
+  .badge-field:hover { background: rgba(255,255,255,0.18); }
+  .badge-field.featured { background: #F59E0B; color: #0b1829; border-color: transparent; }
+
+  .hero-term-row { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; flex-wrap: wrap; }
+  .hero-term { font-size: 52px; font-weight: 900; line-height: 1; letter-spacing: -1px; }
+  .badge-verified { display: inline-flex; align-items: center; gap: 5px; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); color: #60a5fa; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 99px; letter-spacing: .03em; flex-shrink: 0; align-self: center; margin-top: 6px; }
+  .hero-fullform { font-size: 14px; color: rgba(255,255,255,0.35); font-style: italic; margin-bottom: 16px; }
+  .hero-definition-preview { font-size: 14px; color: rgba(255,255,255,0.55); line-height: 1.65; max-width: 540px; }
+
+  .hero-stats-bar {
+    display: flex; align-items: center; gap: 20px;
+    font-size: 12px; color: rgba(255,255,255,0.65);
+  }
+  .hero-stats-bar .stat-item { display: flex; align-items: center; gap: 6px; }
+  .hero-stats-bar svg { opacity: .7; }
+  .hero-stat-divider { width: 1px; height: 14px; background: rgba(255,255,255,0.2); }
+
+  .hero-actions { display: flex; gap: 10px; flex-shrink: 0; }
+  .btn-hero-primary {
+    display: flex; align-items: center; gap: 7px;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+    color: #fff; font-size: 13px; font-weight: 700;
+    padding: 9px 18px; border-radius: 12px; cursor: pointer; transition: background .15s;
+  }
+  .btn-hero-primary:hover { background: rgba(255,255,255,0.14); }
+  .btn-hero-accent {
+    display: flex; align-items: center; gap: 7px;
+    background: #F59E0B; color: #0b1829;
+    font-size: 13px; font-weight: 800;
+    padding: 9px 18px; border-radius: 12px; cursor: pointer; transition: background .15s;
+  }
+  .btn-hero-accent:hover { background: #fbbf24; }
+
+  /* Hero right — decorative visual */
+  .hero-visual {
+    width: 260px; height: 200px;
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 20px; display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+  }
+  .hero-visual-inner {
+    font-size: 96px; font-weight: 900; color: rgba(255,255,255,0.04);
+    line-height: 1; letter-spacing: -4px; user-select: none;
+  }
+  .hero-visual-badge {
+    position: absolute; bottom: 16px; left: 16px; right: 16px;
+    background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.25);
+    border-radius: 10px; padding: 10px 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .hero-visual-badge-dot { width: 8px; height: 8px; background: #F59E0B; border-radius: 50%; flex-shrink: 0; }
+  .hero-visual-badge-text { font-size: 11px; font-weight: 700; color: #F59E0B; }
+
+  /* ── Content layout ── */
+  .content-wrap { max-width: 960px; margin: 0 auto; padding: 28px 32px 60px; }
+  .content-grid { display: grid; grid-template-columns: 1fr 260px; gap: 24px; align-items: start; }
+
+  /* ── Cards ── */
+  .card {
+    background: #fff; border-radius: 16px; border: 1px solid #e9eaec;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .card + .card { margin-top: 14px; }
+
+  /* ── Section header ── */
+  .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .section-icon {
+    width: 30px; height: 30px; background: #0b1829; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .section-icon svg { color: #F59E0B; }
+  .section-title { font-size: 13px; font-weight: 800; color: #0b1829; }
+  .section-subtitle { font-size: 11px; color: #9ca3af; margin-top: 1px; }
+
+  /* ── Tanım ── */
+  .tanim-card { display: flex; overflow: hidden; }
+  .tanim-accent-bar { width: 4px; background: #F59E0B; flex-shrink: 0; }
+  .tanim-body { flex: 1; padding: 28px 28px 24px; }
+  .tanim-label { font-size: 10px; font-weight: 800; color: #9ca3af; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 14px; }
+  .tanim-text { font-size: 15px; color: #1f2937; line-height: 1.8; }
+
+  .pro-tip {
+    margin-top: 20px; padding: 14px 16px;
+    background: #fffbeb; border: 1px solid #fde68a;
+    border-radius: 12px; display: flex; gap: 10px; align-items: flex-start;
+  }
+  .pro-tip-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .pro-tip-text { font-size: 13px; color: #92400e; line-height: 1.6; font-style: italic; }
+
+  /* ── Etiketler ── */
+  .tags-wrap { display: flex; flex-wrap: wrap; gap: 7px; }
+  .tag {
+    font-size: 11px; font-weight: 700; color: #374151;
+    background: #f3f4f6; border: 1px solid #e5e7eb;
+    padding: 4px 10px; border-radius: 99px; cursor: pointer;
+    transition: all .15s;
+  }
+  .tag:hover { background: #0b1829; color: #fff; border-color: #0b1829; }
+
+  /* ── Ayrıca bakınız ── */
+  .see-also-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
+  .see-also-chip {
+    font-size: 12px; font-weight: 700; color: #0b1829;
+    background: #fffbeb; border: 1px solid #fde68a;
+    padding: 5px 12px; border-radius: 99px; cursor: pointer;
+    transition: all .15s;
+  }
+  .see-also-chip:hover { background: #F59E0B; border-color: #F59E0B; color: #0b1829; }
+
+  /* ── Mevzuat (image 1 style — user likes this) ── */
+  .mevzuat-list { display: flex; flex-direction: column; gap: 8px; }
+  .mevzuat-item {
+    display: flex; align-items: center; gap: 12px;
+    background: #f9fafb; border: 1px solid #e9eaec; border-radius: 12px; padding: 14px 16px;
+    cursor: pointer; transition: all .15s;
+  }
+  .mevzuat-item:hover { background: #fff; border-color: rgba(11,24,41,0.2); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .mevzuat-type {
+    font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 6px;
+    flex-shrink: 0;
+  }
+  .mevzuat-type.kanun { background: #0b1829; color: #F59E0B; }
+  .mevzuat-type.yonetmelik { background: #0b1829; color: #F59E0B; }
+  .mevzuat-type.genelge { background: #0b1829; color: #F59E0B; }
+  .mevzuat-title { font-size: 13px; font-weight: 700; color: #1f2937; }
+  .mevzuat-body { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+  .mevzuat-more { font-size: 12px; font-weight: 700; color: #F59E0B; margin-top: 6px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+
+  /* ── Topluluk Katkıları ── */
+  .contrib-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .contrib-see-all { font-size: 12px; font-weight: 700; color: #F59E0B; cursor: pointer; white-space: nowrap; }
+  .contrib-row { display: flex; align-items: flex-start; gap: 0; }
+  .contrib-person {
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    flex: 1; padding: 0 8px;
+  }
+  .contrib-person + .contrib-person { border-left: 1px solid #f3f4f6; }
+  .contrib-avatar {
+    width: 46px; height: 46px; border-radius: 50%; background: #0b1829;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 900; color: #F59E0B;
+    position: relative; margin-bottom: 8px; flex-shrink: 0;
+  }
+  .contrib-avatar img { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; }
+  .contrib-avatar .star {
+    position: absolute; top: -2px; right: -2px; width: 16px; height: 16px;
+    background: #F59E0B; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 9px;
+    border: 2px solid #fff; color: #0b1829;
+  }
+  .contrib-name { font-size: 12px; font-weight: 700; color: #0b1829; line-height: 1.3; }
+  .contrib-role { font-size: 10px; color: #9ca3af; font-weight: 500; margin-top: 1px; }
+  .contrib-action { font-size: 11px; color: #2563eb; font-weight: 600; margin-top: 5px; }
+  .contrib-action.edit { color: #2563eb; }
+  .contrib-action.add { color: #6b7280; }
+  .contrib-action.source { color: #6b7280; }
+  .contrib-action.note { color: #6b7280; }
+  .contrib-date { font-size: 10px; color: #c0c4cc; margin-top: 3px; }
+
+  .contrib-more-col {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 0 12px; flex-shrink: 0; gap: 4px;
+  }
+  .contrib-more-num {
+    width: 46px; height: 46px; border-radius: 50%; background: #f3f4f6;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800; color: #374151; margin-bottom: 8px;
+  }
+  .contrib-more-label { font-size: 11px; color: #6b7280; font-weight: 600; text-align: center; line-height: 1.4; }
+  .contrib-more-link { font-size: 11px; color: #F59E0B; font-weight: 700; cursor: pointer; }
+
+  /* ── Kaynaklar ── */
+  .source-list { display: flex; flex-direction: column; gap: 6px; }
+  .source-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 10px;
+    border: 1px solid #f0f0f0; background: #fafafa;
+    transition: background .15s, border-color .15s;
+    cursor: pointer;
+  }
+  .source-item:hover { background: #fff; border-color: #e0e0e0; }
+  .source-pdf-icon {
+    width: 32px; height: 32px; border-radius: 8px; background: #fff0f0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 900; color: #ef4444;
+    border: 1px solid #fee2e2; flex-shrink: 0;
+  }
+  .source-info { flex: 1; min-width: 0; }
+  .source-title { font-size: 13px; font-weight: 600; color: #0b1829; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .source-meta { font-size: 11px; color: #9ca3af; margin-top: 1px; }
+  .source-size { font-size: 11px; color: #9ca3af; flex-shrink: 0; }
+  .source-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .source-dl {
+    width: 28px; height: 28px; border-radius: 8px; background: #f3f4f6;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; color: #6b7280; transition: background .15s, color .15s;
+  }
+  .source-item:hover .source-dl { background: #0b1829; color: #F59E0B; }
+  .source-view {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 12px; font-weight: 700; color: #2563eb;
+    flex-shrink: 0; cursor: pointer; white-space: nowrap;
+    transition: color .15s;
+  }
+  .source-view:hover { color: #1d4ed8; }
+  .source-more { font-size: 12px; font-weight: 700; color: #F59E0B; margin-top: 10px; display: inline-flex; align-items: center; gap: 4px; }
+
+  /* ── Yorumlar ── */
+  .comments-empty {
+    text-align: center; padding: 28px 0;
+    color: #9ca3af; font-size: 13px;
+  }
+  .comments-empty-icon { font-size: 32px; margin-bottom: 8px; }
+  .btn-comment {
+    margin-top: 12px; background: #0b1829; color: #fff;
+    border: none; border-radius: 12px; padding: 10px 24px;
+    font-size: 13px; font-weight: 800; cursor: pointer;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar { display: flex; flex-direction: column; gap: 12px; }
+
+  /* view count */
+  .stat-card { padding: 16px; }
+  .stat-label { font-size: 10px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 4px; }
+  .stat-value { font-size: 28px; font-weight: 900; color: #0b1829; line-height: 1; }
+  .stat-icon { display: flex; align-items: center; gap: 6px; color: #9ca3af; margin-bottom: 6px; }
+
+  /* ── Sidebar ortak başlık ── */
+  .sb-head { margin-bottom: 14px; }
+  .sb-head-row { display: flex; align-items: center; gap: 7px; }
+  .sb-head-icon { color: #F59E0B; flex-shrink: 0; }
+  .sb-head-text { font-size: 11px; font-weight: 800; color: #0b1829; letter-spacing: .08em; text-transform: uppercase; }
+  .sb-head-text.light { color: #0b1829; }
+  .sb-head-line { width: 22px; height: 2px; background: #F59E0B; border-radius: 1px; margin-top: 6px; margin-left: 23px; }
+
+  /* Knowledge graph */
+  .kg-card { padding: 18px; }
+  .kg-more { font-size: 12px; font-weight: 700; color: #F59E0B; display: flex; align-items: center; gap: 4px; margin-top: 8px; cursor: pointer; }
+
+  /* Katkı Ver CTA */
+  .katki-card {
+    background: #fff;
+    border-radius: 18px; padding: 18px;
+    border: 1px solid #e9eaec;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .katki-icon-wrap {
+    width: 40px; height: 40px;
+    background: rgba(245,158,11,0.12);
+    border: 1px solid rgba(245,158,11,0.2);
+    border-radius: 11px; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .katki-title { font-size: 13px; font-weight: 900; color: #0b1829; line-height: 1.2; }
+  .katki-sub { font-size: 11.5px; color: #374151; margin-bottom: 14px; }
+  .katki-divider { height: 1px; background: #f3f4f6; margin-bottom: 12px; }
+  .katki-features { display: flex; flex-direction: column; gap: 0; margin-bottom: 16px; }
+  .katki-feature {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 12px; color: #374151; line-height: 1.5;
+    padding: 7px 0; border-bottom: 1px solid #f3f4f6;
+  }
+  .katki-feature:last-child { border-bottom: none; }
+  .katki-check {
+    width: 16px; height: 16px;
+    background: rgba(16,185,129,0.1);
+    border: 1px solid rgba(16,185,129,0.25);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    color: #10b981; font-size: 9px; font-weight: 900;
+  }
+  .btn-katki {
+    width: 100%;
+    background: #F59E0B;
+    color: #0b1829; font-size: 13px; font-weight: 900; border: none;
+    padding: 10px; border-radius: 11px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    transition: background .15s;
+  }
+  .btn-katki:hover { background: #fbbf24; }
+  .katki-guide { text-align: center; font-size: 11.5px; color: #374151; margin-top: 10px; cursor: pointer; }
+  .katki-guide:hover { color: #6b7280; }
+
+  /* AI Soru */
+  .ai-card { padding: 16px; }
+  .ai-questions { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+  .ai-question {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; background: #f9fafb; border: 1px solid #e9eaec;
+    border-radius: 10px; padding: 10px 12px; cursor: pointer;
+    font-size: 12px; color: #374151; font-weight: 500;
+    transition: all .15s;
+  }
+  .ai-question:hover { background: #fff; border-color: #0b1829; color: #0b1829; }
+  .ai-question svg { flex-shrink: 0; color: #9ca3af; }
+  .btn-ai-ask {
+    margin-top: 10px; width: 100%; background: #fff; border: 1.5px solid #e5e7eb;
+    color: #0b1829; font-size: 12px; font-weight: 800;
+    padding: 10px; border-radius: 12px; cursor: pointer;
+    transition: all .15s;
+  }
+  .btn-ai-ask:hover { border-color: #0b1829; }
+  .faq-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; font-size: 13px; color: #1f2937; font-weight: 500;
+    border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background .15s;
+    gap: 12px;
+  }
+  .faq-row svg { flex-shrink: 0; color: #9ca3af; }
+  .faq-row:hover { background: #f9fafb; color: #0b1829; }
+  .faq-row:hover svg { color: #0b1829; }
+
+  /* ── Footer CTA ── */
+  .footer-cta {
+    background: #0b1829; color: #fff;
+    padding: 48px 32px; text-align: center;
+    position: relative; overflow: hidden;
+  }
+  .footer-cta-inner { max-width: 960px; margin: 0 auto; }
+  .footer-cta h2 { font-size: 24px; font-weight: 900; margin-bottom: 8px; }
+  .footer-cta p { font-size: 14px; color: rgba(255,255,255,0.45); max-width: 420px; margin: 0 auto 28px; }
+  .footer-stats { display: flex; align-items: center; justify-content: center; gap: 32px; margin-bottom: 28px; }
+  .footer-stat-item { text-align: center; }
+  .footer-stat-num { font-size: 22px; font-weight: 900; color: #F59E0B; }
+  .footer-stat-label { font-size: 10px; color: rgba(255,255,255,0.35); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }
+  .footer-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn-footer-primary {
+    display: flex; align-items: center; gap: 8px;
+    background: #F59E0B; color: #0b1829; font-size: 14px; font-weight: 800;
+    padding: 13px 24px; border-radius: 12px; cursor: pointer; border: none;
+  }
+  .btn-footer-secondary {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.08); color: #fff; font-size: 14px; font-weight: 700;
+    padding: 13px 24px; border-radius: 12px; cursor: pointer; border: 1px solid rgba(255,255,255,0.12);
+  }
+</style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <div class="navbar-logo">📖 Haritailesi</div>
+  <div class="navbar-links">
+    <a href="#">Bilgi Bankası</a>
+    <a href="#">Soru & Çözümler</a>
+    <a href="#" class="active">Meslek Sözlüğü</a>
+    <a href="#">Kendini Dene</a>
+    <a href="#">Etkinlikler</a>
+    <a href="#">İlanlar</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+  <div style="position:absolute;inset:0;left:52%;background-image:url('kelime.jpg');background-size:cover;background-position:center left;pointer-events:none;">
+    <div style="position:absolute;inset:0;background:linear-gradient(to right,#0b1829 0%,rgba(11,24,41,0.9) 30%,rgba(11,24,41,0.25) 100%);"></div>
+  </div>
+  <div class="hero-inner">
+    <div class="breadcrumb">
+      <a href="#">Meslek Kütüphanesi</a>
+      <span>›</span>
+      <a href="#">Meslek Sözlüğü</a>
+      <span>›</span>
+      <span style="color:rgba(255,255,255,0.65)">Kadastro</span>
+    </div>
+
+    <div class="hero-body">
+      <div>
+        <div class="hero-field-badges">
+          <span class="badge-field featured">★ Öne Çıkan</span>
+          <span class="badge-field">Başlangıç</span>
+          <span class="badge-field">Kadastro</span>
+          <span class="badge-field">Klasik Haritacılık</span>
+          <span class="badge-field">Kamu</span>
+        </div>
+        <div class="hero-term-row">
+          <h1 class="hero-term">Kadastro</h1>
+          <span class="badge-verified">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Doğrulanmış Terim
+          </span>
+        </div>
+        <p class="hero-fullform">Cadastre</p>
+        <p class="hero-definition-preview">
+          Taşınmaz mülklerin sınır, konum, alan ve sahiplik bilgilerinin sistematik
+          olarak belirlenerek kayıt altına alındığı resmi envanter sistemidir.
+        </p>
+
+      </div>
+
+      <div class="hero-bottom">
+        <div class="hero-stats-bar">
+          <span class="stat-item">
+            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+            921 görüntülenme
+          </span>
+          <div class="hero-stat-divider"></div>
+          <span class="stat-item">
+            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            12 Mayıs 2024
+          </span>
+          <div class="hero-stat-divider"></div>
+          <span class="stat-item" style="cursor:pointer;color:rgba(255,255,255,0.65)">
+            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+            Paylaş
+          </span>
+        </div>
+
+        <div class="hero-actions">
+          <button class="btn-hero-primary">
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
+            Kaydet
+          </button>
+          <button class="btn-hero-primary">
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            Okuma Listesi
+          </button>
+          <button class="btn-hero-accent">
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            Katkı Ver
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Content -->
+<div class="content-wrap">
+  <div class="content-grid">
+
+    <!-- Main column -->
+    <div>
+
+      <!-- Tanım -->
+      <div class="card tanim-card">
+        <div class="tanim-accent-bar"></div>
+        <div class="tanim-body">
+          <p class="tanim-label">Tanım</p>
+          <p class="tanim-text">
+            Kadastro, taşınmaz mülklerin sınır, konum, alan ve sahiplik bilgilerinin
+            sistematik olarak belirlenerek kayıt altına alındığı resmi envanter sistemidir.
+            Türkiye'de Tapu ve Kadastro Genel Müdürlüğü (TKGM) tarafından yürütülür.
+            Kadastro çalışmaları, parsellerin geometrik ve hukuki durumlarını belirleyerek
+            tapu kütüğüne işlenmesini kapsar.
+          </p>
+          <div class="pro-tip">
+            <span class="pro-tip-icon">💡</span>
+            <span class="pro-tip-text">
+              Kadastro, modern tapu sisteminin temelini oluşturur; doğru mülkiyet kaydı
+              olmadan kentsel dönüşüm ve imar projeleri hayata geçirilemez.
+            </span>
+          </div>
+
+          <div style="margin-top:20px;padding-top:20px;border-top:1px solid #f3f4f6;">
+            <div style="font-size:10px;font-weight:800;color:#9ca3af;letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;">Ayrıca Bakınız</div>
+            <div class="see-also-wrap">
+              <a class="see-also-chip">Parsel</a>
+              <a class="see-also-chip">Tapu</a>
+              <a class="see-also-chip">TKGM</a>
+              <a class="see-also-chip">Yapı Ruhsatı</a>
+              <a class="see-also-chip">Sınır Noktası</a>
+              <a class="see-also-chip">Aplikasyon</a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Bu Terimi Tanımlayan Mevzuat (1. resim stili — kullanıcı beğeniyor) -->
+      <div class="card" style="padding:20px 24px;margin-top:14px">
+        <div class="section-header">
+          <div class="section-icon">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
+          </div>
+          <span class="section-title">Bu Terimi Tanımlayan Mevzuat</span>
+        </div>
+        <div class="mevzuat-list">
+          <a class="mevzuat-item">
+            <span class="mevzuat-type kanun">Kanun</span>
+            <div>
+              <div class="mevzuat-title">Kadastro Kanunu</div>
+              <div class="mevzuat-body">TBMM</div>
+            </div>
+          </a>
+          <a class="mevzuat-item">
+            <span class="mevzuat-type yonetmelik">Yönetmelik</span>
+            <div>
+              <div class="mevzuat-title">Orman Kadastro Yön.</div>
+              <div class="mevzuat-body">Orman Genel Müdürlüğü</div>
+            </div>
+          </a>
+          <a class="mevzuat-item">
+            <span class="mevzuat-type kanun">Kanun</span>
+            <div>
+              <div class="mevzuat-title">Yapı Denetim Kanunu</div>
+              <div class="mevzuat-body">TBMM</div>
+            </div>
+          </a>
+        </div>
+        <a class="mevzuat-more">Tümünü Gör →</a>
+      </div>
+
+      <!-- Sık Sorulan Sorular -->
+      <div class="card" style="padding:24px;margin-top:14px;">
+        <div class="section-header">
+          <div class="section-icon">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <div>
+            <div class="section-title">Bu Terim Hakkında Sık Sorulan Sorular</div>
+            <div class="section-subtitle">Bu terimle ilgili sorularınıza hızlı yanıtlar alın.</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;border:1px solid #e9eaec;border-radius:12px;overflow:hidden;">
+          <div class="faq-row">Kadastro işlemi nasıl yapılır?<svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></div>
+          <div class="faq-row">Hangi durumlarda kadastro gerekir?<svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></div>
+          <div class="faq-row">Kadastro krokisi nedir?<svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></div>
+          <div class="faq-row">Kadastro ile tapu farkı nedir?<svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></div>
+          <div class="faq-row" style="border-bottom:none;">Kadastro harcı/ücreti nedir?<svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></div>
+        </div>
+        <div style="margin-top:14px;text-align:center;">
+          <a href="#yorumlar" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#2563eb;cursor:pointer;text-decoration:none;">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"/></svg>
+            Topluluğa Sor →
+          </a>
+        </div>
+      </div>
+
+      <!-- Topluluk Katkıları -->
+      <div class="card" style="padding:20px 24px;margin-top:14px">
+        <div class="contrib-header">
+          <div class="section-header" style="margin-bottom:0">
+            <div class="section-icon">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            </div>
+            <div>
+              <div class="section-title">Topluluk Katkıları</div>
+              <div class="section-subtitle">Bu terime katkı sağlayan ve geliştirenler</div>
+            </div>
+          </div>
+          <a class="contrib-see-all">Tümünü Gör →</a>
+        </div>
+
+        <div class="contrib-row">
+          <div class="contrib-person">
+            <div class="contrib-avatar" style="background:#0b1829">AY<span class="star">★</span></div>
+            <div class="contrib-name">Ahmet Yılmaz</div>
+            <div class="contrib-role">Harita Mühendisi</div>
+            <div class="contrib-action edit">Tanımı düzenledi</div>
+            <div class="contrib-date">21 Mayıs 2024</div>
+          </div>
+          <div class="contrib-person">
+            <div class="contrib-avatar" style="background:#1a3a5c">AD</div>
+            <div class="contrib-name">Ayşe Demir</div>
+            <div class="contrib-role">Harita Teknikeri</div>
+            <div class="contrib-action add">Örnek ekledi</div>
+            <div class="contrib-date">19 Mayıs 2024</div>
+          </div>
+          <div class="contrib-person">
+            <div class="contrib-avatar" style="background:#223355">MK</div>
+            <div class="contrib-name">Mehmet Kaya</div>
+            <div class="contrib-role">Jeodezi Müh.</div>
+            <div class="contrib-action source">Kaynak önerdi</div>
+            <div class="contrib-date">18 Mayıs 2024</div>
+          </div>
+          <div class="contrib-person">
+            <div class="contrib-avatar" style="background:#1e3a5c">EK</div>
+            <div class="contrib-name">Elif Karahan</div>
+            <div class="contrib-role">Harita Mühendisi</div>
+            <div class="contrib-action note">Meslek notu ekledi</div>
+            <div class="contrib-date">17 Mayıs 2024</div>
+          </div>
+          <div class="contrib-more-col">
+            <div class="contrib-more-num">+6</div>
+            <div class="contrib-more-label">Diğer Katkıcılar</div>
+            <div class="contrib-more-link">Tümünü Gör →</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kaynaklar -->
+      <div class="card" style="padding:20px 24px;margin-top:14px">
+        <div class="section-header">
+          <div class="section-icon">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          </div>
+          <div>
+            <div class="section-title">Kaynaklar</div>
+            <div class="section-subtitle">Bu terimle ilgili güvenilir yorunaklar</div>
+          </div>
+        </div>
+        <div class="source-list">
+          <div class="source-item">
+            <div class="source-pdf-icon">PDF</div>
+            <div class="source-info">
+              <div class="source-title">Kadastro Kanunu</div>
+              <div class="source-meta">Resmi Gazete — 21.06.1987</div>
+            </div>
+            <span class="source-size">1.2 MB</span>
+            <div class="source-actions">
+              <a class="source-view">Görüntüle <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg></a>
+              <div class="source-dl"><svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg></div>
+            </div>
+          </div>
+          <div class="source-item">
+            <div class="source-pdf-icon">PDF</div>
+            <div class="source-info">
+              <div class="source-title">HKMO — Teknik Rehber</div>
+              <div class="source-meta">Harita Müh. Odası, 2021</div>
+            </div>
+            <span class="source-size">2.4 MB</span>
+            <div class="source-actions">
+              <a class="source-view">Görüntüle <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg></a>
+              <div class="source-dl"><svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg></div>
+            </div>
+          </div>
+          <div class="source-item">
+            <div class="source-pdf-icon">PDF</div>
+            <div class="source-info">
+              <div class="source-title">TKGM — Kadastro Kılavuzu</div>
+              <div class="source-meta">Teknik Doküman, 2023</div>
+            </div>
+            <span class="source-size">3.1 MB</span>
+            <div class="source-actions">
+              <a class="source-view">Görüntüle <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg></a>
+              <div class="source-dl"><svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg></div>
+            </div>
+          </div>
+        </div>
+        <a class="source-more">Tüm Kaynakları Gör →</a>
+      </div>
+
+      <!-- Yorumlar -->
+      <div class="card" style="padding:20px 24px;margin-top:14px">
+        <div class="section-header">
+          <div class="section-icon">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+          </div>
+          <div>
+            <div class="section-title">Yorumlar</div>
+            <div class="section-subtitle">Topluluk üyelerinin yorumları</div>
+          </div>
+        </div>
+        <div class="comments-empty">
+          <div class="comments-empty-icon">💬</div>
+          <p>Henüz yorum yok. İlk yorumu siz yapın!</p>
+          <button class="btn-comment">Yorum Yap</button>
+        </div>
+      </div>
+
+    </div><!-- /main column -->
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+
+      <!-- Bilgi Haritası -->
+      <div class="card kg-card">
+        <div class="sb-head">
+          <div class="sb-head-row">
+            <svg class="sb-head-icon" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v2m0 14v2M3 12h2m14 0h2m-4.22-6.364l-1.414 1.414M6.634 17.366l-1.414 1.414m0-12.728l1.414 1.414m10.732 10.732l1.414 1.414"/></svg>
+            <span class="sb-head-text">İlgili Terimler</span>
+          </div>
+          <div class="sb-head-line"></div>
+        </div>
+        <svg viewBox="0 0 260 230" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;margin:4px 0;">
+          <defs>
+            <filter id="ns" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#000" flood-opacity="0.07"/>
+            </filter>
+          </defs>
+          <!-- Lines — center (130,115) -->
+          <line x1="130" y1="115" x2="130" y2="40"  stroke="#e5e7eb" stroke-width="1.5"/>
+          <line x1="130" y1="115" x2="200" y2="68"  stroke="#e5e7eb" stroke-width="1.5"/>
+          <line x1="130" y1="115" x2="212" y2="130" stroke="#e5e7eb" stroke-width="1.5"/>
+          <line x1="130" y1="115" x2="168" y2="190" stroke="#e5e7eb" stroke-width="1.5"/>
+          <line x1="130" y1="115" x2="92"  y2="190" stroke="#e5e7eb" stroke-width="1.5"/>
+          <line x1="130" y1="115" x2="48"  y2="130" stroke="#e5e7eb" stroke-width="1.5"/>
+          <line x1="130" y1="115" x2="60"  y2="68"  stroke="#e5e7eb" stroke-width="1.5"/>
+          <!-- Outer nodes -->
+          <g cursor="pointer">
+            <rect x="103" y="28" width="54" height="24" rx="12" fill="white" stroke="#d1d5db" stroke-width="1.5" filter="url(#ns)"/>
+            <text x="130" y="44" text-anchor="middle" font-size="12" font-weight="600" fill="#374151" font-family="system-ui,-apple-system,sans-serif">Tapu</text>
+          </g>
+          <g cursor="pointer">
+            <rect x="170" y="56" width="60" height="24" rx="12" fill="white" stroke="#d1d5db" stroke-width="1.5" filter="url(#ns)"/>
+            <text x="200" y="72" text-anchor="middle" font-size="12" font-weight="600" fill="#374151" font-family="system-ui,-apple-system,sans-serif">Parsel</text>
+          </g>
+          <g cursor="pointer">
+            <rect x="183" y="118" width="58" height="24" rx="12" fill="white" stroke="#d1d5db" stroke-width="1.5" filter="url(#ns)"/>
+            <text x="212" y="134" text-anchor="middle" font-size="12" font-weight="600" fill="#374151" font-family="system-ui,-apple-system,sans-serif">Sınır</text>
+          </g>
+          <g cursor="pointer">
+            <rect x="140" y="178" width="56" height="24" rx="12" fill="white" stroke="#d1d5db" stroke-width="1.5" filter="url(#ns)"/>
+            <text x="168" y="194" text-anchor="middle" font-size="12" font-weight="600" fill="#374151" font-family="system-ui,-apple-system,sans-serif">TKGM</text>
+          </g>
+          <g cursor="pointer">
+            <rect x="64" y="178" width="56" height="24" rx="12" fill="white" stroke="#d1d5db" stroke-width="1.5" filter="url(#ns)"/>
+            <text x="92" y="194" text-anchor="middle" font-size="12" font-weight="600" fill="#374151" font-family="system-ui,-apple-system,sans-serif">İmar</text>
+          </g>
+          <g cursor="pointer">
+            <rect x="6" y="118" width="84" height="24" rx="12" fill="white" stroke="#d1d5db" stroke-width="1.5" filter="url(#ns)"/>
+            <text x="48" y="134" text-anchor="middle" font-size="12" font-weight="600" fill="#374151" font-family="system-ui,-apple-system,sans-serif">Aplikasyon</text>
+          </g>
+          <g cursor="pointer">
+            <rect x="30" y="56" width="60" height="24" rx="12" fill="white" stroke="#d1d5db" stroke-width="1.5" filter="url(#ns)"/>
+            <text x="60" y="72" text-anchor="middle" font-size="12" font-weight="600" fill="#374151" font-family="system-ui,-apple-system,sans-serif">Harita</text>
+          </g>
+          <!-- Center node -->
+          <rect x="88" y="101" width="84" height="28" rx="14" fill="#0b1829" filter="url(#ns)"/>
+          <text x="130" y="119" text-anchor="middle" font-size="13" font-weight="700" fill="white" font-family="system-ui,-apple-system,sans-serif">Kadastro</text>
+        </svg>
+        <a class="kg-more">Tüm ilişkileri gör →</a>
+      </div>
+
+      <!-- Katkı Ver CTA -->
+      <div class="katki-card">
+        <div class="sb-head">
+          <div class="sb-head-row">
+            <svg class="sb-head-icon" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            <span class="sb-head-text light">Bu Terime Katkı Ver</span>
+          </div>
+          <div class="sb-head-line"></div>
+        </div>
+        <div class="katki-sub">Bilginizi paylaşın, tanımı geliştirin</div>
+        <div class="katki-divider"></div>
+        <div class="katki-features">
+          <div class="katki-feature"><span class="katki-check">✓</span>Tanımı düzenleyebilirsiniz</div>
+          <div class="katki-feature"><span class="katki-check">✓</span>Örnek kullanım ekleyebilirsiniz</div>
+          <div class="katki-feature"><span class="katki-check">✓</span>Kaynak önerebilirsiniz</div>
+          <div class="katki-feature"><span class="katki-check">✓</span>Meslek notu paylaşabilirsiniz</div>
+        </div>
+        <button class="btn-katki">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          Katkı Yap
+        </button>
+        <div class="katki-guide">Katkı rehberini incele →</div>
+      </div>
+
+      <!-- Etiketler — kompakt -->
+      <div class="card" style="padding:14px 16px;">
+        <div class="sb-head">
+          <div class="sb-head-row">
+            <svg class="sb-head-icon" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+            <span class="sb-head-text">Etiketler</span>
+          </div>
+          <div class="sb-head-line"></div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+          <span class="tag">tapu</span>
+          <span class="tag">parsel</span>
+          <span class="tag">mülkiyet</span>
+          <span style="font-size:11px;font-weight:800;color:#6b7280;background:#f3f4f6;border:1px solid #e5e7eb;padding:3px 9px;border-radius:99px;cursor:pointer;">+5</span>
+        </div>
+      </div>
+
+      <!-- AI Sor -->
+      <div class="card" style="padding:16px;">
+        <div class="sb-head">
+          <div class="sb-head-row">
+            <svg class="sb-head-icon" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+            <span class="sb-head-text">Bu Terim Hakkında AI'ya Sor</span>
+          </div>
+          <div class="sb-head-line"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+          <div style="display:flex;align-items:center;gap:8px;background:#f9fafb;border:1px solid #e9eaec;border-radius:10px;padding:10px 12px;cursor:pointer;transition:all .15s;">
+            <svg width="15" height="15" fill="none" stroke="#9ca3af" viewBox="0 0 24 24" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01"/></svg>
+            <span style="font-size:12px;color:#374151;">Bu terimi basit bir örnekle açıkla</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;background:#f9fafb;border:1px solid #e9eaec;border-radius:10px;padding:10px 12px;cursor:pointer;">
+            <svg width="15" height="15" fill="none" stroke="#9ca3af" viewBox="0 0 24 24" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01"/></svg>
+            <span style="font-size:12px;color:#374151;">Pratikte kullanımı nasıldır?</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;background:#f9fafb;border:1px solid #e9eaec;border-radius:10px;padding:10px 12px;cursor:pointer;">
+            <svg width="15" height="15" fill="none" stroke="#9ca3af" viewBox="0 0 24 24" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01"/></svg>
+            <span style="font-size:12px;color:#374151;">Sıkça karıştırılan kavramlar nelerdir?</span>
+          </div>
+        </div>
+        <button style="width:100%;display:flex;align-items:center;justify-content:center;gap:7px;background:#fff;border:1.5px solid #e5e7eb;color:#0b1829;font-size:12px;font-weight:700;padding:10px;border-radius:11px;cursor:pointer;">
+          <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+          Kendi soruyu sor →
+        </button>
+      </div>
+
+      <!-- Topluluğa Katıl -->
+      <div style="background:#fff;border-radius:18px;padding:18px;border:1px solid #e9eaec;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+
+
+        <div class="sb-head">
+          <div class="sb-head-row">
+            <svg class="sb-head-icon" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <span class="sb-head-text light">Topluluğa Katıl</span>
+          </div>
+          <div class="sb-head-line"></div>
+        </div>
+
+        <!-- Üye avatarları + sayı -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <div style="display:flex;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#0b1829;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#F59E0B;">AY</div>
+            <div style="width:28px;height:28px;border-radius:50%;background:#26496b;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;margin-left:-8px;">MK</div>
+            <div style="width:28px;height:28px;border-radius:50%;background:#1a3550;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#6ee7b7;margin-left:-8px;">EK</div>
+            <div style="width:28px;height:28px;border-radius:50%;background:#e5e7eb;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#6b7280;margin-left:-8px;">+</div>
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:800;color:#0b1829;">1.254 haritacı</div>
+            <div style="font-size:10px;color:#374151;">bu hafta 12 yeni üye katıldı</div>
+          </div>
+        </div>
+
+        <div style="font-size:12px;color:#374151;margin-bottom:14px;">Öğren, sor, katkı ver — ücretsiz.</div>
+
+        <!-- Özellikler -->
+        <div style="display:flex;flex-direction:column;gap:0;border-top:1px solid #f3f4f6;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid #f3f4f6;">
+            <span style="font-size:13px;">📚</span>
+            <span style="font-size:12px;color:#374151;">Sözlük ve içeriklere tam erişim</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid #f3f4f6;">
+            <span style="font-size:13px;">💬</span>
+            <span style="font-size:12px;color:#374151;">Soru sor, tartışmalara katıl</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:9px;padding:8px 0;">
+            <span style="font-size:13px;">🎯</span>
+            <span style="font-size:12px;color:#374151;">Sınav simülasyonu ve ilerleme takibi</span>
+          </div>
+        </div>
+
+        <!-- Buton -->
+        <button style="width:100%;background:#F59E0B;color:#0b1829;font-size:13px;font-weight:900;border:none;padding:11px;border-radius:11px;cursor:pointer;">
+          Ücretsiz Üye Ol →
+        </button>
+        <div style="text-align:center;margin-top:10px;font-size:12px;color:#374151;cursor:pointer;">Zaten üyeyim, giriş yap</div>
+      </div>
+
+      <!-- Tüm Sözlük -->
+      <div style="background:#fff;border-radius:16px;padding:18px;border:1px solid #e9eaec;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+        <div class="sb-head">
+          <div class="sb-head-row">
+            <svg class="sb-head-icon" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+            <span class="sb-head-text">Tüm Sözlük</span>
+          </div>
+          <div class="sb-head-line"></div>
+        </div>
+        <p style="font-size:12px;color:#374151;line-height:1.6;margin-bottom:14px;">1.254 terime, 38 kategoriye ve binlerce kaynağa göz atın.</p>
+        <button style="width:100%;display:flex;align-items:center;justify-content:center;gap:7px;background:#F59E0B;color:#0b1829;font-size:13px;font-weight:800;border:none;padding:10px;border-radius:11px;cursor:pointer;">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+          Sözlüğe Dön →
+        </button>
+      </div>
+
+    </div><!-- /sidebar -->
+  </div>
+</div>
+
+<!-- Footer CTA -->
+<div class="footer-cta">
+  <div class="footer-cta-inner">
+    <h2>Haritacılığa birlikte yön verelim</h2>
+    <p>Binlerce haritacıyla bilgi paylaşın, mesleği birlikte geliştirelim.</p>
+    <div class="footer-stats">
+      <div class="footer-stat-item">
+        <div class="footer-stat-num">1.254</div>
+        <div class="footer-stat-label">Terim</div>
+      </div>
+      <div class="footer-stat-item">
+        <div class="footer-stat-num">172</div>
+        <div class="footer-stat-label">Katkıcı</div>
+      </div>
+      <div class="footer-stat-item">
+        <div class="footer-stat-num">4.280</div>
+        <div class="footer-stat-label">Kaynak</div>
+      </div>
+      <div class="footer-stat-item">
+        <div class="footer-stat-num">38</div>
+        <div class="footer-stat-label">Kategori</div>
+      </div>
+    </div>
+    <div class="footer-actions">
+      <button class="btn-footer-primary">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        Topluluğa Katıl
+      </button>
+      <button class="btn-footer-secondary">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        Daha Fazlasını Keşfet
+      </button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

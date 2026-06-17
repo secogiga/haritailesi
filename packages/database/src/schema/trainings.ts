@@ -33,6 +33,8 @@ export const trainings = pgTable(
     startDate: timestamp('start_date', { withTimezone: true }),
     mutfakPostId: uuid('mutfak_post_id'),
     source: text('source'),
+    featuredOnSinavMerkezi: boolean('featured_on_sinav_merkezi').notNull().default(false),
+    sinavKey: text('sinav_key'), // kpss | gayrimenkul | iha — null = genel
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

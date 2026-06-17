@@ -212,8 +212,14 @@ export class CmsController {
 
   @Public()
   @Get('trainings')
-  listTrainings() {
-    return this.cmsService.listTrainings(true);
+  listTrainings(
+    @Query('sinavMerkezi') sinavMerkezi?: string,
+    @Query('sinavKey') sinavKey?: string,
+  ) {
+    return this.cmsService.listTrainings(true, {
+      sinavMerkezi: sinavMerkezi === 'true',
+      sinavKey: sinavKey || undefined,
+    });
   }
 
   @Public()

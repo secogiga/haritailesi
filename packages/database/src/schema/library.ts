@@ -101,6 +101,7 @@ export const libraryGuides = pgTable(
     authorUserId: uuid('author_user_id').references(() => users.id, { onDelete: 'set null' }),
     status: libraryStatusEnum('status').notNull().default('draft'),
     isFeatured: boolean('is_featured').notNull().default(false),
+    featuredOnSinavMerkezi: boolean('featured_on_sinav_merkezi').notNull().default(false),
     readingTimeMinutes: integer('reading_time_minutes'),
     viewCount: integer('view_count').notNull().default(0),
     publishedAt: timestamp('published_at', { withTimezone: true }),
@@ -140,6 +141,7 @@ export const libraryDocuments = pgTable(
     fileSizeBytes: integer('file_size_bytes'),
     status: libraryStatusEnum('status').notNull().default('draft'),
     isFeatured: boolean('is_featured').notNull().default(false),
+    featuredOnSinavMerkezi: boolean('featured_on_sinav_merkezi').notNull().default(false),
     downloadCount: integer('download_count').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -171,6 +173,7 @@ export const libraryRegulations = pgTable(
     externalUrl: text('external_url'),           // Resmî Gazete linki
     status: libraryStatusEnum('status').notNull().default('draft'),
     isFeatured: boolean('is_featured').notNull().default(false),
+    featuredOnSinavMerkezi: boolean('featured_on_sinav_merkezi').notNull().default(false),
     relatedRegulationIds: uuid('related_regulation_ids').array().notNull().default([]),
     relatedTermSlugs: text('related_term_slugs').array().notNull().default([]),
     metadata: jsonb('metadata').$type<Record<string, unknown>>(),

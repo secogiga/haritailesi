@@ -159,6 +159,9 @@ class UpdateGuideDto {
   @IsOptional() @IsBoolean()
   isFeatured?: boolean;
 
+  @IsOptional() @IsBoolean()
+  featuredOnSinavMerkezi?: boolean;
+
   @IsOptional() @IsInt() @Min(1) @Type(() => Number)
   readingTimeMinutes?: number;
 
@@ -237,6 +240,9 @@ class UpdateDocumentDto {
 
   @IsOptional() @IsBoolean()
   isFeatured?: boolean;
+
+  @IsOptional() @IsBoolean()
+  featuredOnSinavMerkezi?: boolean;
 
   @IsOptional() @IsString()
   sourceLevel?: string;
@@ -334,6 +340,9 @@ class UpdateRegulationDto {
   @IsOptional() @IsBoolean()
   isFeatured?: boolean;
 
+  @IsOptional() @IsBoolean()
+  featuredOnSinavMerkezi?: boolean;
+
   @IsOptional() @IsString()
   sourceLevel?: string;
 }
@@ -346,6 +355,44 @@ export class LibraryController {
     @InjectDb() private readonly db: Database,
     private readonly email: EmailService,
   ) {}
+
+  // ═══════════════════════════════════════════════════════════════
+  // SINAV MERKEZİ — öne çıkan kaynaklar (public)
+  // ═══════════════════════════════════════════════════════════════
+
+  @Get('sinav-merkezi/kaynaklar')
+  @Public()
+  async getSinavMerkeziKaynaklar() {
+    const [guides, documents, regulations] = await Promise.all([
+      this.db.select({
+        id: libraryGuides.id, slug: libraryGuides.slug, title: libraryGuides.title,
+        type: libraryGuides.type, status: libraryGuides.status,
+        readingTimeMinutes: libraryGuides.readingTimeMinutes,
+      }).from(libraryGuides)
+        .where(and(eq(libraryGuides.featuredOnSinavMerkezi, true), eq(libraryGuides.status, 'published')))
+        .limit(10),
+      this.db.select({
+        id: libraryDocuments.id, title: libraryDocuments.title,
+        type: libraryDocuments.type, status: libraryDocuments.status,
+        fileUrl: libraryDocuments.fileUrl, externalUrl: libraryDocuments.externalUrl,
+        publishYear: libraryDocuments.publishYear, authorName: libraryDocuments.authorName,
+      }).from(libraryDocuments)
+        .where(and(eq(libraryDocuments.featuredOnSinavMerkezi, true), eq(libraryDocuments.status, 'published')))
+        .limit(10),
+      this.db.select({
+        id: libraryRegulations.id, slug: libraryRegulations.slug, title: libraryRegulations.title,
+        type: libraryRegulations.type, status: libraryRegulations.status,
+        externalUrl: libraryRegulations.externalUrl, publishDate: libraryRegulations.publishDate,
+      }).from(libraryRegulations)
+        .where(and(eq(libraryRegulations.featuredOnSinavMerkezi, true), eq(libraryRegulations.status, 'published')))
+        .limit(10),
+    ]);
+    return [
+      ...guides.map(g => ({ ...g, source: 'guide' as const })),
+      ...documents.map(d => ({ ...d, source: 'document' as const })),
+      ...regulations.map(r => ({ ...r, source: 'regulation' as const })),
+    ];
+  }
 
   // ═══════════════════════════════════════════════════════════════
   // COUNTS (public)
@@ -788,6 +835,7 @@ export class LibraryController {
         publishedAt: dto.status === 'published' ? new Date() : undefined,
       } : {}),
       ...(dto.isFeatured !== undefined ? { isFeatured: dto.isFeatured } : {}),
+      ...(dto.featuredOnSinavMerkezi !== undefined ? { featuredOnSinavMerkezi: dto.featuredOnSinavMerkezi } : {}),
       ...(dto.readingTimeMinutes !== undefined ? { readingTimeMinutes: dto.readingTimeMinutes } : {}),
       ...(dto.level !== undefined ? { level: dto.level } : {}),
       ...(dto.sourceLevel !== undefined ? { sourceLevel: dto.sourceLevel } : {}),
@@ -885,6 +933,7 @@ export class LibraryController {
       ...(dto.externalUrl !== undefined ? { externalUrl: dto.externalUrl } : {}),
       ...(dto.status !== undefined ? { status: dto.status } : {}),
       ...(dto.isFeatured !== undefined ? { isFeatured: dto.isFeatured } : {}),
+      ...(dto.featuredOnSinavMerkezi !== undefined ? { featuredOnSinavMerkezi: dto.featuredOnSinavMerkezi } : {}),
       updatedAt: new Date(),
     }).where(eq(libraryDocuments.id, id)).returning();
     if (!updated) throw new NotFoundException();
@@ -1038,6 +1087,7 @@ export class LibraryController {
       ...(dto.externalUrl !== undefined ? { externalUrl: dto.externalUrl } : {}),
       ...(dto.status !== undefined ? { status: dto.status } : {}),
       ...(dto.isFeatured !== undefined ? { isFeatured: dto.isFeatured } : {}),
+      ...(dto.featuredOnSinavMerkezi !== undefined ? { featuredOnSinavMerkezi: dto.featuredOnSinavMerkezi } : {}),
       ...(dto.sourceLevel !== undefined ? { sourceLevel: dto.sourceLevel } : {}),
       updatedAt: new Date(),
     }).where(eq(libraryRegulations.id, id)).returning();

@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Meslek Atlası — Mockup</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f6f8; color: #1a1a2e; }
+  a { text-decoration: none; color: inherit; }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+  /* ── NAVBAR placeholder ── */
+  .navbar { background: #fff; border-bottom: 1px solid #e8e9ec; height: 56px; display: flex; align-items: center; }
+  .navbar .logo { font-size: 15px; font-weight: 900; color: #0b1829; }
+  .navbar .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #9ca3af; margin-left: 24px; }
+  .navbar .breadcrumb span { color: #6b7280; }
+  .navbar .breadcrumb .sep { color: #d1d5db; }
+
+  /* ── HERO ── */
+  .hero {
+    background: #0b1829;
+    position: relative;
+    overflow: hidden;
+    padding: 60px 0 0;
+  }
+  .hero-bg-map {
+    position: absolute;
+    top: 0; right: 0; bottom: 0;
+    left: 38%;
+    background-image: url('/dunya.jpg');
+    background-size: cover;
+    background-position: center;
+  }
+  .hero-bg-map-fade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, #0b1829 0%, #0b1829 6%, rgba(11,24,41,0.82) 42%, rgba(11,24,41,0.15) 100%);
+  }
+
+  .hero-inner {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 48px;
+    padding-bottom: 41px;
+  }
+  .hero-left { max-width: 520px; flex: 1; }
+
+  .hero-stats-panel {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: row;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 16px;
+    overflow: hidden;
+    backdrop-filter: blur(6px);
+  }
+  .hero-stat-item {
+    padding: 18px 26px;
+    border-right: 1px solid rgba(255,255,255,0.07);
+  }
+  .hero-stat-item:last-child { border-right: none; }
+  .hero-stat-num { font-size: 22px; font-weight: 900; color: #fff; letter-spacing: -0.5px; line-height: 1; }
+  .hero-stat-lbl { font-size: 11px; color: rgba(255,255,255,0.38); margin-top: 3px; font-weight: 500; letter-spacing: 0.02em; }
+
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.35);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .hero-title {
+    font-size: 52px;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1;
+    letter-spacing: -1.5px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .hero-title-icon {
+    width: 46px; height: 46px;
+    border-radius: 14px;
+    background: rgba(251,191,36,0.15);
+    border: 1px solid rgba(251,191,36,0.25);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+  .hero-subtitle {
+    font-size: 14px;
+    color: rgba(255,255,255,0.45);
+    line-height: 1.6;
+    max-width: 420px;
+    margin-bottom: 22px;
+  }
+
+  /* Stats row */
+  .hero-stats {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+  }
+  .stat-pill {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 16px;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    min-width: 90px;
+  }
+  .stat-pill .stat-value { font-size: 20px; font-weight: 900; color: #fff; line-height: 1.1; letter-spacing: -0.5px; }
+  .stat-pill .stat-label { font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.38); margin-top: 2px; }
+
+  /* Search */
+  .hero-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 480px;
+    margin-bottom: 16px;
+  }
+  .search-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 0 14px;
+    height: 46px;
+    gap: 10px;
+    backdrop-filter: blur(8px);
+  }
+  .search-wrap svg { opacity: 0.4; flex-shrink: 0; }
+  .search-wrap input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    font-size: 13px;
+    color: #fff;
+  }
+  .search-wrap input::placeholder { color: rgba(255,255,255,0.3); }
+  .search-btn {
+    width: 46px; height: 46px;
+    border-radius: 12px;
+    background: #16a34a;
+    border: none;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .search-btn:hover { background: #15803d; }
+
+  .popular-tags {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .popular-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.3);
+    font-weight: 600;
+    margin-right: 2px;
+  }
+  .pop-tag {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.6);
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 3px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .pop-tag:hover { background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.3); color: #F59E0B; }
+
+  /* Hero right — quote */
+  .hero-right {
+    padding-bottom: 40px;
+    padding-left: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+  .hero-quote {
+    position: relative;
+    padding-left: 20px;
+  }
+  .hero-quote-line {
+    position: absolute;
+    left: 0; top: 4px; bottom: 30px;
+    width: 3px;
+    background: #4ade80;
+    border-radius: 2px;
+    opacity: 0.7;
+  }
+  .hero-quote p {
+    font-size: 16px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.8);
+    line-height: 1.55;
+    font-style: italic;
+  }
+  .hero-quote-author {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .hero-quote-author .line { width: 22px; height: 1px; background: #4ade80; opacity: 0.4; }
+  .hero-quote-author span { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.3); letter-spacing: 0.06em; }
+
+  /* Hero bottom bar */
+  .hero-bottom-bar {
+    position: relative;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    margin-top: 8px;
+    padding: 14px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+  }
+  .cat-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.5);
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 5px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .cat-chip:hover { color: #F59E0B; border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.07); }
+  .cat-chip.active { color: #F59E0B; border-color: rgba(245,158,11,0.4); background: rgba(245,158,11,0.1); }
+  .cat-chip-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.7; }
+
+  /* ── SECTION BELOW HERO ── */
+  .section { padding: 40px 0; }
+  .section-sm { padding: 28px 0; }
+
+  /* ── CATEGORY CARDS ── */
+  .cat-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+  }
+  .cat-card {
+    background: #fff;
+    border: 1px solid #e8e9ec;
+    border-top: 3px solid #e8e9ec;
+    border-radius: 16px;
+    padding: 19px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  .cat-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.08); transform: translateY(-3px); }
+  .cat-card.c-green:hover  { border-color: #16a34a; border-top-color: #16a34a; background: #f0fdf4; }
+  .cat-card.c-blue:hover   { border-color: #2563eb; border-top-color: #2563eb; background: #eff6ff; }
+  .cat-card.c-purple:hover { border-color: #7c3aed; border-top-color: #7c3aed; background: #faf5ff; }
+  .cat-card.c-amber:hover  { border-color: #d97706; border-top-color: #d97706; background: #fffbeb; }
+  .cat-card.c-rose:hover   { border-color: #e11d48; border-top-color: #e11d48; background: #fff1f2; }
+  .cat-card.c-teal:hover   { border-color: #0d9488; border-top-color: #0d9488; background: #f0fdfa; }
+  .cat-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    margin-bottom: 4px;
+  }
+  .cat-title { font-size: 13px; font-weight: 800; color: #0b1829; line-height: 1.3; }
+  .cat-desc { font-size: 11px; color: #9ca3af; line-height: 1.4; flex: 1; }
+  .cat-arrow {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    margin-top: 6px;
+    align-self: flex-start;
+    transition: transform 0.15s;
+  }
+  .cat-card:hover .cat-arrow { transform: translateX(3px); }
+
+  /* ── FEATURED + TOP READ ── */
+  .two-col { display: grid; grid-template-columns: 58% 1fr; gap: 20px; align-items: stretch; }
+  .two-col > div { display: flex; flex-direction: column; }
+  .two-col > div .featured-card { flex: 1; }
+  .two-col > div .top-read-card { flex: 1; }
+
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #6b7280;
+    margin-bottom: 14px;
+  }
+  .section-label .dot { width: 6px; height: 6px; border-radius: 50%; }
+
+  /* Featured card */
+  .featured-card {
+    background: #fff;
+    border: 1px solid #e8e9ec;
+    border-radius: 18px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    min-height: 280px;
+  }
+  .featured-img {
+    width: 280px;
+    flex-shrink: 0;
+    background-image: url('/parsel.png');
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .featured-img-overlay { position: absolute; inset: 0; background: rgba(11,24,41,0.22); }
+  .featured-img-pin {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -65%);
+  }
+  .featured-img-lines { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .featured-badges { display: flex; gap: 6px; margin-bottom: 12px; }
+  .badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+  }
+  .badge-green { background: rgba(74,222,128,0.15); color: #4ade80; border-color: rgba(74,222,128,0.2); }
+  .badge-emerald { background: rgba(16,185,129,0.15); color: #10b981; border-color: rgba(16,185,129,0.2); }
+  .badge-blue { background: rgba(96,165,250,0.15); color: #60a5fa; border-color: rgba(96,165,250,0.2); }
+  .badge-amber { background: rgba(251,191,36,0.15); color: #fbbf24; border-color: rgba(251,191,36,0.2); }
+  .badge-rose { background: rgba(251,113,133,0.15); color: #fb7185; border-color: rgba(251,113,133,0.2); }
+  .badge-gray { background: #f3f4f6; color: #6b7280; }
+  .badge-gray-sm { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px; background: #f3f4f6; color: #6b7280; }
+
+  .featured-body { padding: 20px 24px; display: flex; flex-direction: column; justify-content: center; flex: 1; }
+  .featured-title { font-size: 17px; font-weight: 800; color: #0b1829; line-height: 1.35; margin-bottom: 8px; }
+  .featured-summary { font-size: 13px; color: #6b7280; line-height: 1.6; margin-bottom: 14px; }
+  .featured-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 11px;
+    color: #9ca3af;
+    margin-bottom: 16px;
+  }
+  .featured-meta span { display: flex; align-items: center; gap: 4px; }
+  .featured-actions { display: flex; align-items: center; gap: 8px; }
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 800;
+    color: #fff;
+    background: #166534;
+    border-radius: 10px;
+    padding: 9px 18px;
+    cursor: pointer;
+  }
+  .btn-ghost {
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    border: 1px solid #e8e9ec;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: #9ca3af;
+    font-size: 15px;
+  }
+
+  /* Top read */
+  .top-read-card {
+    background: #fff;
+    border: 1px solid #e8e9ec;
+    border-radius: 18px;
+    padding: 20px;
+  }
+  .top-read-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 14px;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .top-read-link { font-size: 11px; font-weight: 700; color: #16a34a; display: flex; align-items: center; gap: 4px; }
+  .top-read-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 11px 0;
+    border-bottom: 1px solid #f3f4f6;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .top-read-item:last-child { border-bottom: none; }
+  .top-read-item:hover .top-read-item-title { color: #16a34a; }
+  .rank {
+    width: 24px; height: 24px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .rank-1 { background: #fef3c7; color: #d97706; }
+  .rank-2 { background: #f3f4f6; color: #374151; }
+  .rank-3 { background: #fef3c7; color: #d97706; opacity: 0.7; }
+  .rank-n { background: #f9fafb; color: #9ca3af; }
+  .top-read-item-content { flex: 1; min-width: 0; }
+  .top-read-item-title { font-size: 12px; font-weight: 700; color: #1f2937; line-height: 1.4; margin-bottom: 3px; transition: color 0.15s; }
+  .top-read-item-meta { font-size: 10px; color: #9ca3af; }
+
+  /* ── CONTENT GRID ── */
+  .tab-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .tab {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 7px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+  }
+  .tab.active { background: #0b1829; color: #fff; }
+  .tab:not(.active) { color: #6b7280; background: #fff; border-color: #e8e9ec; }
+  .tab:not(.active):hover { border-color: #d1d5db; color: #374151; }
+  .tab-icon { font-size: 13px; margin-right: 2px; }
+  .tab-sort {
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+    background: #fff;
+    border: 1px solid #e8e9ec;
+    border-radius: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 5px;
+  }
+
+  .content-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .content-card {
+    background: #fff;
+    border: 1px solid #e8e9ec;
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.18s;
+    display: flex;
+    flex-direction: column;
+  }
+  .content-card:hover { border-color: #d1d5db; box-shadow: 0 4px 16px rgba(0,0,0,0.07); transform: translateY(-2px); }
+  .content-card-img {
+    height: 100px;
+    position: relative;
+    overflow: hidden;
+  }
+  .content-card-img-inner {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px;
+  }
+  .content-card-badges {
+    position: absolute;
+    top: 10px; left: 10px;
+    display: flex; gap: 4px;
+  }
+  .content-card-time {
+    position: absolute;
+    top: 10px; right: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #374151;
+    background: rgba(0,0,0,0.07);
+    padding: 2px 7px;
+    border-radius: 5px;
+  }
+  .content-card-bm {
+    position: absolute;
+    bottom: 8px; right: 8px;
+    width: 26px; height: 26px;
+    border-radius: 7px;
+    background: rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.07);
+    display: flex; align-items: center; justify-content: center;
+    color: #9ca3af;
+    font-size: 12px;
+  }
+  .content-card-body { padding: 12px; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .content-card-title { font-size: 12px; font-weight: 800; color: #0b1829; line-height: 1.4; }
+  .content-card-summary { font-size: 11px; color: #6b7280; line-height: 1.5; flex: 1; }
+  .content-card-tags {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .tag { font-size: 10px; color: #9ca3af; background: #f3f4f6; border-radius: 4px; padding: 2px 6px; }
+
+  .load-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #374151;
+    background: #fff;
+    border: 1px solid #e8e9ec;
+    border-radius: 12px;
+    padding: 12px 28px;
+    cursor: pointer;
+    margin: 0 auto;
+    transition: all 0.15s;
+  }
+  .load-more:hover { border-color: #d1d5db; background: #f9fafb; }
+
+  /* ── COLLECTIONS ── */
+  .collections-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .collections-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 900;
+    color: #0b1829;
+  }
+  .see-all { font-size: 12px; font-weight: 700; color: #16a34a; display: flex; align-items: center; gap: 4px; }
+
+  .collections-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+  }
+  .coll-card {
+    border-radius: 18px;
+    padding: 20px 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  .coll-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.10); }
+  .coll-icon {
+    font-size: 28px;
+    margin-bottom: 12px;
+    line-height: 1;
+  }
+  .coll-title { font-size: 13px; font-weight: 800; color: #0b1829; line-height: 1.35; margin-bottom: 6px; }
+  .coll-desc { font-size: 11px; color: #6b7280; line-height: 1.5; flex: 1; margin-bottom: 14px; }
+  .coll-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: auto;
+  }
+  .coll-count { font-size: 11px; color: #6b7280; display: flex; align-items: center; gap: 5px; font-weight: 600; }
+  .coll-arrow {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    color: #fff;
+    font-weight: 700;
+    transition: transform 0.15s;
+    flex-shrink: 0;
+  }
+  .coll-card:hover .coll-arrow { transform: translateX(3px); }
+
+  /* ── FOOTER CTA ── */
+  .footer-cta-wrap { padding: 32px 0 48px; }
+  .footer-cta {
+    background: #0b1829;
+    border-radius: 20px;
+    padding: 32px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+  .footer-cta h2 { font-size: 22px; font-weight: 900; color: #fff; line-height: 1.35; }
+  .footer-cta p { font-size: 13px; color: rgba(255,255,255,0.35); margin-top: 4px; }
+  .cta-btns { display: flex; gap: 10px; flex-shrink: 0; }
+  .cta-btn-ai {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 12px; font-weight: 700;
+    color: rgba(255,255,255,0.8);
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 10px 18px;
+  }
+  .cta-btn-join {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 900;
+    color: #0b1829;
+    background: #F59E0B;
+    border-radius: 12px;
+    padding: 10px 20px;
+  }
+
+  .divider { height: 1px; background: #e9eaec; }
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="container" style="display:flex;align-items:center;">
+    <span class="logo">haritailesi</span>
+    <div class="breadcrumb">
+      <span>Meslek Kütüphanesi</span>
+      <span class="sep">›</span>
+      <span style="color:#0b1829;font-weight:700;">Meslek Atlası</span>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-bg-map">
+    <div class="hero-bg-map-fade"></div>
+  </div>
+
+  <div class="container">
+    <div class="hero-inner">
+      <div class="hero-left">
+        <!-- Breadcrumb -->
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:rgba(255,255,255,0.3);margin-bottom:20px;">
+          <a href="#" style="color:rgba(255,255,255,0.3);">Meslek Kütüphanesi</a>
+          <span style="color:rgba(255,255,255,0.15);">›</span>
+          <span style="color:rgba(255,255,255,0.55);">Meslek Atlası</span>
+        </div>
+
+        <!-- Title -->
+        <h1 class="hero-title">
+          <span style="color:#F59E0B;">Meslek</span> Atlası
+        </h1>
+
+        <!-- Subtitle -->
+        <p class="hero-subtitle">
+          Harita mesleğinin saha, mevzuat, teknoloji ve kariyer rehberi.
+        </p>
+
+        <!-- Search -->
+        <div class="hero-search">
+          <div class="search-wrap">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" placeholder="Rehber, teknik not veya kariyer içeriği ara…" />
+          </div>
+          <button class="search-btn">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Stats Panel -->
+      <div class="hero-stats-panel">
+        <div class="hero-stat-item">
+          <div class="hero-stat-num">500+</div>
+          <div class="hero-stat-lbl">Rehber</div>
+        </div>
+        <div class="hero-stat-item">
+          <div class="hero-stat-num">120+</div>
+          <div class="hero-stat-lbl">Teknik Not</div>
+        </div>
+        <div class="hero-stat-item">
+          <div class="hero-stat-num">80+</div>
+          <div class="hero-stat-lbl">Kariyer</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CATEGORY CARDS -->
+<div style="background:#fff; border-bottom:1px solid #e8e9ec; padding:28px 0 32px;">
+  <div class="container">
+    <!-- Bölüm başlığı -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:3px;height:28px;background:#F59E0B;border-radius:2px;"></div>
+        <div>
+          <p style="font-size:10px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:#9ca3af;margin-bottom:2px;">Keşfet</p>
+          <h2 style="font-size:18px;font-weight:900;color:#0b1829;line-height:1;">Meslek Alanları</h2>
+        </div>
+      </div>
+      <a href="#" style="font-size:12px;font-weight:700;color:#6b7280;display:flex;align-items:center;gap:4px;">Tüm Alanlar →</a>
+    </div>
+
+    <div class="cat-grid">
+      <div class="cat-card c-green">
+        <div class="cat-icon" style="background:#f0fdf4;">🛰️</div>
+        <div class="cat-title">Sahada Uygulama</div>
+        <div class="cat-desc">Ölçüm, aplikasyon, saha çalışmaları</div>
+        <div class="cat-arrow" style="background:#f0fdf4; color:#16a34a;">→</div>
+      </div>
+      <div class="cat-card c-blue">
+        <div class="cat-icon" style="background:#eff6ff;">💻</div>
+        <div class="cat-title">CBS & Yazılım</div>
+        <div class="cat-desc">QGIS, veri analizi, programlama</div>
+        <div class="cat-arrow" style="background:#eff6ff; color:#2563eb;">→</div>
+      </div>
+      <div class="cat-card c-purple">
+        <div class="cat-icon" style="background:#faf5ff;">📷</div>
+        <div class="cat-title">İHA & Fotogrametri</div>
+        <div class="cat-desc">Drone, 3B modelleme, ortofoto üretimi</div>
+        <div class="cat-arrow" style="background:#faf5ff; color:#7c3aed;">→</div>
+      </div>
+      <div class="cat-card c-amber">
+        <div class="cat-icon" style="background:#fffbeb;">📋</div>
+        <div class="cat-title">Kadastro & Mevzuat</div>
+        <div class="cat-desc">Mevzuat, yönetmelik, yasal süreçler</div>
+        <div class="cat-arrow" style="background:#fffbeb; color:#d97706;">→</div>
+      </div>
+      <div class="cat-card c-rose">
+        <div class="cat-icon" style="background:#fff1f2;">🎯</div>
+        <div class="cat-title">Kariyer & Büro</div>
+        <div class="cat-desc">Kariyer yolları, serbest büro, iş yönetimi</div>
+        <div class="cat-arrow" style="background:#fff1f2; color:#e11d48;">→</div>
+      </div>
+      <div class="cat-card c-teal">
+        <div class="cat-icon" style="background:#f0fdfa;">📊</div>
+        <div class="cat-title">Veri & Analiz</div>
+        <div class="cat-desc">Veri toplama, analiz, raporlama</div>
+        <div class="cat-arrow" style="background:#f0fdfa; color:#0d9488;">→</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURED + TOP READ -->
+<div class="section">
+  <div class="container">
+    <div class="two-col">
+      <!-- Featured -->
+      <div>
+        <div class="section-label">
+          <span style="font-size:14px;">⭐</span>
+          ÖNE ÇIKAN REHBER
+        </div>
+        <div class="featured-card">
+          <div class="featured-img">
+            <div class="featured-img-overlay"></div>
+            <!-- Beyaz pin -->
+            <div class="featured-img-pin">
+              <svg width="36" height="44" viewBox="0 0 36 44" fill="none" xmlns="http://www.w3.org/2000/svg" filter="drop-shadow(0 3px 8px rgba(0,0,0,0.45))">
+                <path d="M18 0C8.06 0 0 8.06 0 18c0 13.5 18 26 18 26s18-12.5 18-26C36 8.06 27.94 0 18 0z" fill="white"/>
+                <circle cx="18" cy="18" r="7" fill="#166534"/>
+              </svg>
+            </div>
+          </div>
+          <div class="featured-body">
+            <div class="featured-badges">
+              <span class="badge" style="background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;">Rehber</span>
+              <span class="badge" style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;">Kadastro</span>
+            </div>
+            <div class="featured-title">Parsel Aplikasyonu: Süreci ve Dikkat Edilecekler</div>
+            <div class="featured-summary">Tapu tescilli parselin arazide yer belirleme süreci; evrak, yöntem ve yasal çerçeve ile uygulama adımları.</div>
+            <div class="featured-meta">
+              <span>⏱ 8 dk okuma</span>
+              <span>🔵 Başlangıç</span>
+              <span>📋 Adım adım rehber</span>
+            </div>
+            <div class="featured-actions">
+              <a href="#" class="btn-primary">Hemen Oku →</a>
+              <div class="btn-ghost">🔖</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Read -->
+      <div>
+        <div class="top-read-header" style="margin-bottom:14px;">
+          <div class="section-label" style="margin-bottom:0;">
+            <span style="font-size:14px;">🔥</span>
+            BUGÜN EN ÇOK OKUNANLAR
+          </div>
+          <a href="#" class="top-read-link">Tümünü Gör →</a>
+        </div>
+        <div class="top-read-card">
+          <div class="top-read-item">
+            <div class="rank rank-1">1</div>
+            <div class="top-read-item-content">
+              <div class="top-read-item-title">Serbest Harita Mühendisi: Büro Kurmak İçin Ne Gerekli?</div>
+              <div class="top-read-item-meta">10 dk okuma</div>
+            </div>
+          </div>
+          <div class="top-read-item">
+            <div class="rank rank-2">2</div>
+            <div class="top-read-item-content">
+              <div class="top-read-item-title">QGIS'e Başlangıç: İlk CBS Projeniz</div>
+              <div class="top-read-item-meta">10 dk okuma</div>
+            </div>
+          </div>
+          <div class="top-read-item">
+            <div class="rank rank-3">3</div>
+            <div class="top-read-item-content">
+              <div class="top-read-item-title">Doğru Koordinat Sistemi Seçmek: TUREF, ED50 ve WGS84</div>
+              <div class="top-read-item-meta">8 dk okuma</div>
+            </div>
+          </div>
+          <div class="top-read-item">
+            <div class="rank rank-n">4</div>
+            <div class="top-read-item-content">
+              <div class="top-read-item-title">İmar Uygulaması (18. Madde) Adım Adım</div>
+              <div class="top-read-item-meta">11 dk okuma</div>
+            </div>
+          </div>
+          <div class="top-read-item">
+            <div class="rank rank-n">5</div>
+            <div class="top-read-item-content">
+              <div class="top-read-item-title">PostGIS ile Mekansal Veritabanı Kullanımı</div>
+              <div class="top-read-item-meta">14 dk okuma</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTENT GRID -->
+<div class="section-sm" style="padding-top:0;">
+  <div class="container">
+
+    <div class="tab-row">
+      <div class="tab active"><span class="tab-icon">📚</span> Tümü</div>
+      <div class="tab">📖 Rehberler</div>
+      <div class="tab">🔧 Teknik Notlar</div>
+      <div class="tab">🗺️ Kariyer Yolları</div>
+      <div class="tab">⚖️ Mevzuat İçerikleri</div>
+      <div class="tab">🟢 Başlangıç İçerikleri</div>
+      <div class="tab-sort">En Yeni ▾</div>
+    </div>
+
+    <div class="content-grid">
+      <!-- Card 1 -->
+      <div class="content-card">
+        <div class="content-card-img" style="background:#f0fdf4;">
+          <div class="content-card-img-inner">🚁</div>
+          <div class="content-card-badges">
+            <span class="badge" style="background:#dcfce7;color:#15803d;border-color:#bbf7d0;font-size:9px;padding:2px 7px;font-weight:700;">Rehber</span>
+          </div>
+          <div class="content-card-time">12 dk</div>
+        </div>
+        <div class="content-card-body">
+          <div class="content-card-title">Fotogrametri ile 3B Model Üretimi: Drone'dan Noktacıya</div>
+          <div class="content-card-summary">İHA/drone ile veri toplama, SfM işlemi ve yüksek çözünürlüklü 3B model üretiminin tüm adımları.</div>
+          <div class="content-card-tags">
+            <span class="tag">drone</span><span class="tag">sfm</span><span class="tag">3b model</span>
+          </div>
+        </div>
+      </div>
+      <!-- Card 2 -->
+      <div class="content-card">
+        <div class="content-card-img" style="background:#eff6ff;">
+          <div class="content-card-img-inner" style="font-size:26px;font-weight:900;color:#2563eb;">QGIS</div>
+          <div class="content-card-badges">
+            <span class="badge" style="background:#dbeafe;color:#1d4ed8;border-color:#bfdbfe;font-size:9px;padding:2px 7px;font-weight:700;">Teknik Not</span>
+          </div>
+          <div class="content-card-time">10 dk</div>
+        </div>
+        <div class="content-card-body">
+          <div class="content-card-title">QGIS'e Başlangıç: İlk CBS Projeniz</div>
+          <div class="content-card-summary">QGIS kurulumu, veri ekleme, basit analiz ve harita üretimi adım adım öğrenin.</div>
+          <div class="content-card-tags">
+            <span class="tag">QGIS</span><span class="tag">başlangıç</span><span class="tag">açık kaynak</span>
+          </div>
+        </div>
+      </div>
+      <!-- Card 3 -->
+      <div class="content-card">
+        <div class="content-card-img" style="background:#fff1f2;">
+          <div class="content-card-img-inner">🏢</div>
+          <div class="content-card-badges">
+            <span class="badge" style="background:#ffe4e6;color:#be123c;border-color:#fecdd3;font-size:9px;padding:2px 7px;font-weight:700;">Kariyer</span>
+          </div>
+          <div class="content-card-time">10 dk</div>
+        </div>
+        <div class="content-card-body">
+          <div class="content-card-title">Serbest Harita Mühendisi: Büro Kurmak İçin Ne Gerekli?</div>
+          <div class="content-card-summary">HKMO büro tescili, sigorta, vergi ve mesleki yükümlülükleri kapsayan kapsamlı rehber.</div>
+          <div class="content-card-tags">
+            <span class="tag">serbest büro</span><span class="tag">HKMO</span><span class="tag">tescil</span>
+          </div>
+        </div>
+      </div>
+      <!-- Card 4 -->
+      <div class="content-card">
+        <div class="content-card-img" style="background:#fffbeb;">
+          <div class="content-card-img-inner">🌐</div>
+          <div class="content-card-badges">
+            <span class="badge" style="background:#fef3c7;color:#b45309;border-color:#fde68a;font-size:9px;padding:2px 7px;font-weight:700;">Teknik Not</span>
+          </div>
+          <div class="content-card-time">8 dk</div>
+        </div>
+        <div class="content-card-body">
+          <div class="content-card-title">Doğru Koordinat Sistemi Seçmek: TUREF, ED50 ve WGS84</div>
+          <div class="content-card-summary">Türkiye'de kullanılan koordinat sistemlerinin karşılaştırması ve proje için doğru seçim.</div>
+          <div class="content-card-tags">
+            <span class="tag">koordinat sistemi</span><span class="tag">TUREF</span><span class="tag">ED50</span>
+          </div>
+        </div>
+      </div>
+      <!-- Card 5 -->
+      <div class="content-card">
+        <div class="content-card-img" style="background:#faf5ff;">
+          <div class="content-card-img-inner">⚖️</div>
+          <div class="content-card-badges">
+            <span class="badge" style="background:#f3e8ff;color:#7e22ce;border-color:#e9d5ff;font-size:9px;padding:2px 7px;font-weight:700;">Rehber</span>
+          </div>
+          <div class="content-card-time">9 dk</div>
+        </div>
+        <div class="content-card-body">
+          <div class="content-card-title">İHA Operasyonu: SHT-İHA Mevzuatı ve Lisans Süreci</div>
+          <div class="content-card-summary">Türkiye'de insansız hava araçlarının haritacılık amaçlı kullanımı için yasal gereklilikler.</div>
+          <div class="content-card-tags">
+            <span class="tag">İHA</span><span class="tag">SHT-İHA</span><span class="tag">lisans</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="load-more">
+      Daha Fazla İçerik Yükle &nbsp;↻
+    </button>
+  </div>
+</div>
+
+<!-- COLLECTIONS -->
+<div class="section" style="padding-top:0px;">
+  <div class="container">
+    <div class="collections-header">
+      <div class="collections-title">
+        <span style="width:22px;height:22px;background:#f0fdf4;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;">🗂️</span>
+        KOLEKSİYONLAR
+      </div>
+      <a href="#" class="see-all">Tüm Koleksiyonlar →</a>
+    </div>
+
+    <div class="collections-grid">
+      <div class="coll-card" style="background:#f0fdf4;">
+        <div class="coll-icon">🎒</div>
+        <div class="coll-title">Yeni Mezun İçin Başlangıç Seti</div>
+        <div class="coll-desc">Haritacılık kariyerine yeni başlayanlar için temel rehberler.</div>
+        <div class="coll-footer">
+          <div class="coll-count">📚 12 içerik</div>
+          <div class="coll-arrow" style="background:#16a34a;">→</div>
+        </div>
+      </div>
+      <div class="coll-card" style="background:#fefce8;">
+        <div class="coll-icon">💼</div>
+        <div class="coll-title">Serbest Büro Açma Paketi</div>
+        <div class="coll-desc">Büro açma süreci, mevzuat, iş yönetimi ve uygulama rehberleri.</div>
+        <div class="coll-footer">
+          <div class="coll-count">📚 15 içerik</div>
+          <div class="coll-arrow" style="background:#ca8a04;">→</div>
+        </div>
+      </div>
+      <div class="coll-card" style="background:#eff6ff;">
+        <div class="coll-icon">🖥️</div>
+        <div class="coll-title">CBS Öğrenme Yolu</div>
+        <div class="coll-desc">QGIS'ten ileri analize, veri yönetiminden görselleştirmeye.</div>
+        <div class="coll-footer">
+          <div class="coll-count">📚 18 içerik</div>
+          <div class="coll-arrow" style="background:#2563eb;">→</div>
+        </div>
+      </div>
+      <div class="coll-card" style="background:#fff7ed;">
+        <div class="coll-icon">📐</div>
+        <div class="coll-title">Saha Ölçümü Temel Seti</div>
+        <div class="coll-desc">Saha çalışmaları, ölçüm teknikleri ve uygulama rehberleri.</div>
+        <div class="coll-footer">
+          <div class="coll-count">📚 14 içerik</div>
+          <div class="coll-arrow" style="background:#ea580c;">→</div>
+        </div>
+      </div>
+      <div class="coll-card" style="background:#fdf4ff;">
+        <div class="coll-icon">🚁</div>
+        <div class="coll-title">İHA & 3B Modelleme Rehber Seti</div>
+        <div class="coll-desc">Drone uçuşu, veri işleme ve 3B model üretimi adımları.</div>
+        <div class="coll-footer">
+          <div class="coll-count">📚 16 içerik</div>
+          <div class="coll-arrow" style="background:#c026d3;">→</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- FOOTER CTA -->
+<div class="footer-cta-wrap">
+  <div class="container">
+    <div class="footer-cta">
+      <div>
+        <h2>Mesleğimizin yaşayan<br>en büyük bilgi platformu</h2>
+        <p>Katkıda bulun, soru sor, içerik üret.</p>
+      </div>
+      <div class="cta-btns">
+        <a href="#" class="cta-btn-ai">🤖 AI Asistan</a>
+        <a href="#" class="cta-btn-join">Üye Ol →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

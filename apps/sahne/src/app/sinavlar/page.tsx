@@ -7,7 +7,7 @@ export default function SinavlarPage() {
     <>
       <Navbar />
       <PageActionTracker actionId="v-sinavlar" />
-      <SinavlarPageContent mode="module" />
+      <SinavlarPageContent />
     </>
   );
 }

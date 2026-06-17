@@ -5,7 +5,7 @@ export default function KutuphaneSinavlarPage() {
   return (
     <>
       <Navbar />
-      <SinavlarPageContent mode="library" />
+      <SinavlarPageContent />
     </>
   );
 }

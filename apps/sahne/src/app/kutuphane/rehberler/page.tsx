@@ -343,7 +343,7 @@ export default function RehberlerPage() {
                 </h1>
 
                 <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.6, maxWidth: '420px', marginBottom: '22px' }}>
-                  Harita mesleğinin saha, mevzuat, teknoloji ve kariyer rehberi.
+                  Mesleğimizin saha, teknoloji, başlangıç ve kariyer rehberi.
                 </p>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', maxWidth: '480px' }}>

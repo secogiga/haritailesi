@@ -1,651 +1,471 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useSahneAuth } from '@/contexts/SahneAuthContext';
-
-const API = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000';
+import KoclukModal from './KoclukModal';
+import KaynakTalepModal from './KaynakTalepModal';
+import { cms, type Training, type SinavMerkeziKaynak } from '@/lib/api';
 
 const EXAMS = [
   {
     key: 'kpss',
-    emoji: '🏛️',
-    label: 'KPSS',
-    fullLabel: 'Kamu Personel Seçme Sınavı',
-    color: 'from-blue-600 to-blue-800',
-    cardBg: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
-    activeBg: 'bg-blue-600',
-    badge: 'bg-blue-100 text-blue-700',
-    desc: 'Harita, Haritacılık ve Coğrafya Bilgi Sistemleri alanında kamu istihdamı sınavı.',
+    emoji: '🏛',
+    label: 'Kamu Personeli Seçme Sınavı (KPSS)',
+    desc: 'Kamu Personeli Seçme Sınavı hazırlık sürecinize dair tüm içerikler.',
+    headBg: 'bg-blue-50',
+    headBorder: 'border-blue-100',
+    iconBg: 'bg-blue-200',
+    titleColor: 'text-blue-900',
+    counts: { tuyor: 2, tarih: 3, kaynak: 12, egitim: 5 },
   },
   {
-    key: 'deger',
-    emoji: '🏠',
-    label: 'Gayrimenkul Değerleme',
-    fullLabel: 'Gayrimenkul Değerleme Uzmanlığı Sınavı',
-    color: 'from-amber-500 to-amber-700',
-    cardBg: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800',
-    activeBg: 'bg-amber-600',
-    badge: 'bg-amber-100 text-amber-700',
-    desc: 'SPK lisanslı gayrimenkul değerleme uzmanlığı yetki belgesi sınavı.',
-  },
-  {
-    key: 'cbs',
-    emoji: '🗺️',
-    label: 'CBS Uzmanı',
-    fullLabel: 'Coğrafi Bilgi Sistemleri Uzmanı Sınavı',
-    color: 'from-teal-500 to-teal-700',
-    cardBg: 'bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800',
-    activeBg: 'bg-teal-600',
-    badge: 'bg-teal-100 text-teal-700',
-    desc: 'CBS/GIS uzmanı sertifikasyonu için ulusal yetkinlik sınavı.',
+    key: 'gayrimenkul',
+    emoji: '🏘',
+    label: 'SPL Gayrimenkul Değerleme Lisans Sınavı',
+    desc: 'Gayrimenkul değerleme lisans sınavına hazırlık sürecinize dair tüm içerikler.',
+    headBg: 'bg-emerald-50',
+    headBorder: 'border-emerald-100',
+    iconBg: 'bg-emerald-200',
+    titleColor: 'text-emerald-900',
+    counts: { tuyor: 2, tarih: 4, kaynak: 15, egitim: 6 },
   },
   {
     key: 'iha',
     emoji: '🚁',
-    label: 'İHA Sertifikası',
-    fullLabel: 'İnsansız Hava Aracı Sertifika Sınavı',
-    color: 'from-purple-500 to-purple-700',
-    cardBg: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800',
-    activeBg: 'bg-purple-600',
-    badge: 'bg-purple-100 text-purple-700',
-    desc: 'SHT-İHA kapsamında lisanslı pilot ve operatör sertifika sınavları.',
+    label: 'İHA Pilot Eğitimleri',
+    desc: 'İnsansız Hava Aracı (İHA) pilot eğitimleri için ihtiyacınız olan tüm içerikler.',
+    headBg: 'bg-violet-50',
+    headBorder: 'border-violet-100',
+    iconBg: 'bg-violet-200',
+    titleColor: 'text-violet-900',
+    counts: { tuyor: 2, tarih: 5, kaynak: 10, egitim: 4 },
   },
 ];
 
-interface ExamResource {
-  id: string;
-  examKey: string;
-  resourceType: string;
-  title: string;
-  content: string | null;
-  resourceUrl: string | null;
-  eventDate: string | null;
-  isPublished: boolean;
-  sortOrder: number;
+function kaynak2ui(k: SinavMerkeziKaynak): { badge: string; badgeColor: string; icon: string; meta: string } {
+  if (k.source === 'guide') {
+    return { badge: 'Rehber', badgeColor: 'bg-emerald-100 text-emerald-700', icon: '📖', meta: 'Rehber' };
+  }
+  if (k.source === 'regulation') {
+    return { badge: 'Mevzuat', badgeColor: 'bg-orange-100 text-orange-700', icon: '⚖️', meta: 'Mevzuat' + (k.publishDate ? ` · ${k.publishDate.slice(0, 4)}` : '') };
+  }
+  // document
+  const typeMap: Record<string, { badge: string; badgeColor: string; icon: string }> = {
+    pdf: { badge: 'PDF', badgeColor: 'bg-red-100 text-red-600', icon: '📄' },
+    technical_spec: { badge: 'Teknik', badgeColor: 'bg-blue-100 text-blue-700', icon: '📋' },
+    academic: { badge: 'Akademik', badgeColor: 'bg-violet-100 text-violet-700', icon: '🎓' },
+    report: { badge: 'Rapor', badgeColor: 'bg-amber-100 text-amber-700', icon: '📊' },
+    standard: { badge: 'Standart', badgeColor: 'bg-teal-100 text-teal-700', icon: '📏' },
+    guide_doc: { badge: 'Kılavuz', badgeColor: 'bg-indigo-100 text-indigo-700', icon: '📑' },
+  };
+  const t = typeMap[k.type] ?? { badge: 'Doküman', badgeColor: 'bg-gray-100 text-gray-600', icon: '📄' };
+  const meta = [t.badge, k.authorName, k.publishYear?.toString()].filter(Boolean).join(' · ');
+  return { ...t, meta };
 }
 
-interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  examType: string;
-  iconEmoji: string | null;
-  questionCount: number;
-}
 
-interface Question {
-  id: string;
-  questionText: string;
-  optionA: string;
-  optionB: string;
-  optionC: string;
-  optionD: string;
-  optionE: string | null;
-  difficulty: string;
-  source: string | null;
-}
+const TARIHLER = [
+  { day: '15', month: 'Ağu', event: 'Başvurular Son Gün', sub: '15 Ağustos 2026', badge: '⚠ Acil', badgeColor: 'bg-red-100 text-red-600' },
+  { day: '22', month: 'Eyl', event: 'KPSS Sınavı', sub: '22 Eylül 2026', badge: '98 gün', badgeColor: 'bg-amber-100 text-amber-700' },
+  { day: '10', month: 'Eki', event: 'Sonuçların Açıklanması', sub: '10 Ekim 2026', badge: '116 gün', badgeColor: 'bg-gray-100 text-gray-500' },
+];
 
-interface ExamResult {
-  questionId: string;
-  userAnswer: string;
-  correct: boolean;
-  correctOption: string;
-  explanation: string | null;
-  questionText: string;
-}
+const CATS = [
+  { icon: '💡', iconBg: 'bg-amber-50', label: 'Tüyolar', countKey: 'tuyor' as const, unit: 'içerik' },
+  { icon: '📅', iconBg: 'bg-blue-50', label: 'Kritik Tarihler', countKey: 'tarih' as const, unit: 'tarih' },
+  { icon: '📂', iconBg: 'bg-emerald-50', label: 'Kaynaklar', countKey: 'kaynak' as const, unit: 'kaynak' },
+  { icon: '🎓', iconBg: 'bg-violet-50', label: 'Eğitim & Koçluk', countKey: 'egitim' as const, unit: 'program' },
+];
 
-type ResourceSection = 'tip' | 'document' | 'date' | 'video';
-type PageTab = 'resources' | 'quiz';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
 
-const RESOURCE_META: Record<ResourceSection, { label: string; icon: string; emptyMsg: string }> = {
-  tip: { label: 'Tüyolar', icon: '💡', emptyMsg: 'Bu sınav için henüz tüyo eklenmedi.' },
-  document: { label: 'Dökümanlar', icon: '📄', emptyMsg: 'Bu sınav için henüz döküman yok.' },
-  date: { label: 'Kritik Tarihler', icon: '📅', emptyMsg: 'Yaklaşan kritik tarih bulunamadı.' },
-  video: { label: 'Videolar', icon: '🎬', emptyMsg: 'Bu sınav için henüz video eklenmedi.' },
-};
-
-const DIFFICULTY_COLORS: Record<string, string> = {
-  easy: 'text-green-600', medium: 'text-amber-600', hard: 'text-red-600',
-};
-const DIFFICULTY_LABELS: Record<string, string> = { easy: 'Kolay', medium: 'Orta', hard: 'Zor' };
-
-function TipCard({ res }: { res: ExamResource }) {
-  return (
-    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-2xl p-5">
-      <div className="flex items-start gap-3">
-        <span className="text-2xl shrink-0">💡</span>
-        <div>
-          <h3 className="font-semibold text-gray-900 dark:text-slate-100 mb-1">{res.title}</h3>
-          {res.content && <p className="text-sm text-gray-600 dark:text-slate-400 leading-relaxed">{res.content}</p>}
-          {res.resourceUrl && (
-            <a href={res.resourceUrl} target="_blank" rel="noreferrer" className="text-xs text-[#26496b] dark:text-blue-400 hover:underline mt-2 inline-block">
-              🔗 Kaynağa git →
-            </a>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DocumentCard({ res }: { res: ExamResource }) {
-  return (
-    <a
-      href={res.resourceUrl ?? '#'}
-      target={res.resourceUrl ? '_blank' : undefined}
-      rel="noreferrer"
-      className="flex items-center gap-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl p-4 hover:border-[#26496b]/30 hover:shadow-sm transition-all group"
-    >
-      <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center shrink-0 text-xl">📄</div>
-      <div className="flex-1 min-w-0">
-        <p className="font-semibold text-gray-900 dark:text-slate-100 group-hover:text-[#26496b] dark:group-hover:text-blue-400 transition-colors text-sm">{res.title}</p>
-        {res.content && <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5 line-clamp-1">{res.content}</p>}
-      </div>
-      {res.resourceUrl && (
-        <svg className="w-4 h-4 text-gray-400 group-hover:text-[#26496b] shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-        </svg>
-      )}
-    </a>
-  );
-}
-
-function DateCard({ res }: { res: ExamResource }) {
-  const eventDate = res.eventDate ? new Date(res.eventDate) : null;
-  const now = new Date();
-  const isPast = eventDate ? eventDate < now : false;
-  const daysUntil = eventDate ? Math.ceil((eventDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null;
-
-  return (
-    <div className={`flex items-start gap-4 rounded-2xl p-5 border ${isPast ? 'bg-gray-50 dark:bg-slate-900 border-gray-100 dark:border-slate-800 opacity-60' : 'bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800'}`}>
-      <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center shrink-0 text-center ${isPast ? 'bg-gray-200 dark:bg-slate-700' : 'bg-red-500'}`}>
-        {eventDate ? (
-          <>
-            <div className="text-xs font-bold text-white leading-none">{eventDate.toLocaleDateString('tr-TR', { month: 'short' }).toUpperCase()}</div>
-            <div className="text-lg font-bold text-white leading-tight">{eventDate.getDate()}</div>
-          </>
-        ) : (
-          <span className="text-xl">📅</span>
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap mb-0.5">
-          <h3 className="font-semibold text-gray-900 dark:text-slate-100 text-sm">{res.title}</h3>
-          {!isPast && daysUntil !== null && daysUntil <= 30 && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-red-500 text-white font-medium">
-              {daysUntil === 0 ? 'Bugün!' : `${daysUntil} gün`}
-            </span>
-          )}
-          {isPast && <span className="text-xs px-2 py-0.5 rounded-full bg-gray-300 dark:bg-slate-600 text-gray-600 dark:text-slate-300">Geçti</span>}
-        </div>
-        {res.content && <p className="text-xs text-gray-600 dark:text-slate-400">{res.content}</p>}
-        {eventDate && (
-          <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
-            {eventDate.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function VideoCard({ res }: { res: ExamResource }) {
-  return (
-    <a
-      href={res.resourceUrl ?? '#'}
-      target={res.resourceUrl ? '_blank' : undefined}
-      rel="noreferrer"
-      className="flex items-center gap-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl p-4 hover:border-purple-300 hover:shadow-sm transition-all group"
-    >
-      <div className="w-12 h-12 bg-purple-50 dark:bg-purple-900/30 rounded-xl flex items-center justify-center shrink-0 text-2xl">🎬</div>
-      <div className="flex-1 min-w-0">
-        <p className="font-semibold text-gray-900 dark:text-slate-100 text-sm group-hover:text-purple-700 transition-colors">{res.title}</p>
-        {res.content && <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5 line-clamp-1">{res.content}</p>}
-      </div>
-      {res.resourceUrl && (
-        <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center shrink-0 group-hover:bg-purple-600 transition-colors">
-          <svg className="w-3 h-3 text-purple-600 group-hover:text-white transition-colors" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M8 5v14l11-7z" />
-          </svg>
-        </div>
-      )}
-    </a>
-  );
-}
-
-interface Props {
-  mode?: 'module' | 'library';
-}
-
-export default function SinavlarPageContent({ mode = 'module' }: Props) {
-  const { user } = useSahneAuth();
-  const [selectedExamKey, setSelectedExamKey] = useState('kpss');
-  const [pageTab, setPageTab] = useState<PageTab>('resources');
-  const [resSection, setResSection] = useState<ResourceSection>('tip');
-
-  const [resources, setResources] = useState<ExamResource[]>([]);
-  const [resLoading, setResLoading] = useState(false);
-
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [quizPhase, setQuizPhase] = useState<'list' | 'exam' | 'result'>('list');
-  const [selectedCat, setSelectedCat] = useState<Category | null>(null);
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [currentIdx, setCurrentIdx] = useState(0);
-  const [startTime, setStartTime] = useState<number>(0);
-  const [results, setResults] = useState<ExamResult[]>([]);
-  const [score, setScore] = useState(0);
-  const [submitting, setSubmitting] = useState(false);
-  const [quizLoading, setQuizLoading] = useState(false);
-  const [timeLeft, setTimeLeft] = useState<number | null>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const selectedExam = EXAMS.find(e => e.key === selectedExamKey) ?? EXAMS[0]!;
+export default function SinavlarPageContent() {
+  const [videolar, setVideolar] = useState<Training[]>([]);
+  const [kaynaklar, setKaynaklar] = useState<SinavMerkeziKaynak[]>([]);
+  const [talepSinav, setTalepSinav] = useState('KPSS');
+  const [talepKaynak, setTalepKaynak] = useState('');
+  const [talepModalOpen, setTalepModalOpen] = useState(false);
 
   useEffect(() => {
-    setResLoading(true);
-    fetch(`${API}/api/v1/cms/exam-resources?exam=${selectedExamKey}`)
-      .then(r => r.json() as Promise<ExamResource[]>)
-      .then(data => setResources(Array.isArray(data) ? data : []))
-      .catch(() => setResources([]))
-      .finally(() => setResLoading(false));
-  }, [selectedExamKey]);
-
-  useEffect(() => {
-    fetch(`${API}/api/v1/exams/categories`)
-      .then(r => r.json() as Promise<Category[]>)
-      .then(data => setCategories(Array.isArray(data) ? data : []))
-      .catch(() => {});
+    cms.trainings({ sinavMerkezi: true }).then(async featured => {
+      if (featured.length > 0) {
+        setVideolar(featured.slice(0, 3));
+      } else {
+        const all = await cms.trainings();
+        setVideolar(all.slice(0, 3));
+      }
+    });
+    cms.sinavMerkeziKaynaklar().then(setKaynaklar);
   }, []);
+  const [koclukOpen, setKoclukOpen] = useState(false);
 
-  const filtered = resources.filter(r => r.resourceType === resSection);
-
-  const allCats = categories;
-
-  // ── Countdown timer ──────────────────────────────────────────────
-  const submitExamRef = useRef<(() => Promise<void>) | null>(null);
-
-  useEffect(() => {
-    if (quizPhase !== 'exam' || questions.length === 0) {
-      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-      setTimeLeft(null);
-      return;
-    }
-    const totalSecs = questions.length * 90;
-    setTimeLeft(totalSecs);
-    timerRef.current = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev === null || prev <= 1) {
-          if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-          // auto-submit via ref to avoid stale closure
-          void submitExamRef.current?.();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } };
-  }, [quizPhase, questions.length]);
-
-  const startExam = useCallback(async (cat: Category) => {
-    setQuizLoading(true);
-    try {
-      const res = await fetch(`${API}/api/v1/exams/categories/${cat.slug}/questions?count=20`);
-      const data = await res.json() as { questions: Question[] };
-      setSelectedCat(cat);
-      setQuestions(data.questions ?? []);
-      setAnswers({});
-      setCurrentIdx(0);
-      setStartTime(Date.now());
-      setQuizPhase('exam');
-    } catch {
-      alert('Sorular yüklenemedi. Lütfen tekrar deneyin.');
-    } finally {
-      setQuizLoading(false);
-    }
-  }, []);
-
-  // Keep submitExamRef in sync so timer closure can call it
-  const submitExam = useCallback(async () => {
-    if (!selectedCat) return;
-    setSubmitting(true);
-    try {
-      const elapsed = Math.round((Date.now() - startTime) / 1000);
-      const answersRecord: Record<string, string> = Object.fromEntries(
-        questions.map(q => [q.id, answers[q.id] ?? ''])
-      );
-      const res = await fetch(`${API}/api/v1/exams/attempts`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ categorySlug: selectedCat.slug, answers: answersRecord, timeTakenSeconds: elapsed }),
-      });
-      const data = await res.json() as { score: number; results: ExamResult[] };
-      setScore(data.score ?? 0);
-      setResults(data.results ?? []);
-      setQuizPhase('result');
-    } catch {
-      alert('Sonuçlar gönderilemedi.');
-    } finally {
-      setSubmitting(false);
-    }
-  }, [selectedCat, questions, answers, startTime]);
-
-  // Keep ref current so timer can call it without stale closure
-  useEffect(() => { submitExamRef.current = submitExam; }, [submitExam]);
+  const handleTalepSubmit = () => {
+    if (!talepKaynak.trim()) return;
+    setTalepModalOpen(true);
+  };
 
   return (
-    <main className="min-h-screen dark:bg-[#070c1a]">
+    <>
+    <KoclukModal open={koclukOpen} onClose={() => setKoclukOpen(false)} />
+    <KaynakTalepModal
+      open={talepModalOpen}
+      sinav={talepSinav}
+      kaynak={talepKaynak}
+      onClose={() => { setTalepModalOpen(false); setTalepKaynak(''); }}
+    />
+    <main className="min-h-screen bg-gray-50">
 
-      {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <section className="bg-white dark:bg-slate-950 border-b border-gray-100 dark:border-slate-800 py-12 sm:py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {mode === 'library' ? (
-            <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-[#26496b] mb-3">
-              <Link href="/kutuphane" className="hover:underline">Meslek Kütüphanesi</Link>
-              <span className="text-gray-400">›</span>
-              <span>Sınav Merkezi</span>
+      {/* ── HERO ── */}
+      <section className="bg-[#0b1829] relative overflow-hidden" style={{ paddingTop: 52, paddingBottom: 0 }}>
+        <div
+          className="absolute inset-0"
+          style={{
+            right: 0,
+            background: 'url(/sinav.jpg) center right / cover no-repeat',
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(to right, #0b1829 0%, #0b1829 20%, rgba(11,24,41,0.88) 36%, rgba(11,24,41,0.55) 56%, rgba(11,24,41,0.25) 76%, rgba(11,24,41,0.1) 100%)',
+          }}
+        />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-end justify-between gap-12" style={{ paddingBottom: 51 }}>
+            <div style={{ maxWidth: 520, flex: 1 }}>
+              <div className="flex items-center gap-1.5 mb-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                <span className="text-xs font-bold text-white/35 tracking-widest uppercase">Meslek Kütüphanesi</span>
+              </div>
+              <h1 className="text-white font-black leading-none mb-3" style={{ fontSize: 52, letterSpacing: -1.5 }}>
+                Sınav<br /><span className="text-amber-400">Merkezi</span>
+              </h1>
+              <p className="text-white/55 leading-relaxed" style={{ fontSize: 14, maxWidth: 440 }}>
+                Mesleki sınavlar için tüyolar, kaynaklar, kritik tarihler ve koçluk hizmetleriyle bir adım önde ol.
+              </p>
             </div>
-          ) : (
-            <div className="text-xs font-semibold uppercase tracking-widest text-[var(--color-teal)] mb-3">
-              Sahne Modülleri
+            <div
+              className="flex-shrink-0 flex flex-row overflow-hidden"
+              style={{
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.10)',
+                borderRadius: 16,
+                backdropFilter: 'blur(6px)',
+                transform: 'translateY(17px)',
+              }}
+            >
+              {[
+                { num: '4', lbl: 'Sınav' },
+                { num: '18', lbl: 'Simülasyon' },
+                { num: '12', lbl: 'Doküman' },
+                { num: '35', lbl: 'Video' },
+              ].map((s, i, arr) => (
+                <div
+                  key={s.lbl}
+                  style={{
+                    padding: '18px 24px',
+                    borderRight: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.07)' : 'none',
+                  }}
+                >
+                  <div className="text-white font-black leading-none" style={{ fontSize: 22, letterSpacing: -0.5 }}>{s.num}</div>
+                  <div className="text-white/38 font-medium mt-1" style={{ fontSize: 11 }}>{s.lbl}</div>
+                </div>
+              ))}
             </div>
-          )}
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-slate-100 mb-3">
-            {mode === 'library' ? 'Sınav Merkezi' : 'Sınavlar'}
-          </h1>
-          <p className="text-gray-500 dark:text-slate-400 max-w-2xl">
-            Mesleki sınavlar için tüyolar, kaynaklar, kritik tarihler ve pratik sınav simülasyonu.
-            Harita ve geomatik alanındaki 4 temel sınav için kapsamlı hazırlık merkezi.
-          </p>
+          </div>
         </div>
       </section>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-
-        {/* ── Exam selector ────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
-          {EXAMS.map(exam => (
-            <button
-              key={exam.key}
-              onClick={() => { setSelectedExamKey(exam.key); setPageTab('resources'); setResSection('tip'); setQuizPhase('list'); }}
-              className={`rounded-2xl border-2 p-4 text-left transition-all ${selectedExamKey === exam.key ? 'border-[#26496b] bg-[#26496b]/5 dark:bg-[#26496b]/10' : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-gray-300 dark:hover:border-slate-600'}`}
-            >
-              <div className="text-2xl mb-2">{exam.emoji}</div>
-              <div className={`text-sm font-bold leading-tight mb-0.5 ${selectedExamKey === exam.key ? 'text-[#26496b] dark:text-blue-400' : 'text-gray-900 dark:text-slate-100'}`}>
-                {exam.label}
-              </div>
-              <div className="text-xs text-gray-400 dark:text-slate-500 leading-tight hidden sm:block">{exam.fullLabel}</div>
-            </button>
-          ))}
-        </div>
-
-        {/* ── Exam header ──────────────────────────────────────────────── */}
-        <div className={`rounded-2xl bg-gradient-to-r ${selectedExam.color} p-6 mb-6 text-white`}>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="text-3xl mb-2">{selectedExam.emoji}</div>
-              <h2 className="text-xl font-bold mb-1">{selectedExam.fullLabel}</h2>
-              <p className="text-white/75 text-sm">{selectedExam.desc}</p>
-            </div>
-            <div className="text-right shrink-0">
-              <div className="text-3xl font-bold">{resources.filter(r => r.resourceType === 'tip').length}</div>
-              <div className="text-xs text-white/60">tüyo</div>
-              <div className="text-3xl font-bold mt-2">{resources.filter(r => r.resourceType === 'date').length}</div>
-              <div className="text-xs text-white/60">tarih</div>
+      {/* ── GÜNÜN TAVSİYESİ BANNER ── */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-3" style={{ paddingTop: 18, paddingBottom: 18 }}>
+          <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-base flex-shrink-0">💡</div>
+          <div>
+            <div className="text-xs font-bold text-amber-600 uppercase tracking-wider mb-0.5">Günün Tavsiyesi</div>
+            <div className="text-sm text-gray-700 leading-relaxed">
+              Son 5 yılda çıkan KPSS sorularının %40&apos;ı CBS ve mekansal analiz konularından oluşmaktadır. Bu konulara fazladan vakit ayırman skor ortalamanı ciddi ölçüde artıracak.
             </div>
           </div>
         </div>
+      </div>
 
-        {/* ── Page tabs ────────────────────────────────────────────────── */}
-        <div className="flex gap-1 bg-gray-100 dark:bg-slate-800 rounded-xl p-1 mb-6 w-fit">
-          <button
-            onClick={() => setPageTab('resources')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${pageTab === 'resources' ? 'bg-white dark:bg-slate-900 text-[#26496b] dark:text-blue-400 shadow-sm' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'}`}
-          >
-            📚 Kaynaklar & Tüyolar
-          </button>
-          <button
-            onClick={() => setPageTab('quiz')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${pageTab === 'quiz' ? 'bg-white dark:bg-slate-900 text-[#26496b] dark:text-blue-400 shadow-sm' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'}`}
-          >
-            🎯 Sınav Simülasyonu
-          </button>
-        </div>
+      {/* ── PAGE CONTENT ── */}
+      <div
+        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+        style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 20, paddingTop: 24, paddingBottom: 48 }}
+      >
 
-        {/* ── Resources Tab ────────────────────────────────────────────── */}
-        {pageTab === 'resources' && (
-          <div>
-            <div className="flex gap-2 flex-wrap mb-6">
-              {(Object.entries(RESOURCE_META) as [ResourceSection, typeof RESOURCE_META[ResourceSection]][]).map(([type, meta]) => {
-                const cnt = resources.filter(r => r.resourceType === type).length;
-                return (
-                  <button
-                    key={type}
-                    onClick={() => setResSection(type)}
-                    className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all border ${resSection === type ? 'bg-[#26496b] text-white border-[#26496b]' : 'bg-white dark:bg-slate-900 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-700 hover:border-[#26496b]/30'}`}
-                  >
-                    <span>{meta.icon}</span>
-                    {meta.label}
-                    {cnt > 0 && (
-                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${resSection === type ? 'bg-white/20 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300'}`}>
-                        {cnt}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+        {/* ── MAIN COL ── */}
+        <div className="flex flex-col gap-4">
 
-            {resLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map(i => <div key={i} className="h-20 bg-gray-100 dark:bg-slate-800 rounded-2xl animate-pulse" />)}
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 p-12 text-center">
-                <div className="text-4xl mb-3">{RESOURCE_META[resSection].icon}</div>
-                <p className="text-gray-500 dark:text-slate-400">{RESOURCE_META[resSection].emptyMsg}</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {resSection === 'tip' && filtered.map(res => <TipCard key={res.id} res={res} />)}
-                {resSection === 'document' && filtered.map(res => <DocumentCard key={res.id} res={res} />)}
-                {resSection === 'date' && filtered
-                  .sort((a, b) => {
-                    if (!a.eventDate) return 1;
-                    if (!b.eventDate) return -1;
-                    return new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime();
-                  })
-                  .map(res => <DateCard key={res.id} res={res} />)}
-                {resSection === 'video' && filtered.map(res => <VideoCard key={res.id} res={res} />)}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── Quiz Tab ─────────────────────────────────────────────────── */}
-        {pageTab === 'quiz' && (
-          <div>
-            {quizPhase === 'list' && (
-              <div>
-                <p className="text-sm text-gray-500 dark:text-slate-400 mb-5">
-                  Soru kategorisi seçerek pratik sınav başlatın. Sonuçlarınız kayıt altına alınır.
-                </p>
-                {!user && (
-                  <div className="bg-gradient-to-br from-[#0c1a2e] to-[#26496b] rounded-2xl p-5 text-white text-center mb-6">
-                    <p className="text-sm font-bold mb-1">Sınav sonuçlarını kaydetmek için üye olun</p>
-                    <p className="text-xs text-white/70 mb-3">Üye olarak sınav notunuzu takip edin, gelişiminizi görün.</p>
-                    <a href="/uye-ol" className="inline-block text-xs font-bold text-[#26496b] bg-white rounded-xl px-4 py-2 hover:bg-white/90 transition-colors mr-2">
-                      Ücretsiz Üye Ol
-                    </a>
-                    <a href="/giris" className="text-xs text-white/70 hover:text-white transition-colors">Giriş yap</a>
-                  </div>
-                )}
-                {quizLoading ? (
-                  <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="h-16 bg-gray-100 dark:bg-slate-800 rounded-2xl animate-pulse" />)}</div>
-                ) : allCats.length === 0 ? (
-                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 p-12 text-center">
-                    <div className="text-4xl mb-3">🎯</div>
-                    <p className="text-gray-500 dark:text-slate-400">Henüz soru bankası eklenmedi.</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {allCats.map(cat => (
-                      <button
-                        key={cat.id}
-                        onClick={() => void startExam(cat)}
-                        disabled={cat.questionCount === 0}
-                        className="flex items-start gap-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl p-5 text-left hover:border-[#26496b]/40 hover:shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed group"
-                      >
-                        <div className="w-11 h-11 bg-[#26496b]/10 dark:bg-blue-900/30 rounded-xl flex items-center justify-center text-xl shrink-0">
-                          {cat.iconEmoji ?? '📋'}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-gray-900 dark:text-slate-100 text-sm group-hover:text-[#26496b] transition-colors">{cat.name}</p>
-                          {cat.description && <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5 line-clamp-1">{cat.description}</p>}
-                          <p className="text-xs font-medium text-[#26496b] dark:text-blue-400 mt-1">{cat.questionCount} soru</p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {quizPhase === 'exam' && questions.length > 0 && (
-              <div className="max-w-2xl mx-auto">
-                <div className="flex items-center justify-between mb-4 text-sm">
-                  <span className="text-gray-500 dark:text-slate-400">{selectedCat?.name}</span>
-                  <div className="flex items-center gap-3">
-                    {timeLeft !== null && (() => {
-                      const mm = Math.floor(timeLeft / 60).toString().padStart(2, '0');
-                      const ss = (timeLeft % 60).toString().padStart(2, '0');
-                      const urgent = timeLeft <= 60;
-                      return (
-                        <span className={`flex items-center gap-1 font-mono font-bold text-base px-3 py-1 rounded-xl border ${urgent ? 'bg-red-50 border-red-300 text-red-600 dark:bg-red-900/30 dark:border-red-700 dark:text-red-400 animate-pulse' : 'bg-gray-100 border-gray-200 text-gray-700 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200'}`}>
-                          <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          {mm}:{ss}
-                        </span>
-                      );
-                    })()}
-                    <span className="font-semibold text-gray-700 dark:text-slate-200">{currentIdx + 1} / {questions.length}</span>
-                  </div>
-                </div>
-                <div className="w-full h-1.5 bg-gray-100 dark:bg-slate-700 rounded-full mb-6">
-                  <div className="h-full bg-[#26496b] rounded-full transition-all" style={{ width: `${((currentIdx + 1) / questions.length) * 100}%` }} />
-                </div>
-
-                {(() => {
-                  const q = questions[currentIdx]!;
-                  return (
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-6">
-                      <div className="flex items-center gap-2 mb-4">
-                        <span className="text-xs font-semibold text-gray-400">#{currentIdx + 1}</span>
-                        <span className={`text-xs font-medium ${DIFFICULTY_COLORS[q.difficulty] ?? 'text-gray-500'}`}>
-                          {DIFFICULTY_LABELS[q.difficulty] ?? q.difficulty}
-                        </span>
-                      </div>
-                      <p className="text-gray-900 dark:text-slate-100 font-medium mb-5 leading-relaxed">{q.questionText}</p>
-                      <div className="space-y-2.5">
-                        {(['A', 'B', 'C', 'D', 'E'] as const).map(opt => {
-                          const val = q[`option${opt}` as keyof Question] as string | null;
-                          if (!val) return null;
-                          const chosen = answers[q.id] === opt;
-                          return (
-                            <button
-                              key={opt}
-                              onClick={() => setAnswers(a => ({ ...a, [q.id]: opt }))}
-                              className={`w-full text-left px-4 py-3 rounded-xl border text-sm transition-all ${chosen ? 'border-[#26496b] bg-[#26496b]/5 dark:bg-[#26496b]/20 text-[#26496b] dark:text-blue-300 font-medium' : 'border-gray-200 dark:border-slate-700 hover:border-[#26496b]/30 text-gray-700 dark:text-slate-300'}`}
-                            >
-                              <span className="font-semibold mr-2">{opt})</span> {val}
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      <div className="flex justify-between mt-6 pt-4 border-t border-gray-100 dark:border-slate-800">
-                        <button
-                          onClick={() => setCurrentIdx(i => Math.max(0, i - 1))}
-                          disabled={currentIdx === 0}
-                          className="px-4 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-xl text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors"
-                        >
-                          ← Önceki
-                        </button>
-                        {currentIdx < questions.length - 1 ? (
-                          <button
-                            onClick={() => setCurrentIdx(i => i + 1)}
-                            disabled={!answers[q.id]}
-                            className="px-5 py-2 text-sm bg-[#26496b] text-white rounded-xl hover:bg-[#1e3a56] disabled:opacity-40 transition-colors font-medium"
-                          >
-                            Sonraki →
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => void submitExam()}
-                            disabled={submitting || Object.keys(answers).length < questions.length}
-                            className="px-5 py-2 text-sm bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-40 transition-colors font-medium"
-                          >
-                            {submitting ? 'Gönderiliyor…' : '✓ Sınavı Bitir'}
-                          </button>
-                        )}
-                      </div>
+          {/* Sınav Kartları */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
+            {EXAMS.map(exam => (
+              <div
+                key={exam.key}
+                className="bg-white border border-gray-200 flex flex-col hover:shadow-lg hover:border-gray-300 transition-all duration-200"
+                style={{ borderRadius: 18, overflow: 'hidden' }}
+              >
+                <div className={`${exam.headBg} border-b ${exam.headBorder} p-5`}>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className={`${exam.iconBg} w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0`}>
+                      {exam.emoji}
                     </div>
-                  );
-                })()}
-              </div>
-            )}
-
-            {quizPhase === 'result' && (
-              <div className="max-w-2xl mx-auto">
-                <div className={`rounded-2xl p-8 text-center mb-6 ${score >= 70 ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800' : score >= 50 ? 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800' : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'}`}>
-                  <div className="text-6xl font-bold mb-2 text-gray-900 dark:text-slate-100">%{score}</div>
-                  <div className="text-lg font-semibold text-gray-700 dark:text-slate-200 mb-1">
-                    {score >= 70 ? '🎉 Harika!' : score >= 50 ? '📈 İyi Gidiyorsun' : '💪 Daha Fazla Çalış'}
+                    <div className={`text-sm font-black ${exam.titleColor}`} style={{ letterSpacing: -0.2 }}>{exam.label}</div>
                   </div>
-                  <p className="text-sm text-gray-500 dark:text-slate-400">
-                    {results.filter(r => r.correct).length} / {results.length} doğru
-                  </p>
-                  {startTime > 0 && (
-                    <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
-                      Süre: {Math.floor((Date.now() - startTime) / 60000)} dk {Math.round(((Date.now() - startTime) % 60000) / 1000)} sn
-                    </p>
-                  )}
+                  <p className="text-xs text-gray-700 leading-relaxed">{exam.desc}</p>
                 </div>
-
-                <div className="space-y-3 mb-6">
-                  {results.map((res, i) => (
-                    <div key={res.questionId} className={`bg-white dark:bg-slate-900 rounded-2xl border p-4 ${res.correct ? 'border-emerald-200 dark:border-emerald-800' : 'border-red-200 dark:border-red-800'}`}>
-                      <div className="flex items-start gap-3">
-                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${res.correct ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
-                          {res.correct ? '✓' : '✕'}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-slate-100 mb-1">#{i + 1} {res.questionText}</p>
-                          {!res.correct && (
-                            <p className="text-xs text-emerald-700 dark:text-emerald-400">Doğru: {res.correctOption} · Senin: {res.userAnswer || '—'}</p>
-                          )}
-                          {res.explanation && <p className="text-xs text-gray-500 dark:text-slate-400 mt-1 italic">{res.explanation}</p>}
-                        </div>
+                <div className="flex flex-col flex-1">
+                  {CATS.map((cat, i) => (
+                    <div
+                      key={cat.label}
+                      className="flex items-center gap-3 hover:bg-gray-50 cursor-pointer transition-all duration-150 hover:pl-6"
+                      style={{
+                        padding: '11px 20px',
+                        borderBottom: i < CATS.length - 1 ? '1px solid #f3f4f6' : 'none',
+                      }}
+                    >
+                      <div className={`${cat.iconBg} w-7 h-7 rounded-lg flex items-center justify-center text-sm flex-shrink-0`}>
+                        {cat.icon}
                       </div>
+                      <span className="flex-1 text-sm font-semibold text-gray-700">{cat.label}</span>
+                      <span className="text-xs font-bold text-gray-400 bg-gray-100 rounded-full px-2 py-0.5 whitespace-nowrap">
+                        {exam.counts[cat.countKey]} {cat.unit}
+                      </span>
+                      <span className="text-gray-300 text-sm ml-1">›</span>
                     </div>
                   ))}
                 </div>
+                <div className="p-3.5 border-t border-gray-100">
+                  <Link
+                    href={`/kutuphane/sinavlar/${exam.key}`}
+                    className="w-full flex items-center justify-center gap-1.5 text-sm font-bold text-[#0b1829] border border-gray-200 rounded-xl py-2.5 hover:border-gray-400 hover:bg-gray-50 transition-all"
+                  >
+                    Modüle Git →
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
 
-                <button
-                  onClick={() => { setQuizPhase('list'); setResults([]); setQuestions([]); setAnswers({}); }}
-                  className="w-full py-3 bg-[#26496b] text-white rounded-xl font-semibold hover:bg-[#1e3a56] transition-colors"
-                >
-                  Yeni Sınav Başlat
-                </button>
+          {/* Kaynak Merkezi */}
+          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <span className="text-base font-black text-[#0b1829]">📚 Kaynak Merkezi</span>
+            </div>
+            {kaynaklar.length === 0 ? (
+              <div className="px-5 py-8 text-center text-xs text-gray-400">
+                Henüz öne çıkan kaynak eklenmemiş.
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10, padding: '0 20px 20px' }}>
+                {kaynaklar.slice(0, 5).map(k => {
+                  const ui = kaynak2ui(k);
+                  const href = k.externalUrl ?? k.fileUrl ?? (k.slug ? `/kutuphane/rehberler/${k.slug}` : '#');
+                  return (
+                    <a
+                      key={k.id}
+                      href={href}
+                      target={href.startsWith('http') ? '_blank' : undefined}
+                      rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                      className="bg-gray-50 border border-gray-100 rounded-2xl p-3.5 cursor-pointer hover:bg-white hover:border-gray-300 transition-all block"
+                    >
+                      <span className={`text-xs font-black px-1.5 py-0.5 rounded-md ${ui.badgeColor} inline-block mb-2`}>{ui.badge}</span>
+                      <div className="text-2xl mb-2">{ui.icon}</div>
+                      <div className="text-xs font-bold text-[#0b1829] leading-snug mb-1">{k.title}</div>
+                      <div className="text-xs text-gray-400">{ui.meta}</div>
+                    </a>
+                  );
+                })}
               </div>
             )}
           </div>
-        )}
+
+          {/* Video Eğitimler */}
+          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <span className="text-base font-black text-[#0b1829]">🎬 Video Eğitimler</span>
+              <Link href="/egitim" className="text-xs font-semibold text-blue-500 hover:text-blue-700 transition-colors">
+                Tümünü Gör ›
+              </Link>
+            </div>
+            {videolar.length === 0 ? (
+              <div className="px-5 py-8 text-center text-xs text-gray-400">
+                Henüz öne çıkan eğitim eklenmemiş.
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, padding: '0 20px 20px' }}>
+                {videolar.map(v => (
+                  <Link key={v.id} href={`/egitim/${v.slug}`} className="rounded-2xl overflow-hidden border border-gray-100 hover:border-gray-300 transition-all block">
+                    <div className="relative" style={{ height: 90 }}>
+                      <div
+                        className="w-full h-full flex items-center justify-center"
+                        style={{
+                          background: v.coverImageKey
+                            ? `linear-gradient(rgba(0,0,0,0.35),rgba(0,0,0,0.35)), url(${API_BASE}/api/v1/media?key=${encodeURIComponent(v.coverImageKey)}) center/cover no-repeat`
+                            : 'linear-gradient(135deg,#0b1829,#1e3a8a)',
+                        }}
+                      >
+                        <div className="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center pl-0.5 text-sm">▶</div>
+                      </div>
+                      {v.duration && (
+                        <span className="absolute bottom-1.5 right-2 bg-black/70 text-white text-xs font-bold px-1.5 py-0.5 rounded">
+                          {v.duration}
+                        </span>
+                      )}
+                    </div>
+                    <div className="p-3 bg-white">
+                      <div className="text-xs font-bold text-[#0b1829] mb-0.5 truncate">{v.title}</div>
+                      <div className="text-xs text-gray-400 truncate">{v.instructor ? `Eğitmen: ${v.instructor}` : 'Haritailesi'}</div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Ekosistem */}
+          <div className="bg-white border border-gray-200 rounded-2xl p-5 flex gap-4">
+            {[
+              { icon: '🎓', iconBg: 'bg-blue-50', name: 'Haritakademi', desc: 'Online eğitimlerle kariyer geliştir', link: 'Eğitimlere Git', href: 'https://www.linkedin.com/showcase/haritakademi' },
+              { icon: '💼', iconBg: 'bg-amber-50', name: 'Haritakariyer', desc: 'İş fırsatlarını keşfet', link: 'Kariyer Merkezi', href: 'https://www.linkedin.com/showcase/haritakariyer' },
+              { icon: '🌐', iconBg: 'bg-emerald-50', name: 'Haritailesi Sahne', desc: 'Etkinlikler ve buluşmalar', link: 'Etkinlikleri Gör', href: 'https://sahne.haritailesi.org' },
+            ].map(e => (
+              <Link key={e.name} href={e.href} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center gap-3 p-3.5 rounded-2xl border border-gray-100 hover:border-gray-300 hover:bg-gray-50 transition-all">
+                <div className={`${e.iconBg} w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0`}>{e.icon}</div>
+                <div>
+                  <div className="text-sm font-bold text-[#0b1829] mb-0.5">{e.name}</div>
+                  <div className="text-xs text-gray-400 mb-1">{e.desc}</div>
+                  <div className="text-xs font-bold text-blue-500">{e.link} ›</div>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+        </div>
+
+        {/* ── SIDEBAR ── */}
+        <div className="flex flex-col gap-4">
+
+          {/* Kritik Tarihler */}
+          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <span className="text-sm font-black text-[#0b1829]">📅 Kritik Tarihler</span>
+              <span className="text-xs font-semibold text-blue-500">Tüm Takvim ›</span>
+            </div>
+            <div className="px-5 pb-5">
+              {TARIHLER.map((t, i) => (
+                <div key={t.event} className={`flex items-start gap-3 py-3 ${i < TARIHLER.length - 1 ? 'border-b border-gray-50' : ''}`}>
+                  <div className="text-center flex-shrink-0 w-9">
+                    <div className="text-lg font-black text-[#0b1829] leading-none">{t.day}</div>
+                    <div className="text-xs font-bold text-blue-500 uppercase">{t.month}</div>
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-bold text-[#0b1829] mb-0.5">{t.event}</div>
+                    <div className="text-xs text-gray-400 mb-1.5">{t.sub}</div>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-lg ${t.badgeColor}`}>{t.badge}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Koçluk CTA */}
+          <div
+            className="rounded-2xl p-6 relative overflow-hidden"
+            style={{ background: 'linear-gradient(160deg,#0f172a 0%,#1e3a8a 100%)' }}
+          >
+            <div className="absolute -top-12 -right-12 w-44 h-44 rounded-full" style={{ background: 'rgba(99,102,241,0.12)' }} />
+            <div className="absolute -bottom-10 right-5 w-28 h-28 rounded-full" style={{ background: 'rgba(251,191,36,0.07)' }} />
+            <div className="relative">
+              <div className="flex items-center gap-2.5 mb-3">
+                <span style={{ fontSize: 26 }}>🎯</span>
+                <h3 className="text-white font-black leading-snug" style={{ fontSize: 15, letterSpacing: -0.3 }}>
+                  Sınavlar için koçluk ihtiyacın var mı?
+                </h3>
+              </div>
+              <p className="text-sm leading-relaxed mb-4" style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12.5 }}>
+                Uzman koçlarla birebir çalış, kişiselleştirilmiş plan ve sorularınla hedef puanına ulaş.
+              </p>
+              <div className="flex flex-col gap-2.5 mb-5">
+                {[
+                  { icon: '🎥', text: 'Birebir online seans' },
+                  { icon: '📋', text: 'Kişiye özel çalışma planı' },
+                  { icon: '✏️', text: 'Soru çözüm ve performans analizi' },
+                ].map(f => (
+                  <div key={f.text} className="flex items-center gap-2.5">
+                    <div
+                      className="w-6 h-6 rounded-lg flex items-center justify-center text-xs flex-shrink-0"
+                      style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.2)' }}
+                    >
+                      {f.icon}
+                    </div>
+                    <span className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12.5 }}>{f.text}</span>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => setKoclukOpen(true)}
+                className="w-full rounded-xl font-black text-sm py-3 transition-all hover:-translate-y-px"
+                style={{
+                  background: '#f59e0b',
+                  color: '#0b1829',
+                  fontSize: 13,
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#fbbf24'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = '#f59e0b'; }}
+              >
+                Koçluk Hizmeti Al →
+              </button>
+            </div>
+          </div>
+
+          {/* Kaynak Talep */}
+          <div className="bg-white border border-gray-200 rounded-2xl p-5 flex flex-col gap-3.5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-sm font-black text-[#0b1829] leading-snug mb-1.5">Aradığınız kaynağı mı bulamadınız?</div>
+                <div className="text-xs text-gray-500 leading-relaxed">Ekibimize talebinizi iletin, en kısa sürede dönüş yapalım.</div>
+              </div>
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-lg flex-shrink-0">📬</div>
+            </div>
+            <div className="flex gap-1.5">
+              {['KPSS', 'Gayrimenkul', 'İHA'].map(s => (
+                <button
+                  key={s}
+                  onClick={() => setTalepSinav(s)}
+                  className="text-xs font-bold px-3 py-1.5 rounded-lg border transition-all"
+                  style={{
+                    background: talepSinav === s ? '#0b1829' : '#fff',
+                    color: talepSinav === s ? '#fff' : '#6b7280',
+                    borderColor: talepSinav === s ? '#0b1829' : '#e5e7eb',
+                  }}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+            <input
+              type="text"
+              value={talepKaynak}
+              onChange={e => setTalepKaynak(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleTalepSubmit(); }}
+              placeholder="Talep ettiğiniz kaynak…"
+              className="w-full text-sm text-gray-800 border border-gray-200 rounded-xl px-3.5 py-2.5 outline-none focus:border-gray-800 transition-colors"
+              style={{ fontFamily: 'inherit' }}
+            />
+            <button
+              onClick={handleTalepSubmit}
+              disabled={!talepKaynak.trim()}
+              className="w-full text-sm font-bold py-2.5 rounded-xl border border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white transition-all disabled:opacity-35 disabled:cursor-not-allowed"
+            >
+              Kaynak Talep Et
+            </button>
+          </div>
+
+        </div>
       </div>
     </main>
+    </>
   );
 }
