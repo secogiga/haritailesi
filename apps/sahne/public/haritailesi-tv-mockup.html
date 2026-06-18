@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Haritailesi TV — Mockup</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f6f8;color:#0b1829;}
+a{text-decoration:none;color:inherit;}
+
+/* ── NAVBAR ── */
+.navbar{background:#fff;border-bottom:1px solid #e8e9ec;height:56px;display:flex;align-items:center;padding:0 24px;position:sticky;top:0;z-index:100;gap:8px;}
+.nav-logo{display:flex;align-items:center;gap:7px;}
+.nav-logo-sq{width:28px;height:28px;background:#f59e0b;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;}
+.nav-logo-text{font-size:14px;font-weight:900;color:#0b1829;}
+.nav-bc{display:flex;align-items:center;gap:5px;font-size:12px;color:#9ca3af;margin-left:10px;}
+.nav-bc .sep{color:#d1d5db;}
+.nav-bc .cur{color:#374151;font-weight:600;}
+.nav-sp{flex:1;}
+.btn-yt{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:#fff;padding:7px 14px;border:none;border-radius:20px;cursor:pointer;background:#FF0000;}
+.btn-ghost{font-size:12px;font-weight:600;color:#374151;padding:7px 14px;border:1px solid #e8e9ec;border-radius:20px;cursor:pointer;background:transparent;}
+
+/* ── HERO ── */
+.hero{background:#0b1829;position:relative;overflow:hidden;padding:52px 0 0;}
+.hero-fade{position:absolute;inset:0;background:radial-gradient(ellipse at 70% 50%,rgba(245,158,11,0.07) 0%,transparent 60%);}
+.container{max-width:1200px;margin:0 auto;padding:0 24px;}
+.hero-inner{position:relative;display:grid;grid-template-columns:1fr 420px;align-items:center;gap:48px;padding-bottom:52px;}
+
+/* Left */
+.hero-eyebrow{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:5px 12px;margin-bottom:20px;}
+.hero-eyebrow-dot{width:6px;height:6px;border-radius:50%;background:#f59e0b;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+.hero-eyebrow span{font-size:11px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.6);}
+.hero-title{font-size:52px;font-weight:900;line-height:1;letter-spacing:-2px;color:#fff;margin-bottom:14px;}
+.hero-title em{color:#f59e0b;font-style:normal;}
+.hero-sub{font-size:15px;color:rgba(255,255,255,0.5);line-height:1.65;max-width:420px;margin-bottom:28px;}
+.hero-stats{display:inline-flex;gap:0;margin-bottom:32px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;}
+.hero-stat{padding:14px 22px;border-right:1px solid rgba(255,255,255,0.07);}
+.hero-stat:last-child{border-right:none;}
+.hero-stat-val{font-size:20px;font-weight:900;color:#fff;letter-spacing:-0.5px;line-height:1;}
+.hero-stat-lbl{font-size:10.5px;color:rgba(255,255,255,0.38);margin-top:3px;font-weight:500;}
+.hero-actions{display:flex;gap:10px;}
+.btn-primary{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#0b1829;padding:12px 22px;border:none;border-radius:12px;cursor:pointer;background:#f59e0b;transition:background 0.18s,transform 0.15s;}
+.btn-primary:hover{background:#fbbf24;transform:translateY(-1px);}
+.btn-outline{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#fff;padding:12px 22px;border:1px solid rgba(255,255,255,0.2);border-radius:12px;cursor:pointer;background:transparent;transition:border-color 0.18s,background 0.18s,transform 0.15s;}
+.btn-outline:hover{border-color:rgba(255,255,255,0.5);background:rgba(255,255,255,0.07);transform:translateY(-1px);}
+
+/* Featured card */
+.featured-card{border-radius:20px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.45);}
+.featured-thumb{position:relative;aspect-ratio:16/9;background:#1a3350;overflow:hidden;}
+.featured-thumb img{width:100%;height:100%;object-fit:cover;}
+.featured-thumb-grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.7) 0%,transparent 50%);}
+.featured-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,0.92);display:flex;align-items:center;justify-content:center;}
+.featured-play svg{margin-left:3px;}
+.featured-badge{position:absolute;top:12px;left:12px;background:#f59e0b;color:#0b1829;font-size:10px;font-weight:900;letter-spacing:0.1em;text-transform:uppercase;padding:4px 10px;border-radius:6px;}
+.featured-series{position:absolute;bottom:12px;left:12px;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:3px 9px;font-size:10px;font-weight:700;color:rgba(255,255,255,0.8);text-transform:uppercase;letter-spacing:0.08em;}
+.featured-duration{position:absolute;bottom:12px;right:12px;background:rgba(0,0,0,0.75);border-radius:5px;padding:3px 7px;font-size:11px;font-weight:700;color:#fff;}
+.featured-info{background:#fff;padding:16px 18px;}
+.featured-title{font-size:14px;font-weight:800;color:#0b1829;margin-bottom:4px;line-height:1.35;}
+.featured-meta{font-size:11.5px;color:#9ca3af;font-weight:500;}
+
+/* ── PROGRAMS ── */
+.section{background:#fff;}
+.section-inner{max-width:1200px;margin:0 auto;padding:52px 24px;}
+.section-header{text-align:center;margin-bottom:36px;}
+.section-tag{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:#f59e0b;margin-bottom:8px;}
+.section-title{font-size:28px;font-weight:900;color:#0b1829;letter-spacing:-0.5px;margin-bottom:8px;}
+.section-sub{font-size:13.5px;color:#6b7280;max-width:540px;margin:0 auto;}
+
+.programs-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+.prog-card{border:1px solid #e8e9ec;border-radius:18px;padding:0;background:#fff;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;display:flex;flex-direction:column;}
+.prog-card:hover{border-color:#f59e0b;box-shadow:0 8px 32px rgba(245,158,11,0.12);transform:translateY(-3px);}
+.prog-thumb{width:100%;aspect-ratio:16/9;position:relative;overflow:hidden;border-radius:17px 17px 0 0;}
+.prog-thumb-inner{width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
+.prog-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.88);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.2s;}
+.prog-card:hover .prog-play{opacity:1;}
+.prog-play svg{margin-left:2px;}
+.prog-series-badge{position:absolute;top:8px;left:8px;border-radius:5px;padding:3px 8px;font-size:9px;font-weight:800;letter-spacing:0.06em;}
+.prog-body{padding:14px 16px 16px;flex:1;display:flex;flex-direction:column;}
+.prog-name{font-size:13px;font-weight:900;color:#0b1829;margin-bottom:4px;line-height:1.3;}
+.prog-desc{font-size:11px;color:#6b7280;line-height:1.55;margin-bottom:10px;flex:1;}
+.prog-count{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#f59e0b;}
+.prog-arrow{position:absolute;bottom:14px;right:14px;font-size:13px;color:#d1d5db;transition:color 0.2s;}
+.prog-card:hover .prog-arrow{color:#f59e0b;}
+
+/* ── RECENT VIDEOS ── */
+.section-alt{background:#f5f6f8;}
+.section-alt .section-inner{max-width:1200px;margin:0 auto;padding:52px 24px;}
+.sec-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
+.sec-row-title{font-size:18px;font-weight:900;color:#0b1829;display:flex;align-items:center;gap:8px;}
+.sec-row-link{font-size:13px;font-weight:700;color:#f59e0b;}
+.videos-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;}
+.vid-card{background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e8e9ec;cursor:pointer;transition:all 0.2s;}
+.vid-card:hover{box-shadow:0 8px 28px rgba(0,0,0,0.09);transform:translateY(-2px);}
+.vid-thumb{position:relative;aspect-ratio:16/9;background:#1a3350;overflow:hidden;}
+.vid-thumb img{width:100%;height:100%;object-fit:cover;}
+.prog-thumb img{width:100%;height:100%;object-fit:cover;}
+.vid-thumb-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0b1829,#1a3350);}
+.vid-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.88);display:flex;align-items:center;justify-content:center;}
+.vid-play svg{margin-left:2px;}
+.vid-dur{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.75);border-radius:4px;padding:2px 6px;font-size:11px;font-weight:700;color:#fff;}
+.vid-series-tag{position:absolute;top:8px;left:8px;border-radius:5px;padding:3px 8px;font-size:10px;font-weight:800;letter-spacing:0.04em;}
+.vid-info{padding:12px 14px 14px;}
+.vid-title{font-size:13px;font-weight:700;color:#0b1829;line-height:1.4;margin-bottom:6px;}
+.vid-meta{font-size:11px;color:#9ca3af;font-weight:500;}
+
+/* ── SUPPORT ── */
+.support-banner{background:linear-gradient(135deg,#0b1829 0%,#1a3350 100%);border-radius:24px;padding:36px 40px;display:flex;align-items:center;gap:32px;margin-top:8px;}
+.support-icon{width:72px;height:72px;border-radius:20px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.25);display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;}
+.support-text{flex:1;}
+.support-title{font-size:20px;font-weight:900;color:#fff;margin-bottom:6px;}
+.support-sub{font-size:13px;color:rgba(255,255,255,0.5);line-height:1.6;}
+.btn-support{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#0b1829;padding:14px 28px;border:none;border-radius:14px;cursor:pointer;background:#f59e0b;white-space:nowrap;}
+
+/* ── ABOUT ── */
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;}
+.about-left{}
+.about-eyebrow{font-size:10.5px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:#f59e0b;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.about-title{font-size:24px;font-weight:900;color:#0b1829;margin-bottom:12px;line-height:1.3;letter-spacing:-0.3px;}
+.about-body{font-size:13.5px;color:#6b7280;line-height:1.75;}
+.about-pillars{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.pillar{background:#fff;border:1px solid #e8e9ec;border-radius:14px;padding:18px;}
+.pillar-icon{font-size:20px;margin-bottom:8px;}
+.pillar-name{font-size:13px;font-weight:800;color:#0b1829;margin-bottom:4px;}
+.pillar-desc{font-size:11.5px;color:#9ca3af;line-height:1.55;}
+
+/* ── YT FOOTER BANNER ── */
+.yt-banner{background:#0b1829;border-radius:24px;padding:0;overflow:hidden;display:grid;grid-template-columns:1fr auto auto;align-items:center;border:1px solid rgba(255,255,255,0.07);}
+.yt-banner-text{padding:32px 36px;}
+.yt-banner-label{font-size:10px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:#f59e0b;margin-bottom:8px;}
+.yt-banner-title{font-size:22px;font-weight:900;color:#fff;line-height:1.25;letter-spacing:-0.3px;}
+.yt-banner-logo{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 40px;border-left:1px solid rgba(255,255,255,0.07);border-right:1px solid rgba(255,255,255,0.07);gap:8px;}
+.yt-banner-logo img{width:100px;}
+.yt-banner-sub{font-size:11px;color:rgba(255,255,255,0.35);font-weight:500;}
+.yt-banner-cta{padding:32px 36px;display:flex;flex-direction:column;align-items:center;gap:10px;}
+.btn-youtube{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:800;color:#fff;padding:13px 24px;border:none;border-radius:12px;cursor:pointer;background:#FF0000;}
+.btn-subscribe{font-size:11.5px;color:rgba(255,255,255,0.4);font-weight:500;}
+
+.section-divider{height:1px;background:#e8e9ec;max-width:1200px;margin:0 auto;}
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="nav-logo">
+    <div class="nav-logo-sq">🏠</div>
+    <span class="nav-logo-text">haritailesi</span>
+  </div>
+  <div class="nav-bc">
+    <span>Ana Sayfa</span>
+    <span class="sep">›</span>
+    <span class="cur">Haritailesi TV</span>
+  </div>
+  <div class="nav-sp"></div>
+  <button class="btn-ghost">Sahne</button>
+  <button class="btn-yt">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+    Kanalımıza Git
+  </button>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-fade"></div>
+  <div class="container">
+    <div class="hero-inner">
+
+      <!-- Left -->
+      <div>
+        <div class="hero-eyebrow">
+          <div class="hero-eyebrow-dot"></div>
+          <span>Haritailesi Medya</span>
+        </div>
+        <h1 class="hero-title">Haritailesi <em>TV</em></h1>
+        <p class="hero-sub">Mesleğin hikâyelerini, insanlarını ve geleceğini anlatıyoruz.<br>5 özgün program serisi ile mesleğin yeni sesiyiz.</p>
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <div class="hero-stat-val">7+</div>
+            <div class="hero-stat-lbl">Video</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-val">5</div>
+            <div class="hero-stat-lbl">Program</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-val">3,01 B</div>
+            <div class="hero-stat-lbl">Abone</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-val">150 B+</div>
+            <div class="hero-stat-lbl">İzlenme</div>
+          </div>
+        </div>
+        <div class="hero-actions">
+          <button class="btn-primary">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+            Son Bölümü İzle
+          </button>
+          <button class="btn-outline">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+            Haritailesi TV'ye Git
+          </button>
+        </div>
+      </div>
+
+      <!-- Featured video — Meslekte Yeni İdoller: Mete Ercan Pakdil (kod ekranı, koyu) -->
+      <div class="featured-card">
+        <div class="featured-thumb">
+          <img src="thumbnail-meslekte-yeni-idoller.png" alt="Meslekte Yeni İdoller - Mete Ercan Pakdil">
+          <div class="featured-thumb-grad"></div>
+          <div class="featured-play">
+            <svg width="18" height="18" fill="#0b1829" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+          </div>
+          <div class="featured-badge">Yeni Bölüm</div>
+          <div class="featured-series">⭐ Meslekte Yeni İdoller</div>
+          <div class="featured-duration">6:17</div>
+        </div>
+        <div class="featured-info">
+          <div class="featured-title">Meslekte Yeni İdoller "Mete Ercan Pakdil"</div>
+          <div class="featured-meta">Haritailesi TV · 24 B görüntüleme · 1 yıl önce</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- PROGRAMS -->
+<div class="section">
+  <div class="section-inner" style="padding-bottom:42px;">
+    <div class="section-header">
+      <div class="section-tag">Orijinal Programlarımız</div>
+      <h2 class="section-title">5 Program Serisi</h2>
+      <p class="section-sub">Haritailesi TV'de mesleğimizin farklı yönlerini 5 özgün program serimizle ele alıyoruz.</p>
+    </div>
+
+    <div class="programs-grid">
+
+      <!-- Meslekte Yeni İdoller -->
+      <div class="prog-card">
+        <div class="prog-thumb">
+          <img src="thumbnail-meslekte-yeni-idoller.png" alt="Meslekte Yeni İdoller">
+          <div class="prog-play"><svg width="12" height="12" fill="#0b1829" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div>
+          <div class="prog-series-badge" style="background:rgba(245,158,11,0.92);color:#0b1829;">⭐ Yeni İdoller</div>
+        </div>
+        <div class="prog-body">
+          <div class="prog-name">Meslekte Yeni İdoller</div>
+          <p class="prog-desc">Bir öğrenci, bir yeni mezun, bir örnek insan arar ve bir meslektaşını idol alır.</p>
+          <div class="prog-count"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>1 video</div>
+        </div>
+        <span class="prog-arrow">›</span>
+      </div>
+
+      <!-- Bir Derdim(iz) Var -->
+      <div class="prog-card">
+        <div class="prog-thumb">
+          <img src="thumbnail-bir-derdimiz-var.jpg" alt="Bir Derdim(iz) Var">
+          <div class="prog-play"><svg width="12" height="12" fill="#0b1829" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div>
+          <div class="prog-series-badge" style="background:rgba(74,144,217,0.92);color:#fff;">🎙️ Bir Derdimiz Var</div>
+        </div>
+        <div class="prog-body">
+          <div class="prog-name">Bir Derdim(iz) Var</div>
+          <p class="prog-desc">Sorunları dinliyor, tespit ediyor ve birlikte çözüm yolları üretiyoruz.</p>
+          <div class="prog-count" style="color:#4a90d9;"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>2 video</div>
+        </div>
+        <span class="prog-arrow">›</span>
+      </div>
+
+      <!-- Mesleğimizin Filizleri -->
+      <div class="prog-card">
+        <div class="prog-thumb">
+          <img src="thumbnail-mesleğimizin-filizleri.png" alt="Mesleğimizin Filizleri">
+          <div class="prog-play" style="top:40%;"><svg width="12" height="12" fill="#0b1829" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div>
+          <div class="prog-series-badge" style="background:rgba(16,185,129,0.92);color:#fff;">🌱 Filizler</div>
+        </div>
+        <div class="prog-body">
+          <div class="prog-name">Mesleğimizin Filizleri</div>
+          <p class="prog-desc">Meslek liselerinin harita tapu kadastro alanlarını destekliyor ve Türkiye'ye tanıtıyoruz.</p>
+          <div class="prog-count" style="color:#10b981;"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>1 video</div>
+        </div>
+        <span class="prog-arrow">›</span>
+      </div>
+
+      <!-- Biz Daha Yetenekliyiz -->
+      <div class="prog-card">
+        <div class="prog-thumb">
+          <img src="thumbnail-biz-daha-yetenekliyiz.png" alt="Biz Daha Yetenekliyiz">
+          <div class="prog-play"><svg width="12" height="12" fill="#0b1829" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div>
+          <div class="prog-series-badge" style="background:rgba(236,72,153,0.92);color:#fff;">🎵 Biz Daha Yetenekliyiz</div>
+        </div>
+        <div class="prog-body">
+          <div class="prog-name">Biz Daha Yetenekliyiz :)</div>
+          <p class="prog-desc">Yeteneklerimizi paylaşıyor, birbirimizden ilham alıyoruz.</p>
+          <div class="prog-count" style="color:#ec4899;"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>2 video</div>
+        </div>
+        <span class="prog-arrow">›</span>
+      </div>
+
+      <!-- Mesleğin Yeni Evi -->
+      <div class="prog-card">
+        <div class="prog-thumb">
+          <img src="thumbnail-mesleğin-yeni-evi.png" alt="Mesleğin Yeni Evi">
+          <div class="prog-play"><svg width="12" height="12" fill="#0b1829" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div>
+          <div class="prog-series-badge" style="background:rgba(59,130,246,0.92);color:#fff;">🏠 Yeni Ev</div>
+        </div>
+        <div class="prog-body">
+          <div class="prog-name">Mesleğin Yeni Evi: Haritailesi</div>
+          <p class="prog-desc">Haritailesi Vakfı'mızın amacını, vizyonunu, misyonunu ve projelerini anlatıyoruz.</p>
+          <div class="prog-count" style="color:#3b82f6;"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>1 video</div>
+        </div>
+        <span class="prog-arrow">›</span>
+      </div>
+
+    </div>
+
+    <div style="margin-top:38px;">
+      <div class="support-banner">
+        <div class="support-icon">📺</div>
+        <div class="support-text">
+          <div class="support-title" style="color:#fff;">Haritailesi TV'ye destek olun!</div>
+          <div class="support-sub">Daha fazla hikâye, daha fazla insan, daha güçlü bir meslek için siz de bu yolculuğun bir parçası olun.</div>
+        </div>
+        <button class="btn-support">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          Destek Ol
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- ABOUT -->
+<div class="section">
+  <div class="section-inner">
+    <div class="about-grid">
+      <div class="about-left">
+        <div class="about-eyebrow">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Haritailesi TV Hakkında
+        </div>
+        <h3 class="about-title">Haritailesi TV,<br/>Haritailesi Vakfı'nın<br/>resmi medya platformudur.</h3>
+        <p class="about-body">Mesleğimize değer katmak için üretiyor, paylaşıyor ve topluluğumuzu büyütüyoruz. Her video bir hikâye, her hikâye bir mesleğin sesi.</p>
+      </div>
+      <div class="about-pillars">
+        <div class="pillar">
+          <div class="pillar-icon">⭐</div>
+          <div class="pillar-name">İlham Veriyoruz</div>
+          <div class="pillar-desc">Başarı hikâyeleriyle yeni nesillere ilham oluyoruz.</div>
+        </div>
+        <div class="pillar">
+          <div class="pillar-icon">🎙️</div>
+          <div class="pillar-name">Dinliyoruz</div>
+          <div class="pillar-desc">Sorunları dinliyor, çözümler üretmek için yola çıkıyoruz.</div>
+        </div>
+        <div class="pillar">
+          <div class="pillar-icon">🌱</div>
+          <div class="pillar-name">Destekliyoruz</div>
+          <div class="pillar-desc">Eğitimden projelere, gençlerden meslek liselerine destek oluyoruz.</div>
+        </div>
+        <div class="pillar">
+          <div class="pillar-icon">👥</div>
+          <div class="pillar-name">Birlikte Büyüyoruz</div>
+          <div class="pillar-desc">Dayanışma ve paylaşım kültürüyle mesleğimizi geleceğe taşıyoruz.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RECENT VIDEOS -->
+<div class="section-alt">
+  <div class="section-inner">
+
+    <div class="sec-row">
+      <div class="sec-row-title">
+        <svg width="16" height="16" fill="none" stroke="#f59e0b" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Son Yüklenen Videolar
+      </div>
+      <a href="#" class="sec-row-link">Tüm Videolar →</a>
+    </div>
+
+    <div class="videos-grid">
+
+      <!-- Meslekte Yeni İdoller -->
+      <div class="vid-card">
+        <div class="vid-thumb">
+          <img src="thumbnail-meslekte-yeni-idoller.png" alt="Meslekte Yeni İdoller">
+          <div class="vid-play"><svg width="14" height="14" fill="#0b1829" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div>
+          <div class="vid-dur">6:17</div>
+          <div class="vid-series-tag" style="background:rgba(245,158,11,0.9);color:#0b1829;">⭐ Yeni İdoller</div>
+        </div>
+        <div class="vid-info">
+          <div class="vid-title">Meslekte Yeni İdoller "Mete Ercan Pakdil"</div>
+          <div class="vid-meta">24 B görüntüleme · 1 yıl önce</div>
+        </div>
+      </div>
+
+      <!-- Bir Derdim(iz) Var -->
+      <div class="vid-card">
+        <div class="vid-thumb">
+          <img src="thumbnail-bir-derdimiz-var.jpg" alt="Bir Derdim(iz) Var">
+          <div class="vid-play"><svg width="14" height="14" fill="#0b1829" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div>
+          <div class="vid-dur">24:14</div>
+          <div class="vid-series-tag" style="background:rgba(74,144,217,0.9);color:#fff;">🎙️ Bir Derdimiz Var</div>
+        </div>
+        <div class="vid-info">
+          <div class="vid-title">Meslekte Neredeyiz ve Nereye Gitmeliyiz?</div>
+          <div class="vid-meta">33 B görüntüleme · 2 yıl önce</div>
+        </div>
+      </div>
+
+      <!-- Mesleğimizin Filizleri -->
+      <div class="vid-card">
+        <div class="vid-thumb">
+          <img src="thumbnail-mesleğimizin-filizleri.png" alt="Mesleğimizin Filizleri">
+          <div class="vid-play" style="top:40%;"><svg width="14" height="14" fill="#0b1829" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div>
+          <div class="vid-dur">12:16</div>
+          <div class="vid-series-tag" style="background:rgba(16,185,129,0.9);color:#fff;">🌱 Filizler</div>
+        </div>
+        <div class="vid-info">
+          <div class="vid-title">Mesleğimizin Filizleri "Meslek Liseleri Harita Tapu Kadastro"</div>
+          <div class="vid-meta">15 B görüntüleme · 2 yıl önce</div>
+        </div>
+      </div>
+
+      <!-- Biz Daha Yetenekliyiz -->
+      <div class="vid-card">
+        <div class="vid-thumb">
+          <img src="thumbnail-biz-daha-yetenekliyiz.png" alt="Biz Daha Yetenekliyiz">
+          <div class="vid-play"><svg width="14" height="14" fill="#0b1829" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div>
+          <div class="vid-dur">5:45</div>
+          <div class="vid-series-tag" style="background:rgba(236,72,153,0.85);color:#fff;">🎵 Biz Daha Yetenekliyiz</div>
+        </div>
+        <div class="vid-info">
+          <div class="vid-title">Gökhan Demir "Yolcu"</div>
+          <div class="vid-meta">24 B görüntüleme · 2 yıl önce</div>
+        </div>
+      </div>
+
+      <!-- Mesleğin Yeni Evi -->
+      <div class="vid-card">
+        <div class="vid-thumb">
+          <img src="thumbnail-mesleğin-yeni-evi.png" alt="Mesleğin Yeni Evi">
+          <div class="vid-play"><svg width="14" height="14" fill="#0b1829" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div>
+          <div class="vid-dur">20:39</div>
+          <div class="vid-series-tag" style="background:rgba(59,130,246,0.9);color:#fff;">🏠 Yeni Ev</div>
+        </div>
+        <div class="vid-info">
+          <div class="vid-title">Alper Girgin "Adab-ı Muaşeret"</div>
+          <div class="vid-meta">17 B görüntüleme · 2 yıl önce</div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- YT FOOTER BANNER -->
+<div class="section-alt" style="background:#f5f6f8;">
+  <div class="section-inner" style="padding-top:0;padding-bottom:52px;">
+    <div class="yt-banner">
+      <div class="yt-banner-text">
+        <div class="yt-banner-label">YouTube Kanalımız</div>
+        <div class="yt-banner-title">Tüm içeriklerimize YouTube<br/>kanalımızdan ulaşabilirsiniz.</div>
+      </div>
+      <div class="yt-banner-logo">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <img src="haritailesi-logo.svg" style="width:44px;height:44px;border-radius:10px;object-fit:contain;background:#fff;padding:6px;">
+          <div>
+            <div style="font-size:16px;font-weight:900;color:#fff;letter-spacing:-0.3px;">haritailesi</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:1px;">Mesleğine değer katmaya var mısın?</div>
+          </div>
+        </div>
+        <div class="yt-banner-sub" style="margin-top:6px;">@haritailesi · 3,01 B abone</div>
+      </div>
+      <div class="yt-banner-cta">
+        <button class="btn-youtube">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+          Kanalımıza Git
+        </button>
+        <div class="btn-subscribe">Abone olmayı unutmayın 🔔</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
