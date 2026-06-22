@@ -2,7 +2,20 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import type { StudentClub } from '@/lib/api';
+
+export type StudentClub = {
+  id: string;
+  name: string;
+  university: string;
+  city: string;
+  memberCount: number;
+  description?: string | null;
+  activities?: string | null;
+  contactName: string;
+  contactEmail: string;
+  contactPhone?: string | null;
+  website?: string | null;
+};
 
 function ClubCard({ club }: { club: StudentClub }) {
   const faaliyetler = club.activities
@@ -100,7 +113,7 @@ function ClubCard({ club }: { club: StudentClub }) {
 
 function AddClubCard() {
   return (
-    <Link href="/kulubu-ekle" className="group relative bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-2xl border-2 border-dashed border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 dark:hover:border-emerald-600 hover:shadow-lg transition-all duration-300 p-6 flex flex-col items-center justify-center text-center gap-4 min-h-[260px]">
+    <Link href="/genc/ogrenci-kulupler" className="group relative bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-2xl border-2 border-dashed border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 dark:hover:border-emerald-600 hover:shadow-lg transition-all duration-300 p-6 flex flex-col items-center justify-center text-center gap-4 min-h-[260px]">
       <div className="w-14 h-14 rounded-2xl bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center group-hover:scale-110 group-hover:bg-emerald-600 transition-all duration-300">
         <svg className="w-7 h-7 text-emerald-600 dark:text-emerald-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -149,7 +162,7 @@ export function ClubsClient({ clubs }: { clubs: StudentClub[] }) {
         <p className="text-gray-500 dark:text-slate-400 text-sm max-w-md mx-auto mb-6">
           Üniversitenizin haritacılık kulübü henüz burada yok. Kulübünüzü ekleyerek Haritailesi topluluğuyla bağlantı kurun.
         </p>
-        <Link href="/kulubu-ekle" className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors">
+        <Link href="/genc/ogrenci-kulupler" className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors">
           Kulübümü Ekle
         </Link>
       </div>
