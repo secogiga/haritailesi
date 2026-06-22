@@ -34,7 +34,7 @@ export default function YeteneklerSection({ talents, mutfakUrl }: Props) {
           </div>
           <div className="flex items-center gap-3 shrink-0">
             <Link
-              href="/yetenekler"
+              href="/mentorluk"
               className="text-sm font-medium text-[#26496b] dark:text-blue-400 hover:underline"
             >
               Tümünü gör →

@@ -46,7 +46,7 @@ export default function BasvurularimPage() {
       <main className="min-h-screen bg-gray-50 py-10">
         <div className="max-w-2xl mx-auto px-4 sm:px-6">
           <div className="flex items-center gap-2 text-xs text-gray-400 mb-6">
-            <Link href="/yarismalar" className="hover:text-gray-600">Yarışmalar</Link>
+            <Link href="/sen-ne-dersin/yarismalar" className="hover:text-gray-600">Yarışmalar</Link>
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
             <span className="text-gray-600 font-medium">Başvurularım</span>
           </div>
@@ -76,7 +76,7 @@ export default function BasvurularimPage() {
           {user && !loading && apps.length === 0 && (
             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-10 text-center">
               <p className="text-gray-400 text-sm mb-4">Henüz yarışmaya başvurmamışsın.</p>
-              <Link href="/yarismalar" className="inline-block px-6 py-3 bg-[#26496b] text-white rounded-xl text-sm font-semibold hover:bg-[#1e3a56] transition-colors">
+              <Link href="/sen-ne-dersin/yarismalar" className="inline-block px-6 py-3 bg-[#26496b] text-white rounded-xl text-sm font-semibold hover:bg-[#1e3a56] transition-colors">
                 Yarışmalara Bak
               </Link>
             </div>

@@ -2,6 +2,7 @@ import React from 'react';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { TVCtaButtons } from '@/components/TVCtaButtons';
 
 export const metadata: Metadata = {
   title: 'Haritailesi TV',
@@ -330,18 +331,15 @@ export default function HaritailesiTVPage() {
               ))}
             </div>
 
-            {/* Destek Ol */}
+            {/* Topluluk CTA */}
             <div style={{ marginTop: 38 }}>
-              <div style={{ background: 'linear-gradient(135deg,#0b1829 0%,#1a3350 100%)', borderRadius: 24, padding: '36px 40px', display: 'flex', alignItems: 'center', gap: 32 }}>
-                <div style={{ width: 72, height: 72, borderRadius: 20, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, flexShrink: 0 }}>📺</div>
+              <div style={{ background: 'linear-gradient(135deg,#0b1829 0%,#1a3350 100%)', borderRadius: 24, padding: '36px 40px', display: 'flex', alignItems: 'center', gap: 48 }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', marginBottom: 6 }}>Haritailesi TV&apos;ye destek olun!</div>
-                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>Daha fazla hikâye, daha fazla insan, daha güçlü bir meslek için siz de bu yolculuğun bir parçası olun.</div>
+                  <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#f59e0b', marginBottom: 10 }}>Haritailesi Topluluğu</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', lineHeight: 1.25, letterSpacing: -0.3, marginBottom: 10 }}>Mesleğin sesini duyur,<br />paylaş ve ilham ver.</div>
+                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 1.65 }}>Hikayeni paylaş, yeteneğini göster, deneyimli bir meslektaşla buluş.</div>
                 </div>
-                <button style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#0b1829', padding: '14px 28px', border: 'none', borderRadius: 14, cursor: 'pointer', background: '#f59e0b', whiteSpace: 'nowrap' }}>
-                  <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
-                  Destek Ol
-                </button>
+                <TVCtaButtons />
               </div>
             </div>
           </div>
@@ -362,7 +360,7 @@ export default function HaritailesiTVPage() {
                   Haritailesi TV,<br />Haritailesi Vakfı&apos;nın<br />resmi medya platformudur.
                 </h3>
                 <p style={{ fontSize: 13.5, color: '#6b7280', lineHeight: 1.75 }}>
-                  Mesleğimize değer katmak için üretiyor, paylaşıyor ve topluluğumuzu büyütüyoruz. Her video bir hikâye, her hikâye bir mesleğin sesi.
+                  Mesleğimize değer katmak için üretiyor, paylaşıyor ve topluluğumuzu büyütüyoruz.<br />Her video bir hikâye, her hikâye bir mesleğin sesi.
                 </p>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -415,30 +413,16 @@ export default function HaritailesiTVPage() {
         {/* ── YT FOOTER ── */}
         <div style={{ background: '#f5f6f8' }}>
           <div className="max-w-[1200px] mx-auto px-6 pb-[52px]">
-            <div style={{ background: '#0b1829', borderRadius: 24, overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr auto auto', alignItems: 'center', border: '1px solid rgba(255,255,255,0.07)' }}>
-              <div style={{ padding: '32px 36px' }}>
-                <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#f59e0b', marginBottom: 8 }}>YouTube Kanalımız</div>
-                <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', lineHeight: 1.25, letterSpacing: -0.3 }}>Tüm içeriklerimize YouTube<br />kanalımızdan ulaşabilirsiniz.</div>
+            <div style={{ background: 'linear-gradient(135deg,#0b1829 0%,#1a3350 100%)', borderRadius: 24, padding: '36px 40px', display: 'flex', alignItems: 'center', gap: 32 }}>
+              <div style={{ width: 68, height: 68, borderRadius: 18, background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, flexShrink: 0 }}>📺</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', marginBottom: 6 }}>Haritailesi TV&apos;ye destek olun!</div>
+                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>Daha fazla hikâye, daha fazla insan, daha güçlü bir meslek için siz de bu yolculuğun bir parçası olun.</div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 40px', borderLeft: '1px solid rgba(255,255,255,0.07)', borderRight: '1px solid rgba(255,255,255,0.07)', gap: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/haritailesi-logo.svg" alt="haritailesi" style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'contain', background: '#fff', padding: 6 }} />
-                  <div>
-                    <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', letterSpacing: -0.3 }}>haritailesi</div>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>Mesleğine değer katmaya var mısın?</div>
-                  </div>
-                </div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 500, marginTop: 6 }}>@haritailesi · 3,01 B abone</div>
-              </div>
-              <div style={{ padding: '32px 36px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-                <a href="https://www.youtube.com/@haritailesi" target="_blank" rel="noopener noreferrer"
-                  style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 13, fontWeight: 800, color: '#fff', padding: '13px 24px', borderRadius: 12, background: '#FF0000', textDecoration: 'none' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" /></svg>
-                  Kanalımıza Git
-                </a>
-                <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>Abone olmayı unutmayın 🔔</div>
-              </div>
+              <button style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#0b1829', padding: '14px 28px', border: 'none', borderRadius: 999, cursor: 'pointer', background: '#f59e0b', whiteSpace: 'nowrap' }}>
+                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+                Destek Ol
+              </button>
             </div>
           </div>
         </div>

@@ -22,12 +22,11 @@ const MUTFAK_URL = process.env['NEXT_PUBLIC_MUTFAK_URL'] ?? 'https://mutfak.hari
 const PAGE_HINTS: Record<string, { label: string; href: string; external?: boolean }[]> = {
   '/':             [{ label: 'Etkinliklere Bak', href: '/etkinlikler' }, { label: 'Mentör Bul', href: '/mentorluk' }],
   '/etkinlikler':  [{ label: 'Mentör Bul', href: '/mentorluk' }, { label: 'Soru & Cevap', href: '/soru-cevap' }],
-  '/mentorluk':    [{ label: 'Etkinliklere Bak', href: '/etkinlikler' }, { label: 'Üyeleri Keşfet', href: '/uyeler' }],
-  '/uyeler':       [{ label: 'Mentör Bul', href: '/mentorluk' }, { label: 'Mutfak\'ta Bağlan', href: MUTFAK_URL, external: true }],
+  '/mentorluk':    [{ label: 'Etkinliklere Bak', href: '/etkinlikler' }, { label: 'Kütüphaneye Git', href: '/kutuphane' }],
   '/projeler':     [{ label: 'Soru & Cevap', href: '/soru-cevap' }, { label: 'Mentör Bul', href: '/mentorluk' }],
   '/soru-cevap':   [{ label: 'Projeler', href: '/projeler' }, { label: 'Etkinliklere Bak', href: '/etkinlikler' }],
   '/egitim':       [{ label: 'Mentör Bul', href: '/mentorluk' }, { label: 'Soru & Cevap', href: '/soru-cevap' }],
-  '/ilanlar':      [{ label: 'Üyeleri Keşfet', href: '/uyeler' }, { label: 'Mentör Bul', href: '/mentorluk' }],
+  '/ilanlar':      [{ label: 'Kütüphaneye Git', href: '/kutuphane' }, { label: 'Mentör Bul', href: '/mentorluk' }],
   '/genc':         [{ label: 'Mentör Bul', href: '/mentorluk' }, { label: 'Etkinliklere Bak', href: '/etkinlikler' }],
 };
 

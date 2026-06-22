@@ -157,9 +157,10 @@ const FREE_CATEGORIES: {
   { title: 'Haritakademi',           desc: 'Mesleki gelişim için proje, eğitim ve etkinlik platformu.', href: 'https://www.linkedin.com/showcase/haritakademi', icon: <IcoCap />, gradient: 'from-blue-600 to-blue-800', pulse: 'LinkedIn', external: true },
   { title: 'Haberita',               desc: 'Harita sektörüne özel haberler, içerikler ve röportajlar.',  href: 'https://haberita.com', icon: <IcoNewspaper />, gradient: 'from-amber-500 to-amber-700', pulse: 'Haberler', external: true },
   { title: 'Haritakariyer',          desc: 'İş ilanları, kariyer fırsatları ve mesleki bağlantılar.',   href: 'https://www.linkedin.com/showcase/haritakariyer', icon: <IcoBriefcase />, gradient: 'from-[#66aca9] to-teal-700', pulse: 'LinkedIn', external: true },
-  { title: 'Bağış',                  desc: 'Haritailesi\'ne destek ol. Bağışınla topluluğun büyümesine katkı sun.', href: '/bagis', icon: <IcoHeart />, gradient: 'from-rose-500 to-pink-600', pulse: 'Destek Ol' },
+  { title: 'Bağış',                  desc: 'Haritailesi\'ne destek ol. Bağışınla topluluğun büyümesine katkı sun.', href: `${process.env['NEXT_PUBLIC_WEB_URL'] ?? 'https://haritailesi.org'}/bagis`, icon: <IcoHeart />, gradient: 'from-rose-500 to-pink-600', pulse: 'Destek Ol', external: true },
   { title: 'Haritailesi Pusula', desc: 'İhtiyacınızı anlatın, size en uygun desteği birlikte bulalım.', href: '/haritailesipusula', icon: <IcoPusula />, gradient: 'from-[#26496b] to-[#66aca9]', pulse: 'Yönünü Bul' },
   { title: 'Öne Çık', desc: 'Projeni, markanı veya hikâyeni sektörün en aktif topluluğuyla buluştur.', href: '/one-cik', icon: <IcoMegaphone />, gradient: 'from-[#26496b] to-slate-700', pulse: 'Reklam · Tanıtım · İşbirliği' },
+  { title: 'Mesleğe Değer Katan Markalar', desc: 'Sektöre katkı sunan kurumsal üyeleri ve kurucu markaları keşfet.', href: `${process.env['NEXT_PUBLIC_WEB_URL'] ?? 'https://haritailesi.org'}/markalar`, icon: <IcoStar />, gradient: 'from-amber-500 to-amber-700', pulse: 'Kurumsal Üyeler', external: true },
 ];
 
 // ─── Toast bileşeni ───────────────────────────────────────────────────────────

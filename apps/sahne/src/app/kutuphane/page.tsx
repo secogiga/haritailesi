@@ -4,6 +4,54 @@ import Navbar from '@/components/Navbar';
 import { SavedSection, LibrarySearchInput } from './_library-client';
 
 const API = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000';
+const MUTFAK_URL = process.env['NEXT_PUBLIC_MUTFAK_URL'] ?? 'https://mutfak.haritailesi.org';
+
+// ── Topluluk Tartışmaları ─────────────────────────────────────────────────────
+interface PublicPost { id: string; type: string; category: string; title: string | null; body: string; isPinned: boolean; createdAt: string; authorId: string; displayName: string | null; profession: string | null; reactionCount: number; commentCount: number; }
+
+const POST_TYPE_LABEL: Record<string, string> = { question: 'Soru', idea: 'Fikir', general: 'Genel', announcement: 'Duyuru', resource: 'Kaynak', project_call: 'Proje Çağrısı', mentorship_experience: 'Mentorluk', team_search: 'Ekip Arıyor' };
+const POST_TYPE_COLOR: Record<string, string> = { question: 'bg-amber-50 text-amber-700', idea: 'bg-purple-50 text-purple-700', resource: 'bg-emerald-50 text-emerald-700', announcement: 'bg-blue-50 text-blue-700', project_call: 'bg-teal-50 text-teal-700', mentorship_experience: 'bg-rose-50 text-rose-600', team_search: 'bg-indigo-50 text-indigo-700', general: 'bg-slate-100 text-slate-600' };
+const AV_COLORS = ['bg-[#26496b]', 'bg-[#66aca9]', 'bg-purple-600', 'bg-amber-600', 'bg-rose-600', 'bg-teal-600'];
+
+function avColor(name: string) { let h = 0; for (const c of name) h = c.charCodeAt(0) + ((h << 5) - h); return AV_COLORS[Math.abs(h) % AV_COLORS.length]!; }
+function timeAgoPost(iso: string) { const d = Date.now() - new Date(iso).getTime(), m = Math.floor(d / 60000), h = Math.floor(m / 60), dy = Math.floor(h / 24); return m < 60 ? `${m || 1}dk` : h < 24 ? `${h}s` : `${dy}g`; }
+
+async function fetchPublicPosts(): Promise<PublicPost[]> {
+  try {
+    const res = await fetch(`${API}/api/v1/posts/public?limit=6`, { next: { revalidate: 60 } });
+    if (!res.ok) return [];
+    const data = await res.json() as { items: PublicPost[] };
+    return data.items ?? [];
+  } catch { return []; }
+}
+
+function MiniPostCard({ post }: { post: PublicPost }) {
+  const av = avColor(post.displayName ?? '?');
+  const initials = (post.displayName ?? '?').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const typeLabel = POST_TYPE_LABEL[post.type] ?? post.type;
+  const typeColor = POST_TYPE_COLOR[post.type] ?? POST_TYPE_COLOR['general']!;
+  return (
+    <a href={MUTFAK_URL} target="_blank" rel="noopener noreferrer"
+      className="group block bg-white border border-gray-100 hover:border-gray-200 hover:shadow-sm rounded-2xl p-5 transition-all duration-150">
+      <div className="flex items-center gap-1.5 mb-2.5">
+        <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${typeColor}`}>{typeLabel}</span>
+      </div>
+      {post.title && <p className="text-sm font-bold text-gray-900 leading-snug mb-1.5 line-clamp-2">{post.title}</p>}
+      <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed mb-3">{post.body}</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0 ${av}`}>{initials}</div>
+          <span className="text-[11px] text-gray-500">{post.displayName ?? 'Üye'} · {timeAgoPost(post.createdAt)}</span>
+        </div>
+        <div className="flex items-center gap-2 text-[11px] text-gray-400">
+          <span>♡ {post.reactionCount}</span>
+          <span>💬 {post.commentCount}</span>
+        </div>
+      </div>
+    </a>
+  );
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface LibraryCounts {
   terms: number;
@@ -142,7 +190,7 @@ export default async function KutuphaneHub({ searchParams }: { searchParams: Pro
   const { q } = await searchParams;
   if (q?.trim()) redirect(`/kutuphane/arama?q=${encodeURIComponent(q.trim())}`);
 
-  const [counts, featured, dailyTerm] = await Promise.all([fetchCounts(), fetchFeatured(), fetchDailyTerm()]);
+  const [counts, featured, dailyTerm, publicPosts] = await Promise.all([fetchCounts(), fetchFeatured(), fetchDailyTerm(), fetchPublicPosts()]);
 
   const statMap: Record<string, string> = {
     qna: '—',
@@ -434,6 +482,25 @@ export default async function KutuphaneHub({ searchParams }: { searchParams: Pro
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SavedSection />
         </div>
+
+        {/* ── Topluluk Tartışmaları ─────────────────────────────────────────── */}
+        {publicPosts.length > 0 && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-widest text-[#66aca9] mb-1">Mutfak Kütüphanesi</div>
+                <h2 className="text-lg font-black text-gray-900">Topluluk Tartışmaları</h2>
+              </div>
+              <a href={MUTFAK_URL} target="_blank" rel="noopener noreferrer"
+                className="text-sm font-semibold text-[#26496b] hover:underline shrink-0">
+                Tümünü Gör →
+              </a>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {publicPosts.map(post => <MiniPostCard key={post.id} post={post} />)}
+            </div>
+          </div>
+        )}
 
         {/* ── Footer CTA ───────────────────────────────────────────────────── */}
         <div className="border-t border-gray-100 mt-6">

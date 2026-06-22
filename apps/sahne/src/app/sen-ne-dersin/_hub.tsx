@@ -611,7 +611,7 @@ export default function SenNeDersinHub({ initialFilter = 'tumu' }: { initialFilt
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </Link>
-            <Link href="/sirket-testi"
+            <Link href="/sen-ne-dersin/sirket-testi"
               className="flex items-center gap-4 p-5 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-colors group">
               <div className="w-10 h-10 rounded-xl bg-sky-500/20 flex items-center justify-center shrink-0">
                 <svg className="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -954,7 +954,7 @@ export default function SenNeDersinHub({ initialFilter = 'tumu' }: { initialFilt
             <div className="grid sm:grid-cols-2 gap-3 pt-4 border-t border-gray-100">
               {[
                 { href: '/sen-ne-dersin/sektor-raporu', label: 'Sektör Raporu', desc: 'Haritacılık sektörü araştırma verileri', border: 'border-emerald-500/30 hover:border-emerald-500', bg: 'hover:bg-emerald-50/50' },
-                { href: '/sirket-testi', label: 'Şirketler İçin', desc: 'Kurumunuz için özel test ve anket çözümleri', border: 'border-rose-500/30 hover:border-rose-500', bg: 'hover:bg-rose-50/50' },
+                { href: '/sen-ne-dersin/sirket-testi', label: 'Şirketler İçin', desc: 'Kurumunuz için özel test ve anket çözümleri', border: 'border-rose-500/30 hover:border-rose-500', bg: 'hover:bg-rose-50/50' },
               ].map(link => (
                 <Link
                   key={link.href}

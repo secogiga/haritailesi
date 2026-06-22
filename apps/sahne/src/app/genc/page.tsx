@@ -2,111 +2,37 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import Navbar from '@/components/Navbar';
 import { PageActionTracker } from '@/components/PageActionTracker';
-import { cms, type StudentClub, type CmsEvent } from '@/lib/api';
+import TurkeyMap from '@/components/TurkeyMap';
+import { ClubsClient } from './_clubs-client';
+import { cms, type CmsEvent } from '@/lib/api';
 
 export const metadata: Metadata = {
   title: 'Haritailesi Genç — Öğrenci Topluluğu',
   description: 'Haritacılık, geomatik ve kadastro öğrencileri için kulüpler, etkinlikler ve mentorluk fırsatları.',
 };
 
-function ClubCard({ club }: { club: StudentClub }) {
-  return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-gray-200 dark:hover:border-slate-700 transition-all overflow-hidden group">
-      {/* Color accent bar */}
-      <div className="h-1.5 bg-gradient-to-r from-emerald-400 to-teal-500" />
+// ── Öğrenci başarı hikayeleri ──
+const HIKAYELER = [
+  { ad: 'Selin Y.', uni: 'YTÜ Harita Müh.', soz: 'Mesleğin Gelecekleri Programı sayesinde ilk mentörlük alma deneyimimi yaşadım. Şimdi ben de destek oluyorum.' },
+  { ad: 'Emre K.', uni: 'KTÜ Geomatik', soz: 'Kulübümüz Haritailesi’ye bağlandıktan sonra ilk kez başka üniversitelerle ortak proje ürettik.' },
+  { ad: 'Deniz A.', uni: 'İTÜ Geomatik', soz: 'Webinarlar ve etkinlikler sayesinde sektörü okuldayken tanıdım, ilk stajımı buradan buldum.' },
+];
 
-      <div className="p-6">
-        {/* Club header */}
-        <div className="flex items-start gap-4 mb-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 flex items-center justify-center shrink-0">
-            <svg className="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-            </svg>
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-gray-900 dark:text-slate-100 text-base leading-snug">{club.name}</h3>
-            <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">{club.university}</p>
-          </div>
-        </div>
+// ── Öğrenciye özel kaynaklar ──
+const KAYNAKLAR = [
+  { href: '/kutuphane', icon: '📚', title: 'Meslek Kütüphanesi', desc: 'Mevzuat, sözlük, teknik kaynak ve rehberler.' },
+  { href: '/sinavlar', icon: '📝', title: 'Sınav Merkezi', desc: 'KPSS, lisans ve sertifika sınavlarına hazırlık.' },
+  { href: '/ilanlar', icon: '💼', title: 'İlan Panosu', desc: 'Staj ve kariyer fırsatları, sektörden duyurular.' },
+  { href: '/mentorluk', icon: '🤝', title: 'Mentorluk', desc: 'Deneyimli profesyonellerle birebir eşleşme.' },
+];
 
-        {/* Meta badges */}
-        <div className="flex flex-wrap gap-2 mb-4">
-          <span className="inline-flex items-center gap-1 text-xs bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-400 px-2.5 py-1 rounded-full">
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            {club.city}
-          </span>
-          {club.memberCount > 0 && (
-            <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2.5 py-1 rounded-full">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              {club.memberCount} üye
-            </span>
-          )}
-        </div>
-
-        {/* Description */}
-        {club.description && (
-          <p className="text-sm text-gray-600 dark:text-slate-400 leading-relaxed mb-4 line-clamp-3">
-            {club.description}
-          </p>
-        )}
-
-        {/* Activities */}
-        {club.activities && (
-          <div className="mb-4 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">
-            <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-1">Etkinlikler & Faaliyetler</p>
-            <p className="text-xs text-emerald-800 dark:text-emerald-300 leading-relaxed line-clamp-2">{club.activities}</p>
-          </div>
-        )}
-
-        {/* Contact */}
-        <div className="pt-4 border-t border-gray-100 dark:border-slate-800 space-y-1.5">
-          <p className="text-xs text-gray-400 dark:text-slate-500 font-medium">Sorumlu: {club.contactName}</p>
-          <div className="flex flex-wrap gap-3">
-            <a
-              href={`mailto:${club.contactEmail}`}
-              className="inline-flex items-center gap-1.5 text-xs text-[#26496b] dark:text-blue-400 hover:underline font-medium"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              E-posta
-            </a>
-            {club.contactPhone && (
-              <a
-                href={`tel:${club.contactPhone}`}
-                className="inline-flex items-center gap-1.5 text-xs text-[#26496b] dark:text-blue-400 hover:underline font-medium"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-                {club.contactPhone}
-              </a>
-            )}
-            {club.website && (
-              <a
-                href={club.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs text-[#26496b] dark:text-blue-400 hover:underline font-medium"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-                Web sitesi
-              </a>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+// ── SSS ──
+const SSS = [
+  { s: 'Üyelik ücretli mi?', c: 'Hayır. Haritailesi Genç ve Mesleğin Gelecekleri üyeliği öğrenciler için tamamen ücretsizdir.' },
+  { s: 'Kulübüm listede yoksa ne yapmalıyım?', c: 'Kulübünüzü "Kulübümü Ekle" formuyla saniyeler içinde ekleyebilir, topluluğa bağlanabilirsiniz.' },
+  { s: 'Mezun oldum, devam edebilir miyim?', c: 'Elbette. Mezuniyet sonrası bireysel üyelikle topluluğun bir parçası olmaya devam edebilirsiniz.' },
+  { s: 'Mentor nasıl bulurum?', c: 'Mentorluk sayfasından başvurarak sektörden deneyimli bir profesyonelle eşleşebilirsiniz.' },
+];
 
 function EventMini({ event }: { event: CmsEvent }) {
   const date = new Date(event.dateStart);
@@ -155,9 +81,18 @@ export default async function GencPage() {
   ]);
 
   const now = new Date();
-  const upcomingEvents = (events ?? [])
-    .sort((a, b) => new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime())
-    .slice(0, 6);
+  const sortedEvents = (events ?? []).sort((a, b) => new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime());
+  const upcomingEvents = sortedEvents.slice(0, 6);
+  const nextEvent = sortedEvents.find((e) => new Date(e.dateStart) > now) ?? null;
+
+  // Kulüp haritası — şehir bazlı yoğunluk
+  const clubCityStats = Object.values(
+    clubs.reduce((acc, c) => {
+      acc[c.city] = acc[c.city] ?? { city: c.city, count: 0 };
+      acc[c.city].count += c.memberCount || 1;
+      return acc;
+    }, {} as Record<string, { city: string; count: number }>),
+  );
 
   const WEB_URL = process.env['NEXT_PUBLIC_WEB_URL'] ?? 'https://haritailesi.org';
 
@@ -169,7 +104,6 @@ export default async function GencPage() {
 
         {/* ── Hero ── */}
         <section className="relative overflow-hidden bg-gradient-to-br from-emerald-600 via-teal-600 to-[#26496b] py-16 sm:py-24">
-          {/* Topo overlay */}
           <div className="pointer-events-none absolute inset-0 opacity-10" aria-hidden="true">
             <svg viewBox="0 0 800 400" className="w-full h-full" fill="none">
               <ellipse cx="400" cy="200" rx="390" ry="190" stroke="white" strokeWidth="1" />
@@ -187,26 +121,31 @@ export default async function GencPage() {
             </div>
 
             <h1 className="text-4xl sm:text-5xl font-bold text-white tracking-tight max-w-3xl mx-auto leading-tight">
-              Sektörün geleceği<br />
+              Mesleğin geleceği<br />
               <span className="text-emerald-200">bugünden şekilleniyor.</span>
             </h1>
 
             <p className="mt-6 text-lg text-white/80 max-w-2xl mx-auto leading-relaxed">
-              Haritacılık, geomatik ve kadastro öğrencilerini bir araya getiren öğrenci kulüpleri, etkinlikler ve
-              mentorluk fırsatlarıyla tanışın.
+              Harita mühendisliği, harita ve kadastro, tapu ve kadastro bölümü, meslek liselerinin harita tapu
+              kadastro alanlarının öğrencilerini bir araya getiren öğrenci kulüpleri, etkinlikler ve mentörlük
+              fırsatlarıyla tanışın.
             </p>
 
+            {/* Yaklaşan etkinlik vurgusu */}
+            {nextEvent && (
+              <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-white/90 text-sm">
+                <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
+                Sıradaki etkinlik: <span className="font-semibold">{nextEvent.title}</span>
+                <span className="text-white/60">· {new Date(nextEvent.dateStart).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}</span>
+              </div>
+            )}
+
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                href="#kulupler"
-                className="px-8 py-3.5 text-sm font-semibold text-emerald-700 bg-white hover:bg-emerald-50 rounded-xl transition-colors shadow-sm"
-              >
+              <Link href="#kulupler" className="px-8 py-3.5 text-sm font-semibold text-emerald-700 bg-white hover:bg-emerald-50 rounded-xl transition-colors shadow-sm">
                 Kulüpleri Keşfet
               </Link>
-              <Link
-                href={`${WEB_URL}/meslegin-gelecekleri/basvuru` as `https://${string}`}
-                className="px-8 py-3.5 text-sm font-semibold text-white border-2 border-white/40 hover:border-white hover:bg-white/10 rounded-xl transition-colors"
-              >
+              <Link href={`${WEB_URL}/meslegin-gelecekleri/basvuru` as `https://${string}`}
+                className="px-8 py-3.5 text-sm font-semibold text-white border-2 border-white/40 hover:border-white hover:bg-white/10 rounded-xl transition-colors">
                 Mesleğin Gelecekleri Başvurusu
               </Link>
             </div>
@@ -240,15 +179,16 @@ export default async function GencPage() {
                   Neden Haritailesi Genç?
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-slate-100 mb-5 leading-snug">
-                  Okul kulübünden sektör topluluğuna köprü.
+                  Üniversite kulübünden sektör topluluğuna köprü.
                 </h2>
                 <div className="space-y-4 text-sm text-gray-600 dark:text-slate-400 leading-relaxed">
                   <p>
-                    Haritailesi Genç, haritacılık ve geomatik bölümünde okuyan öğrencilerin sektörle erken
-                    bağlantı kurduğu programdır. Üniversite kulüplerini platform altında birleştirir.
+                    Haritailesi Genç; harita mühendisliği, harita ve kadastro, tapu ve kadastro bölümü, meslek
+                    liselerinin harita tapu kadastro alanlarının öğrencilerinin sektörle erken<br />bağlantı
+                    kurduğu programdır. Üniversite kulüplerini platform altında birleştirir.
                   </p>
                   <p>
-                    Öğrenci kulüplerinin etkinliklerine katılın, mentor bulun, diğer üniversitelerdeki
+                    Öğrenci kulüplerinin etkinliklerine katılın, mentör bulun, diğer üniversitelerdeki
                     meslektaşlarınızla proje üretin.
                   </p>
                 </div>
@@ -271,65 +211,72 @@ export default async function GencPage() {
           </div>
         </section>
 
-        {/* ── Clubs grid ── */}
+        {/* ── Kulüp Haritası ── */}
+        <section className="py-16 sm:py-20 dark:bg-[#070c1a]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-10">
+              <div className="text-xs font-semibold uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-2">
+                Türkiye Geneli
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-slate-100">
+Üniversite Kulüpleri İnteraktif Haritası
+              </h2>
+              <p className="mt-2 text-gray-500 dark:text-slate-400 text-sm max-w-xl mx-auto">
+                Şehrine tıkla, o ildeki öğrenci topluluğunu gör. Haritailesi Genç her geçen gün büyüyor.
+              </p>
+            </div>
+            <TurkeyMap members={clubCityStats} />
+          </div>
+        </section>
+
+        {/* ── Nasıl Katılırım? ── */}
+        <section className="py-16 sm:py-20 bg-gray-50 dark:bg-slate-950 border-y border-gray-100 dark:border-slate-800">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <div className="text-xs font-semibold uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-2">
+                3 Adımda
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-slate-100">Nasıl katılırım?</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              {[
+                { n: '1', t: 'Mesleğin Gelecekleri\'ne Katıl', d: 'Mesleğin Gelecekleri formunu doldur — öğrenciler için tamamen ücretsiz.' },
+                { n: '2', t: 'Mentörle Eşleş', d: 'Sektörden deneyimli bir profesyonelle birebir mentörlük için eşleş.' },
+                { n: '3', t: 'Etkinliklere Katıl', d: 'Webinar, atölye ve kongrelere öncelikli katıl; projeler üret.' },
+              ].map((s, i) => (
+                <div key={s.n} className="relative bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 p-6">
+                  <div className="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-lg mb-4">
+                    {s.n}
+                  </div>
+                  <h3 className="font-bold text-gray-900 dark:text-slate-100 mb-1.5">{s.t}</h3>
+                  <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed">{s.d}</p>
+                  {i < 2 && (
+                    <svg className="hidden sm:block absolute top-9 -right-3 w-6 h-6 text-emerald-300 dark:text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Clubs (arama + filtre + Ayın Kulübü) ── */}
         <section id="kulupler" className="py-16 sm:py-24 dark:bg-[#070c1a]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-2">
-                  Kayıtlı Kulüpler
-                </div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-slate-100">
-                  Öğrenci Kulüpleri
-                </h2>
-                <p className="mt-2 text-gray-500 dark:text-slate-400 text-sm">
-                  Haritailesi topluluğuna bağlı üniversite haritacılık kulüpleri
-                </p>
+            <div className="mb-10">
+              <div className="text-xs font-semibold uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-2">
+                Kayıtlı Kulüpler
               </div>
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-slate-100">
+                Öğrenci Kulüpleri
+              </h2>
+              <p className="mt-2 text-gray-500 dark:text-slate-400 text-sm">
+                Haritailesi topluluğuna bağlı üniversite haritacılık kulüpleri
+              </p>
             </div>
 
-            {clubs.length === 0 ? (
-              <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-gray-200 dark:border-slate-700">
-                <div className="text-5xl mb-4">🎓</div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2">
-                  Kulübünüzü ekleyin
-                </h3>
-                <p className="text-gray-500 dark:text-slate-400 text-sm max-w-md mx-auto mb-6">
-                  Üniversitenizin haritacılık kulübü henüz burada yok. Kulübünüzü ekleyerek Haritailesi topluluğuyla bağlantı kurun.
-                </p>
-                <Link
-                  href="/kulubu-ekle"
-                  className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors"
-                >
-                  Kulübümü Ekle
-                </Link>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {clubs.map(club => (
-                  <ClubCard key={club.id} club={club} />
-                ))}
-
-                {/* Add club CTA card */}
-                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-2xl border border-dashed border-emerald-200 dark:border-emerald-800 p-6 flex flex-col items-center justify-center text-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-slate-100 mb-1">Kulübünüzü Ekleyin</h3>
-                    <p className="text-sm text-gray-500 dark:text-slate-400">Haritailesi topluluğuna bağlanın</p>
-                  </div>
-                  <Link
-                    href="/kulubu-ekle"
-                    className="px-5 py-2.5 text-sm font-semibold text-emerald-700 dark:text-emerald-400 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-700 rounded-xl hover:border-emerald-400 transition-colors"
-                  >
-                    Başvur
-                  </Link>
-                </div>
-              </div>
-            )}
+            <ClubsClient clubs={clubs} />
           </div>
         </section>
 
@@ -364,6 +311,62 @@ export default async function GencPage() {
           </div>
         </section>
 
+        {/* ── Öğrenci Başarı Hikayeleri ── */}
+        <section className="py-16 sm:py-20 dark:bg-[#070c1a]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <div className="text-xs font-semibold uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-2">
+                Onlar da Başladı
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-slate-100">Öğrenci hikâyeleri</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {HIKAYELER.map((h) => (
+                <div key={h.ad} className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 p-6 shadow-sm">
+                  <svg className="w-8 h-8 text-emerald-300 dark:text-emerald-700 mb-3" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M9.983 3v7.391c0 5.704-3.731 9.57-8.983 10.609l-.995-2.151c2.432-.917 3.995-3.638 3.995-5.849h-4v-10h9.983zm14.017 0v7.391c0 5.704-3.748 9.571-9 10.609l-.996-2.151c2.433-.917 3.996-3.638 3.996-5.849h-3.983v-10h9.983z" />
+                  </svg>
+                  <p className="text-sm text-gray-700 dark:text-slate-300 italic leading-relaxed mb-5">{h.soz}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 flex items-center justify-center text-sm font-bold">
+                      {h.ad.charAt(0)}
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold text-gray-900 dark:text-slate-100">{h.ad}</div>
+                      <div className="text-xs text-gray-400 dark:text-slate-500">{h.uni}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Öğrenci Kaynakları ── */}
+        <section className="py-16 sm:py-20 bg-gray-50 dark:bg-slate-950 border-y border-gray-100 dark:border-slate-800">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <div className="text-xs font-semibold uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-2">
+                Sana Özel
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-slate-100">Öğrenci Kaynakları</h2>
+              <p className="mt-2 text-gray-500 dark:text-slate-400 text-sm max-w-xl mx-auto">
+                Öğrenciliğinde işine yarayacak her şey tek yerde.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {KAYNAKLAR.map((k) => (
+                <Link key={k.href} href={k.href}
+                  className="group bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 p-5 hover:shadow-md hover:border-emerald-200 dark:hover:border-emerald-800 transition-all">
+                  <div className="text-2xl mb-3">{k.icon}</div>
+                  <div className="font-semibold text-gray-900 dark:text-slate-100 text-sm mb-1 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">{k.title}</div>
+                  <div className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed">{k.desc}</div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* ── Mesleğin Gelecekleri CTA ── */}
         <section className="py-16 sm:py-20 dark:bg-[#070c1a]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -384,16 +387,37 @@ export default async function GencPage() {
                   Mesleğin Gelecekleri Programı
                 </h2>
                 <p className="text-white/80 max-w-xl mx-auto mb-8 leading-relaxed">
-                  Harita mühendisliği veya geomatik bölümü öğrencisiyseniz, Haritailesi Genç üyeliği
-                  tamamen ücretsiz. Etkinlikler, eğitimler ve mentorluk fırsatları sizi bekliyor.
+                  Harita mühendisliği, harita ve kadastro, tapu ve kadastro bölümü, meslek liselerinin harita
+                  tapu kadastro alanlarının öğrencisiyseniz, Haritailesi Genç üyeliği tamamen ücretsiz.
+                  Etkinlikler, eğitimler ve mentörlük fırsatları sizi bekliyor.
                 </p>
-                <Link
-                  href={`${WEB_URL}/meslegin-gelecekleri/basvuru` as `https://${string}`}
-                  className="inline-block px-8 py-3.5 text-sm font-semibold text-[#26496b] bg-white hover:bg-emerald-50 rounded-xl transition-colors shadow-md"
-                >
+                <Link href={`${WEB_URL}/meslegin-gelecekleri/basvuru` as `https://${string}`}
+                  className="inline-block px-8 py-3.5 text-sm font-semibold text-[#26496b] bg-white hover:bg-emerald-50 rounded-xl transition-colors shadow-md">
                   Hemen Başvur — Ücretsiz
                 </Link>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── SSS ── */}
+        <section className="py-16 sm:py-20 bg-gray-50 dark:bg-slate-950 border-t border-gray-100 dark:border-slate-800">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-10">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-slate-100">Sıkça Sorulan Sorular</h2>
+            </div>
+            <div className="space-y-3">
+              {SSS.map((item, i) => (
+                <details key={item.s} open={i === 0} className="group bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 px-5">
+                  <summary className="flex items-center justify-between gap-4 py-4 cursor-pointer list-none">
+                    <span className="text-sm font-semibold text-gray-800 dark:text-slate-200">{item.s}</span>
+                    <svg className="w-4 h-4 text-gray-400 shrink-0 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </summary>
+                  <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed pb-4">{item.c}</p>
+                </details>
+              ))}
             </div>
           </div>
         </section>

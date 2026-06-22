@@ -15,11 +15,11 @@ async function seed() {
   const [itu] = await sql`
     INSERT INTO student_clubs (name, slug, university, city, contact_name, contact_email, contact_phone, website, member_count, description, activities, status)
     VALUES (
-      'İTÜ Haritacılık ve Jeodezi Kulübü', 'itu-haritacilik-jeodezi',
-      'İstanbul Teknik Üniversitesi', 'İstanbul',
+      'Topkapı Haritacılık ve Jeodezi Kulübü', 'itu-haritacilik-jeodezi',
+      'İstanbul Topkapı Üniversitesi', 'İstanbul',
       'Yönetim Kurulu', 'haritacilik@itu.edu.tr', '+90 212 285 37 37', 'https://harita.itu.edu.tr',
       85,
-      'İstanbul Teknik Üniversitesi bünyesinde haritacılık, jeodezi ve uzaktan algılama alanlarında faaliyet gösteren öğrenci topluluğu. Yılda onlarca etkinlik düzenleyen aktif bir kulüp.',
+      'İstanbul Topkapı Üniversitesi bünyesinde haritacılık, jeodezi ve uzaktan algılama alanlarında faaliyet gösteren öğrenci topluluğu. Yılda onlarca etkinlik düzenleyen aktif bir kulüp.',
       'Arazi ölçümü atölyeleri, uydu görüntü işleme eğitimleri, sektör gezileri, kariyer günleri, ulusal harita olimpiyatları',
       'active'
     ) RETURNING id`;
@@ -54,7 +54,7 @@ async function seed() {
   await sql`INSERT INTO club_news (club_id, title, summary, body, published_at) VALUES
     (${ituId}, 'Uydu Görüntü İşleme Atölyesi Büyük İlgi Gördü',
      'Kulübümüzün düzenlediği iki günlük uydu görüntü işleme atölyesine 60 öğrenci katıldı. Sentinel-2 verileriyle NDVI analizi, arazi örtüsü sınıflandırması ve değişim tespiti konuları işlendi.',
-     'İTÜ Haritacılık ve Jeodezi Kulübü olarak düzenlediğimiz uydu görüntü işleme atölyesi büyük ilgi gördü. İki günlük etkinlikte katılımcılar Sentinel-2 uydu görüntüleriyle arazi örtüsü analizi, NDVI hesaplama ve değişim tespiti konularında uygulamalı deneyim kazandı.',
+     'Topkapı Haritacılık ve Jeodezi Kulübü olarak düzenlediğimiz uydu görüntü işleme atölyesi büyük ilgi gördü. İki günlük etkinlikte katılımcılar Sentinel-2 uydu görüntüleriyle arazi örtüsü analizi, NDVI hesaplama ve değişim tespiti konularında uygulamalı deneyim kazandı.',
      NOW() - INTERVAL '14 days'),
     (${ituId}, 'TKGM ile Ortak Çalıştay Düzenlendi',
      'Tapu ve Kadastro Genel Müdürlüğü uzmanlarıyla gerçekleştirilen çalıştayda kadastral yenileme projeleri ve dijital dönüşüm süreçleri masaya yatırıldı.',

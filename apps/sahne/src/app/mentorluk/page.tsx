@@ -3,6 +3,10 @@ import type { Metadata } from 'next';
 import Navbar from '@/components/Navbar';
 import { PageActionTracker } from '@/components/PageActionTracker';
 import { MentorApplyForm } from '@/components/MentorApplyForm';
+import IdollerSection from '@/components/IdollerSection';
+import { TalentVideoCard } from '@/components/TalentVideoCard';
+import { YetenekGonderButton } from '@/components/YetenekGonder';
+import { cms } from '@/lib/api';
 
 export const metadata: Metadata = {
   title: 'Usta-Çırak Mentorluk — Haritailesi',
@@ -28,6 +32,20 @@ const FORMAT_LABELS: Record<string, string> = {
   in_person: 'Yüz Yüze',
   both: 'Online & Yüz Yüze',
 };
+
+const MUTFAK_URL = process.env['NEXT_PUBLIC_MUTFAK_URL'] ?? 'https://mutfak.haritailesi.org';
+
+const MEMBER_PROFILES = [
+  { role: 'CBS & Mekansal Analiz',   detail: 'Kamu · Ankara',           icon: '🗺️' },
+  { role: 'Fotogrametri & LiDAR',    detail: 'Özel Sektör · İstanbul',  icon: '✈️' },
+  { role: 'Uzaktan Algılama',        detail: 'Araştırmacı · İzmir',     icon: '🛰️' },
+  { role: 'Kontrol Mühendisi',       detail: 'Kamu · Konya',            icon: '📋' },
+  { role: 'UAV / İHA Operatörü',    detail: 'Girişimci · Bursa',        icon: '🚁' },
+  { role: 'Harita Mühendisi',       detail: 'Serbest · Trabzon',        icon: '📐' },
+  { role: 'Akademisyen',            detail: 'Üniversite · Ankara',      icon: '🎓' },
+  { role: 'Yazılım & WebGIS',       detail: 'Startup · İstanbul',       icon: '💻' },
+  { role: 'İnşaat & Altyapı Ölçme', detail: 'Özel Sektör · İzmir',    icon: '🏗️' },
+] as const;
 
 interface MentorItem {
   userId: string;
@@ -127,7 +145,7 @@ function MentorCard({ mentor }: { mentor: MentorItem }) {
 }
 
 export default async function MentorlukPage() {
-  const mentors = await fetchMentors();
+  const [mentors, talents] = await Promise.all([fetchMentors(), cms.talents()]);
   const WEB_URL = process.env['NEXT_PUBLIC_WEB_URL'] ?? 'https://haritailesi.org';
 
   const totalSessions = mentors.reduce((sum, m) => sum + m.completedSessionCount, 0);
@@ -390,6 +408,83 @@ export default async function MentorlukPage() {
                 </p>
               </div>
             )}
+          </div>
+        </section>
+
+        {/* ── İlham Veren İsimler (IdollerSection) ──────────────────────── */}
+        <section className="py-12 sm:py-16 bg-gray-50 dark:bg-slate-800/30 border-t border-gray-100 dark:border-slate-800">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="mb-8">
+              <div className="text-xs font-semibold uppercase tracking-widest text-[var(--color-teal)] mb-2">Meslekte Yeni İdoller</div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100">İlham Veren İsimler</h2>
+              <p className="mt-2 text-sm text-gray-500 dark:text-slate-400 max-w-xl">
+                Mesleğimizde iz bırakan, genç nesillere yol gösteren isimleri keşfedin.
+              </p>
+            </div>
+            <IdollerSection />
+          </div>
+        </section>
+
+        {/* ── Topluluğun Yetenekleri ─────────────────────────────────────── */}
+        {talents.length > 0 && (
+          <section className="py-12 sm:py-16 dark:bg-[#070c1a] border-t border-gray-100 dark:border-slate-800">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-end justify-between mb-8 flex-wrap gap-4">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-widest text-[#66aca9] mb-2">Cevherler</div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Topluluğun Yetenekleri</h2>
+                  <p className="mt-2 text-sm text-gray-500 dark:text-slate-400 max-w-xl">
+                    Koordinat hesaplarken aynı zamanda müzik yapıyorlar, fotoğraf sergileri açıyorlar. Ne cevherler var bu toplulukta.
+                  </p>
+                </div>
+                <YetenekGonderButton variant="solid" label="Yeteneğini Paylaş" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {talents.map((t) => (
+                  <TalentVideoCard key={t.id} talent={t} />
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ── Meslektaşlarımız ──────────────────────────────────────────── */}
+        <section className="py-12 sm:py-16 bg-gray-50 dark:bg-slate-800/30 border-t border-gray-100 dark:border-slate-800">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-8">
+              <p className="text-xs font-bold uppercase tracking-widest text-[#66aca9] mb-2">Haritailesi Üyeleri</p>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">Meslektaşlarımız burada buluşuyor.</h2>
+              <p className="text-sm text-gray-500 dark:text-slate-400 max-w-xl mx-auto">
+                Öğrencisinden SHKM, LİHKAB&apos;ına CBS uzmanından akademisyenine — Türkiye&apos;nin dört bir yanından profesyoneller tek çatı altında.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+              {MEMBER_PROFILES.map(p => (
+                <div key={p.role} className="flex items-start gap-4 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+                  <div className="w-11 h-11 rounded-xl bg-[#26496b]/8 dark:bg-[#26496b]/20 flex items-center justify-center text-xl shrink-0">
+                    {p.icon}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-slate-100 leading-snug">{p.role}</p>
+                    <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{p.detail}</p>
+                    <div className="flex gap-1 mt-2">
+                      {[...Array(3)].map((_, i) => (
+                        <div key={i} className="w-5 h-5 rounded-full bg-gradient-to-br from-[#26496b]/30 to-[#66aca9]/30 dark:from-[#26496b]/50 dark:to-[#66aca9]/40" />
+                      ))}
+                      <span className="text-[10px] text-gray-400 dark:text-slate-500 self-center ml-1">+daha fazlası</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="text-center">
+              <a
+                href={`${MUTFAK_URL}/uyeler`}
+                className="inline-flex items-center gap-2 px-7 py-3 text-sm font-semibold text-white bg-[#26496b] hover:bg-[#1e3a56] rounded-xl transition-colors shadow-md"
+              >
+                Mutfak&apos;ta Üye Dizinini Aç →
+              </a>
+            </div>
           </div>
         </section>
 

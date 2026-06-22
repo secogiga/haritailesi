@@ -30,7 +30,7 @@ export function HikayeniPaylasButton({
 
 type FormState = { name: string; title: string; org: string; linkedin: string; story: string; email: string };
 
-function HikayeniPaylasModal({ onClose }: { onClose: () => void }) {
+export function HikayeniPaylasModal({ onClose }: { onClose: () => void }) {
   const [form, setForm] = useState<FormState>({ name: '', title: '', org: '', linkedin: '', story: '', email: '' });
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 

@@ -48,7 +48,7 @@ export function YetenekGonderButton({
   );
 }
 
-function YetenekGonderModal({ onClose }: { onClose: () => void }) {
+export function YetenekGonderModal({ onClose }: { onClose: () => void }) {
   const [form, setForm] = useState({
     name: '',
     category: '',

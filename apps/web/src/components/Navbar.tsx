@@ -30,6 +30,7 @@ const DEFAULT_NAV_ITEMS: NavItem[] = [
       { label: 'Neden Üye Olmalıyım?', href: '/uye-ol' },
       { label: 'Bireysel Üyelik', href: '/uye-ol/bireysel' },
       { label: 'Kurumsal Üyelik', href: '/uye-ol/kurumsal' },
+      { label: 'Mesleğe Değer Katan Markalar', href: '/markalar' },
     ],
   },
   {

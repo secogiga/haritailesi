@@ -322,7 +322,7 @@ export function ListingsClient({ allListings }: { allListings: JobListing[] }) {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [contactListing, setContactListing] = useState<JobListing | null>(null);
   const [query, setQuery] = useState('');
-  const [visibleCount, setVisibleCount] = useState(10);
+  const [visibleCount, setVisibleCount] = useState(5);
 
   useEffect(() => {
     try {
@@ -409,7 +409,7 @@ export function ListingsClient({ allListings }: { allListings: JobListing[] }) {
         <div className="flex gap-8 items-start">
 
           {/* ── Sidebar ── */}
-          <aside className="hidden lg:flex flex-col gap-5 w-60 shrink-0 sticky top-6">
+          <aside className="hidden lg:flex flex-col gap-5 w-60 shrink-0">
 
             {/* Categories */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 p-4">
@@ -645,7 +645,7 @@ export function ListingsClient({ allListings }: { allListings: JobListing[] }) {
                 </div>
                 {visibleCount < filtered.length && (
                   <button
-                    onClick={() => setVisibleCount(c => c + 10)}
+                    onClick={() => setVisibleCount(c => c + 5)}
                     className="w-full mt-4 py-3 text-sm font-semibold text-[var(--color-mavi)] dark:text-[var(--color-teal)] bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
                   >
                     Daha Fazla Göster

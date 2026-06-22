@@ -10,59 +10,6 @@ import IdollerSection from '@/components/IdollerSection';
 import HaberitaSection from '@/components/HaberitaSection';
 import { cms } from '@/lib/api';
 
-// ─── Katkı kademesi ───────────────────────────────────────────────────────────
-
-const CONTRIBUTION_LEVELS = [
-  {
-    no: 1,
-    name: 'İzleyici',
-    desc: 'Sistemi keşfeder, içerikleri takip eder.',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-      </svg>
-    ),
-    color: 'bg-gray-100 text-gray-500',
-    activeColor: 'bg-gray-500',
-  },
-  {
-    no: 2,
-    name: 'Katılımcı',
-    desc: 'İlk aksiyonlarını alır, etkinliklere katılır.',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-      </svg>
-    ),
-    color: 'bg-blue-100 text-blue-600',
-    activeColor: 'bg-blue-500',
-  },
-  {
-    no: 3,
-    name: 'Katkı Sunan',
-    desc: 'İçerik üretir, katkı sunar.',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-      </svg>
-    ),
-    color: 'bg-emerald-100 text-emerald-600',
-    activeColor: 'bg-emerald-500',
-  },
-  {
-    no: 4,
-    name: 'Etki Yaratan',
-    desc: 'Mentörlük verir, topluluğa yön verir.',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-      </svg>
-    ),
-    color: 'bg-amber-100 text-amber-600',
-    activeColor: 'bg-amber-500',
-  },
-];
 
 
 // ─── Event type config ────────────────────────────────────────────────────────
@@ -259,61 +206,6 @@ export default async function SahnePage() {
         {/* ── Yönlendirmeli / Özgür Keşif ──────────────────────────────── */}
         <div id="kesfet"><StartGuide /></div>
 
-        {/* ── Katkı Kademesi ────────────────────────────────────────────── */}
-        <section className="py-16 sm:py-24 bg-gray-50 dark:bg-slate-950 border-y border-gray-100 dark:border-slate-800">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <div className="text-xs font-semibold uppercase tracking-widest text-[#66aca9] mb-3">Katkı Basamağı</div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-slate-100 mb-3">
-                Küçük Adımlarla Büyük Etki
-              </h2>
-              <p className="text-gray-500 dark:text-slate-400 max-w-xl mx-auto">
-                Sistem seni zorlamaz; yönlendirir. Her katkı bir sonraki basamağa taşır.
-              </p>
-            </div>
-
-            {/* Horizontal stepper — scrollable on mobile */}
-            <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto pb-2">
-              <div className="flex items-start gap-0 min-w-[600px] sm:min-w-0">
-                {CONTRIBUTION_LEVELS.map((level, idx) => (
-                  <div key={level.no} className="flex-1 flex flex-col items-center relative">
-                    {idx < CONTRIBUTION_LEVELS.length - 1 && (
-                      <div className="absolute top-5 left-1/2 w-full h-0.5 bg-gradient-to-r from-gray-200 to-gray-200 dark:from-slate-700 dark:to-slate-700" />
-                    )}
-                    <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center mb-3 ${level.color} border-2 border-white dark:border-slate-950 shadow-sm`}>
-                      {level.icon}
-                    </div>
-                    <div className="text-[10px] font-bold text-gray-400 dark:text-slate-500 mb-0.5 uppercase tracking-wider">
-                      {level.no}. Kademe
-                    </div>
-                    <div className="text-sm font-bold text-gray-900 dark:text-slate-100 mb-1 text-center">
-                      {level.name}
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-slate-400 text-center leading-relaxed px-2">
-                      {level.desc}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-            {/* Progression note */}
-            <p className="mt-6 text-center text-xs text-gray-400 dark:text-slate-500 max-w-lg mx-auto">
-              Kademe geçişi puan değil; katkı kalitesi, topluluk etkisi ve editör onayıyla gerçekleşir.
-            </p>
-
-            <div className="mt-10 text-center">
-              <Link
-                href="#kesfet"
-                className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-[#26496b] hover:bg-[#1d3a57] rounded-xl transition-colors"
-              >
-                Sahneye İlk Adım
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
-            </div>
-          </div>
-        </section>
 
         {/* ── Community Pulse ───────────────────────────────────────────── */}
         <CommunityPulse />
@@ -497,6 +389,101 @@ export default async function SahnePage() {
 
         {/* ── Haberita: Sektörden Haberler ──────────────────────────────── */}
         <HaberitaSection />
+
+        {/* ── Mesleğe Değer Katan Markalar ─────────────────────────────── */}
+        <section className="py-14 sm:py-20 dark:bg-[#070c1a]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1a3250] to-[#26496b]">
+              {/* Topo background */}
+              <div className="absolute inset-0 opacity-[0.07]" aria-hidden="true">
+                <svg viewBox="0 0 1200 280" className="w-full h-full" fill="none">
+                  <ellipse cx="900" cy="140" rx="380" ry="130" stroke="white" strokeWidth="1.5" />
+                  <ellipse cx="900" cy="140" rx="270" ry="95" stroke="white" strokeWidth="1" />
+                  <ellipse cx="900" cy="140" rx="170" ry="62" stroke="white" strokeWidth="1" />
+                  <ellipse cx="900" cy="140" rx="90" ry="36" stroke="white" strokeWidth="1" />
+                  <ellipse cx="200" cy="60" rx="120" ry="50" stroke="white" strokeWidth="0.75" />
+                </svg>
+              </div>
+
+              <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center gap-8 p-8 sm:p-10">
+                {/* Left */}
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold uppercase tracking-wide">
+                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                      </svg>
+                      Kurumsal Üyeler
+                    </span>
+                  </div>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">
+                    Mesleğe Değer Katan<br className="hidden sm:block" /> Markalar
+                  </h2>
+                  <p className="text-white/60 max-w-md leading-relaxed mb-6">
+                    Sektörümüzün önde gelen kurumları topluluğumuzu destekliyor. 68 kurumsal üye, 27 kurucu marka, 12.500+ meslektaşa erişim.
+                  </p>
+
+                  {/* Kurucu marka avatarları */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex -space-x-2.5">
+                      {[
+                        { initials: 'KA', color: 'bg-blue-700' },
+                        { initials: 'GV', color: 'bg-slate-600' },
+                        { initials: 'MS', color: 'bg-[#26496b]' },
+                        { initials: 'SK', color: 'bg-gray-700' },
+                      ].map((m) => (
+                        <div key={m.initials} className={`w-8 h-8 rounded-full ${m.color} border-2 border-[#1a3250] flex items-center justify-center text-white text-[10px] font-bold`}>
+                          {m.initials}
+                        </div>
+                      ))}
+                      <div className="w-8 h-8 rounded-full bg-white/10 border-2 border-[#1a3250] flex items-center justify-center text-white text-[10px] font-bold">
+                        +64
+                      </div>
+                    </div>
+                    <span className="text-white/50 text-xs">kurumsal üye topluluğa katkı sunuyor</span>
+                  </div>
+                </div>
+
+                {/* Right */}
+                <div className="flex flex-col gap-3 shrink-0">
+                  {/* Stats */}
+                  <div className="grid grid-cols-3 gap-3 mb-2">
+                    {[
+                      { value: '15', label: 'Kurumsal Üye' },
+                      { value: '15', label: 'Kurucu Marka' },
+                      { value: '40.5K+', label: 'Erişim' },
+                    ].map((s) => (
+                      <div key={s.label} className="text-center bg-white/5 rounded-xl px-4 py-3 border border-white/10">
+                        <div className="text-xl font-bold text-amber-400 tabular-nums">{s.value}</div>
+                        <div className="text-[11px] text-white/50 mt-0.5">{s.label}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <a
+                    href={`${WEB_URL}/markalar`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-400 text-white font-semibold rounded-xl transition-colors text-sm"
+                  >
+                    Tüm Markaları Gör
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                  <a
+                    href={`${WEB_URL}/uye-ol/kurumsal`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl transition-colors text-sm border border-white/20 text-center"
+                  >
+                    Kurumsal Üyelik Başvurusu →
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* ── Topluluktan Projeler ──────────────────────────────────────── */}
         <section className="py-16 sm:py-24 bg-gray-50 dark:bg-slate-950 border-y border-gray-100 dark:border-slate-800">
