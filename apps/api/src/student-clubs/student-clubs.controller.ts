@@ -17,6 +17,7 @@ class CreateStudentClubDto {
   @IsOptional() @IsInt() @Min(0) @Type(() => Number) memberCount?: number;
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsString() activities?: string;
+  @IsOptional() @IsString() coverImageUrl?: string;
 }
 
 class UpdateStudentClubStatusDto {

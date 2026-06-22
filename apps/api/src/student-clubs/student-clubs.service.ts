@@ -25,7 +25,7 @@ export class StudentClubsService {
     name: string; slug: string; university: string; city: string;
     contactName: string; contactEmail: string; contactPhone?: string;
     website?: string; memberCount?: number; description?: string;
-    activities?: string;
+    activities?: string; coverImageUrl?: string;
   }) {
     const [row] = await this.db.insert(studentClubs).values({
       ...dto,
@@ -33,6 +33,7 @@ export class StudentClubsService {
       website: dto.website ?? null,
       description: dto.description ?? null,
       activities: dto.activities ?? null,
+      coverImageUrl: dto.coverImageUrl ?? null,
       memberCount: dto.memberCount ?? 0,
       status: 'pending',
     }).returning({ id: studentClubs.id });

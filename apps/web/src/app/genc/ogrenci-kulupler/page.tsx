@@ -82,7 +82,7 @@ function formatEventDate(iso: string) {
 
 type Tab = 'kulupler' | 'haberler' | 'etkinlikler' | 'iletisim';
 
-const EMPTY_APPLY = { name: '', university: '', city: '', contactName: '', contactEmail: '', contactPhone: '', website: '', description: '', activities: '' };
+const EMPTY_APPLY = { name: '', university: '', city: '', contactName: '', contactEmail: '', contactPhone: '', website: '', coverImageUrl: '', description: '', activities: '' };
 
 export default function OgrenciKulupler() {
   const [tab, setTab] = useState<Tab>('kulupler');
@@ -402,6 +402,11 @@ export default function OgrenciKulupler() {
                         <input placeholder="Website" value={applyForm.website}
                           onChange={e => setApplyForm(f => ({ ...f, website: e.target.value }))}
                           className="bg-white/15 text-white placeholder-white/40 rounded-lg px-3 py-2 text-sm border border-white/20 focus:outline-none focus:border-white/50" />
+                        <div className="col-span-2">
+                          <input placeholder="Kapak görseli bağlantısı (kampüs/etkinlik fotoğrafı URL)" value={applyForm.coverImageUrl}
+                            onChange={e => setApplyForm(f => ({ ...f, coverImageUrl: e.target.value }))}
+                            className="w-full bg-white/15 text-white placeholder-white/40 rounded-lg px-3 py-2 text-sm border border-white/20 focus:outline-none focus:border-white/50" />
+                        </div>
                         <div className="col-span-2">
                           <textarea rows={2} placeholder="Kulüp hakkında kısa bilgi" value={applyForm.description}
                             onChange={e => setApplyForm(f => ({ ...f, description: e.target.value }))}

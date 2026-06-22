@@ -19,6 +19,8 @@ export const studentClubs = pgTable(
     description: text('description'),
     activities: text('activities'),
     logoKey: text('logo_key'),
+    coverImageUrl: text('cover_image_url'),
+    coverColor: text('cover_color'),
     status: text('status').notNull().default('pending'),
     adminNotes: text('admin_notes'),
     representativeId: uuid('representative_id').references(() => users.id, { onDelete: 'set null' }),

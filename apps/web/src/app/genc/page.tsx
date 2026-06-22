@@ -278,7 +278,7 @@ export default async function GencPage() {
               Öğrenci Kulüpleri
             </h2>
             <p className="mt-2 text-gray-500 text-sm">
-              Haritailesi topluluğuna bağlı üniversite haritacılık kulüpleri
+              Haritailesi&apos;ndeki Üniversite Kulüpleri
             </p>
           </div>
 
