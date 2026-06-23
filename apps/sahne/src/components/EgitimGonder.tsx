@@ -287,7 +287,8 @@ export function EgitimGonderCTA() {
           <div className="flex-1">
             <p className="text-base font-black text-white mb-1">Eğitim mi Vermek İstiyorsun?</p>
             <p className="text-sm text-white/60 leading-relaxed">
-              Harita, geomatik veya CBS alanında paylaşmak istediğin bir eğitim varsa topluluğa duyur.
+              Mesleğimiz iş alanlarında (Klasik Haritacılık, İnşaat, CBS, gayrimenkul değerleme vb.) ve
+              meslektaşlarımızın kişisel gelişimi için paylaşmak istediğin bir eğitim varsa Haritailesi&apos;ne duyur.
               Üye girişiyle ya da form doldurarak gönderebilirsin.
             </p>
           </div>

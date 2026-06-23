@@ -9,6 +9,13 @@ import { CourseReviews } from '@/components/CourseReviews';
 import { ShareMenu } from '@/components/ShareMenu';
 
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000';
+
+// Kapak görseli: '/...' veya 'http' ise doğrudan (public), değilse API media
+function coverSrc(key: string): string {
+  return key.startsWith('/') || key.startsWith('http')
+    ? key
+    : `${API_URL}/api/v1/media?key=${encodeURIComponent(key)}`;
+}
 const MUTFAK_URL = process.env['NEXT_PUBLIC_MUTFAK_URL'] ?? 'https://mutfak.haritailesi.org';
 
 // ─── Renk haritaları ──────────────────────────────────────────────────────────
@@ -167,7 +174,7 @@ export default async function EgitimDetayPage({ params }: Props) {
           {course.coverImageKey ? (
             <>
               <img
-                src={`${API_URL}/api/v1/media?key=${encodeURIComponent(course.coverImageKey)}`}
+                src={coverSrc(course.coverImageKey)}
                 alt={course.title}
                 className="absolute inset-0 w-full h-full object-cover opacity-20"
               />
@@ -272,6 +279,25 @@ export default async function EgitimDetayPage({ params }: Props) {
                     </div>
                   </Link>
                 )}
+
+                {/* Öne çıkanlar — sol altı doldurur */}
+                <div className="mt-9 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 max-w-xl">
+                  {[
+                    course.certificateThreshold ? 'Tamamlama sertifikası' : null,
+                    course.totalLessons > 0 ? `${course.totalLessons} ders içerik` : null,
+                    durationStr ? `${durationStr} eğitim` : null,
+                    'Yaşam boyu erişim',
+                    'Mobil ve masaüstü erişim',
+                    'Uygulamalı, sektöre dönük içerik',
+                  ].filter(Boolean).map((f) => (
+                    <div key={f as string} className="flex items-center gap-2.5 text-sm text-slate-300">
+                      <svg className="w-4 h-4 text-[#66aca9] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {f}
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Sağ — kart (desktop) */}
@@ -280,7 +306,7 @@ export default async function EgitimDetayPage({ params }: Props) {
                   {course.coverImageKey && (
                     <div className="h-44 overflow-hidden">
                       <img
-                        src={`${API_URL}/api/v1/media?key=${encodeURIComponent(course.coverImageKey)}`}
+                        src={coverSrc(course.coverImageKey)}
                         alt={course.title}
                         className="w-full h-full object-cover"
                       />
@@ -431,15 +457,18 @@ export default async function EgitimDetayPage({ params }: Props) {
                   </div>
                   <div className="space-y-2">
                     {course.sections.map((section, si) => (
-                      <div key={section.id} className="rounded-2xl overflow-hidden border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+                      <details key={section.id} className="group rounded-2xl overflow-hidden border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
                         {/* Bölüm başlık */}
-                        <div className="flex items-center gap-3 px-5 py-3.5 bg-gray-50 dark:bg-slate-800/60">
+                        <summary className="flex items-center gap-3 px-5 py-3.5 bg-gray-50 dark:bg-slate-800/60 cursor-pointer list-none select-none hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
                           <div className="w-6 h-6 rounded-lg bg-[#26496b]/10 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
                             <span className="text-[11px] font-black text-[#26496b] dark:text-blue-400">{si + 1}</span>
                           </div>
                           <span className="font-semibold text-gray-900 dark:text-slate-100 text-sm flex-1">{section.title}</span>
                           <span className="text-xs text-gray-400 dark:text-slate-500 font-medium">{section.lessons.length} ders</span>
-                        </div>
+                          <svg className="w-4 h-4 text-gray-400 shrink-0 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </summary>
                         {/* Dersler */}
                         <div className="divide-y divide-gray-50 dark:divide-slate-800">
                           {section.lessons.map((lesson) => {
@@ -465,7 +494,7 @@ export default async function EgitimDetayPage({ params }: Props) {
                             );
                           })}
                         </div>
-                      </div>
+                      </details>
                     ))}
                   </div>
                 </section>
@@ -510,15 +539,6 @@ export default async function EgitimDetayPage({ params }: Props) {
 
               {/* Yorumlar */}
               <section>
-                <div className="flex items-center gap-2.5 mb-5">
-                  <div className="w-1 h-5 bg-gradient-to-b from-[#26496b] to-[#66aca9] rounded-full" />
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-slate-100">Değerlendirmeler</h2>
-                  {course.avgRating && (
-                    <span className="text-xs text-gray-400 dark:text-slate-500 bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-medium">
-                      ★ {course.avgRating} · {course.reviewCount} yorum
-                    </span>
-                  )}
-                </div>
                 <CourseReviews
                   reviews={reviews ?? []}
                   trainingId={course.id}
@@ -534,7 +554,7 @@ export default async function EgitimDetayPage({ params }: Props) {
 
             {/* Sağ — sidebar (desktop) */}
             <div className="hidden lg:block lg:col-span-2">
-              <div className="sticky top-8 space-y-4">
+              <div className="space-y-4">
 
                 {/* Kayıt kartı */}
                 <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden">

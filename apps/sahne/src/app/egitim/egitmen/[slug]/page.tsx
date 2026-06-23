@@ -7,19 +7,25 @@ const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000';
 
 interface Props { params: Promise<{ slug: string }> }
 
+function decodeSlug(s: string): string {
+  try { return decodeURIComponent(s); } catch { return s; }
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
+  const decoded = decodeSlug(slug);
   const courses = await cms.trainings().catch(() => null) ?? [];
-  const instructor = courses.find(c => c.instructor?.toLowerCase().replace(/\s+/g, '-') === slug);
+  const instructor = courses.find(c => c.instructor?.toLowerCase().replace(/\s+/g, '-') === decoded);
   return { title: instructor?.instructor ?? 'Eğitmen Profili' };
 }
 
 export default async function InstructorPage({ params }: Props) {
   const { slug } = await params;
+  const decoded = decodeSlug(slug);
   const allCourses = await cms.trainings().catch(() => []) ?? [];
 
   const myCourses = allCourses.filter(c =>
-    c.instructor?.toLowerCase().replace(/\s+/g, '-') === slug,
+    c.instructor?.toLowerCase().replace(/\s+/g, '-') === decoded,
   );
 
   if (myCourses.length === 0) {
@@ -41,7 +47,7 @@ export default async function InstructorPage({ params }: Props) {
 
   const totalStudents = myCourses.reduce((s, c) => s + c.enrollmentCount, 0);
   const totalViews = myCourses.reduce((s, c) => s + c.viewCount, 0);
-  const freeCourses = myCourses.filter(c => !c.price).length;
+  const uzmanlik = [...new Set(myCourses.flatMap(c => c.tags ?? []))].slice(0, 12);
 
   return (
     <>
@@ -62,50 +68,54 @@ export default async function InstructorPage({ params }: Props) {
               Tüm Eğitimler
             </Link>
 
-            <div className="flex flex-col sm:flex-row gap-7 items-start">
-              {avatarKey ? (
-                <img src={`${API_URL}/api/v1/media?key=${encodeURIComponent(avatarKey)}`} alt={instructor}
-                  className="w-24 h-24 rounded-2xl object-cover ring-2 ring-white/20 shrink-0" />
-              ) : (
-                <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-[#26496b] to-[#66aca9] text-white flex items-center justify-center text-4xl font-black shrink-0">
-                  {instructor[0]?.toUpperCase()}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+              <div className="flex gap-7 items-center">
+                {avatarKey ? (
+                  <img src={`${API_URL}/api/v1/media?key=${encodeURIComponent(avatarKey)}`} alt={instructor}
+                    className="w-24 h-24 rounded-2xl object-cover ring-2 ring-white/20 shrink-0" />
+                ) : (
+                  <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-[#26496b] to-[#66aca9] text-white flex items-center justify-center text-4xl font-black shrink-0">
+                    {instructor[0]?.toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-[#66aca9] mb-2">Eğitmen</p>
+                  <h1 className="text-3xl sm:text-4xl font-black text-white mb-1">{instructor}</h1>
+                  {title && <p className="text-sm font-medium text-slate-400">{title}</p>}
                 </div>
-              )}
-              <div className="flex-1">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-[#66aca9] mb-2">Eğitmen</p>
-                <h1 className="text-3xl sm:text-4xl font-black text-white mb-1">{instructor}</h1>
-                {title && <p className="text-sm font-medium text-slate-400 mb-4">{title}</p>}
-                {bio && <p className="text-slate-300 text-sm leading-relaxed max-w-xl">{bio}</p>}
+              </div>
+
+              {/* Ayrı stat kutuları — hero sağ */}
+              <div className="flex gap-3 shrink-0">
+                {[
+                  { label: 'Eğitim', value: myCourses.length },
+                  { label: 'Öğrenci', value: totalStudents },
+                  { label: 'Görüntülenme', value: totalViews },
+                ].map(s => (
+                  <div key={s.label} className="flex-1 lg:flex-none lg:min-w-[96px] rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md px-5 py-4 text-center">
+                    <div className="text-2xl font-black text-white tabular-nums leading-none">{s.value}</div>
+                    <div className="text-[11px] text-slate-400 mt-1.5">{s.label}</div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
           <div className="h-8 bg-[#f8fafc] dark:bg-[#070c1a]" style={{ clipPath: 'ellipse(55% 100% at 50% 100%)' }} />
         </section>
 
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-          {/* İstatistikler */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
-            {[
-              { label: 'Kurs', value: myCourses.length, color: 'text-[#26496b] dark:text-blue-400' },
-              { label: 'Öğrenci', value: totalStudents, color: 'text-emerald-600 dark:text-emerald-400' },
-              { label: 'Görüntülenme', value: totalViews, color: 'text-amber-600 dark:text-amber-400' },
-              { label: 'Ücretsiz Kurs', value: freeCourses, color: 'text-violet-600 dark:text-violet-400' },
-            ].map(stat => (
-              <div key={stat.label} className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl p-5 text-center shadow-sm">
-                <p className={`text-2xl font-black tabular-nums ${stat.color}`}>{stat.value}</p>
-                <p className="text-xs text-gray-500 dark:text-slate-400 mt-1 font-medium">{stat.label}</p>
+            {/* Sol — Eğitimleri */}
+            <div className="lg:col-span-2">
+              <div className="flex items-center gap-2 mb-5">
+                <div className="w-1 h-5 bg-gradient-to-b from-[#26496b] to-[#66aca9] rounded-full" />
+                <h2 className="text-sm font-bold uppercase tracking-widest text-gray-500 dark:text-slate-400">
+                  Eğitimleri <span className="text-gray-300 dark:text-slate-600 font-normal normal-case tracking-normal">{myCourses.length} eğitim</span>
+                </h2>
               </div>
-            ))}
-          </div>
-
-          {/* Kurslar */}
-          <div className="flex items-center gap-2 mb-5">
-            <div className="w-1 h-5 bg-gradient-to-b from-[#26496b] to-[#66aca9] rounded-full" />
-            <h2 className="text-sm font-bold uppercase tracking-widest text-gray-500 dark:text-slate-400">Kursları</h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {myCourses.map((course: Training) => (
+              <div className="grid grid-cols-1 gap-4">
+                {myCourses.map((course: Training) => (
               <Link key={course.id} href={`/egitim/${course.slug}`}
                 className="group flex gap-4 bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 p-5 hover:shadow-lg hover:-translate-y-0.5 transition-all">
                 <div className={`w-1.5 rounded-full shrink-0 bg-gradient-to-b ${
@@ -136,6 +146,28 @@ export default async function InstructorPage({ params }: Props) {
                 </div>
               </Link>
             ))}
+              </div>
+            </div>
+
+            {/* Sağ — Hakkında + Uzmanlık */}
+            <aside className="lg:col-span-1 space-y-4">
+              {bio && (
+                <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-slate-400 mb-3">Hakkında</h3>
+                  <p className="text-sm text-gray-600 dark:text-slate-400 leading-relaxed">{bio}</p>
+                </div>
+              )}
+              {uzmanlik.length > 0 && (
+                <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-slate-400 mb-3">Uzmanlık Alanları</h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    {uzmanlik.map(t => (
+                      <span key={t} className="text-[11px] font-medium bg-[#26496b]/8 dark:bg-blue-900/20 text-[#26496b] dark:text-blue-400 px-2.5 py-1 rounded-full">{t}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </aside>
           </div>
         </div>
       </main>
